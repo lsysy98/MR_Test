@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>영업 일일보고</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #f4f7f5;
+      --panel: #ffffff;
+      --line: #d9e2dc;
+      --text: #17211c;
+      --muted: #66736d;
+      --green: #14765c;
+      --green-soft: #e6f5ef;
+      --blue-soft: #e7f1ff;
+      --blue: #2563eb;
+      --amber-soft: #fff2d8;
+      --amber: #b7791f;
+      --red: #c24141;
+      --red-soft: #fff1f1;
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Malgun Gothic", system-ui, sans-serif; }
+    header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 16px; position: sticky; top: 0; z-index: 5; }
+    h1 { margin: 0; font-size: 19px; }
+    h2 { margin: 0; font-size: 17px; }
+    button, input, select { font: inherit; }
+    main { max-width: 1120px; margin: 0 auto; padding: 14px; display: grid; grid-template-columns: 360px 1fr; gap: 14px; }
+    section, .metric, .owner-card, .report-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 22px rgba(27,45,37,.08);
+    }
+    .head { padding: 16px 16px 6px; }
+    .form, .body { padding: 12px 16px 16px; display: grid; gap: 12px; }
+    label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
+    .label-muted { color: #8a9691; font-size: 12px; font-weight: 400; }
+    .optional-note { color: #7b8983; font-size: 12px; margin-top: -3px; }
+    input, select { width: 100%; min-height: 44px; border: 1px solid #cbd8d1; border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--text); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn { min-height: 42px; border: 1px solid #bfd0c8; border-radius: 8px; background: #fff; color: #0f5b47; padding: 0 13px; cursor: pointer; }
+    .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+    .btn.danger { color: var(--red); border-color: #efc8c8; }
+    .btn.done { background: var(--green-soft); border-color: #98d8bf; color: #0f5b47; font-weight: 800; }
+    .btn.pending { background: var(--red-soft); border-color: #efb8b8; color: #b42323; font-weight: 800; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border: 1px solid #cbd8d1; border-radius: 8px; }
+    .seg button { border: 0; border-radius: 6px; background: #fff; color: var(--muted); min-height: 38px; cursor: pointer; }
+    .seg button.active { background: var(--green); color: #fff; font-weight: 800; }
+    .collection-nav { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; align-items: center; }
+    .collection-label { min-height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-weight: 900; }
+    .quick-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .amount-wrap { position: relative; }
+    .amount-wrap input { padding-right: 54px; }
+    .amount-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+    .helper { color: var(--muted); font-size: 12px; margin-top: -4px; }
+    .toast { min-height: 22px; color: #0f5b47; font-size: 13px; }
+    .notice-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(23, 33, 28, .28);
+    }
+    .notice-overlay.active { display: flex; }
+    .notice-box {
+      width: min(320px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      text-align: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 44px rgba(27,45,37,.22);
+    }
+    .notice-box strong { font-size: 18px; }
+    .status { border: 1px solid #cbd8d1; border-radius: 8px; padding: 10px 12px; background: #fbfdfc; color: var(--muted); font-size: 13px; }
+    .status.ok { border-color: #98d8bf; background: #ecf9f3; color: #0f5b47; }
+    .status.error { border-color: #efb8b8; background: #fff1f1; color: #b42323; }
+    .mobile-tabs { display: none; }
+    .today-panel { grid-column: 2; }
+    .summary-title { margin: 2px 0 -2px; color: var(--muted); font-size: 14px; font-weight: 800; }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .metric { padding: 14px; min-height: 92px; display: grid; gap: 6px; align-content: space-between; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .metric strong { font-size: 22px; }
+    .metric small { color: var(--muted); font-size: 13px; }
+    .month-nav { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .month-main { display: grid; grid-template-columns: minmax(180px, 240px); gap: 8px; align-items: center; }
+    .month-actions { display: flex; gap: 8px; align-items: center; }
+    #monthPicker { font-weight: 800; text-align: center; }
+    .owner-grid { display: grid; gap: 1px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--line); }
+    .owner-card { box-shadow: none; border: 0; border-radius: 0; overflow: hidden; }
+    .owner-button {
+      width: 100%;
+      min-height: 44px;
+      border: 0;
+      background: #fff;
+      padding: 9px 12px;
+      display: grid;
+      grid-template-columns: minmax(70px, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+      cursor: pointer;
+    }
+    .owner-button.active { background: var(--green-soft); }
+    .owner-name { font-size: 15px; font-weight: 900; color: var(--text); }
+    .owner-line {
+      display: grid;
+      grid-template-columns: 42px 42px 42px;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .owner-count { color: var(--muted); font-size: 12px; font-weight: 800; text-align: right; }
+    .owner-rate {
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 5px 7px;
+      text-align: center;
+    }
+    .team-line {
+      display: grid;
+      grid-template-columns: 42px 42px minmax(96px, auto);
+      gap: 5px;
+      align-items: center;
+      justify-content: end;
+      white-space: nowrap;
+    }
+    .team-line span { text-align: right; }
+    .team-line .team-count { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .team-line .team-amount { color: var(--text); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .period-switch { grid-template-columns: 1fr 1fr; }
+    .period-controls { display: grid; gap: 8px; }
+    .day-control, .week-control { display: grid; grid-template-columns: .8fr minmax(150px, 1.4fr) .8fr; gap: 8px; align-items: center; }
+    .date-pick-wrap { position: relative; }
+    .date-label, .week-label {
+      width: 100%;
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hidden-date {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      pointer-events: none;
+    }
+    .owner-detail-summary { display: none; grid-template-columns: 1fr 1fr auto; gap: 8px; padding: 8px; border-top: 1px solid var(--line); background: #fbfdfc; }
+    .owner-card.open .owner-detail-summary { display: grid; }
+    .detail-metric { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px; display: grid; gap: 3px; text-align: left; cursor: pointer; }
+    .detail-metric.active { border-color: var(--green); background: var(--green-soft); }
+    .detail-metric span { color: var(--muted); font-size: 12px; }
+    .detail-metric strong { font-size: 15px; }
+    .detail-reset { align-self: stretch; min-width: 72px; }
+    .detail-list { display: none; border-top: 1px solid var(--line); padding: 9px; gap: 8px; background: #eef5f1; }
+    .owner-card.open .detail-list { display: grid; }
+    .report-card {
+      position: relative;
+      box-shadow: 0 4px 10px rgba(27,45,37,.06);
+      padding: 9px 9px 9px 42px;
+      display: grid;
+      gap: 6px;
+      border-color: #c8d7d0;
+      overflow: hidden;
+    }
+    .report-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      background: var(--blue);
+    }
+    .report-card.growth::before { background: var(--amber); }
+    .report-number {
+      position: absolute;
+      left: 12px;
+      top: 11px;
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #edf3f0;
+      color: #355247;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .report-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; }
+    .client-wrap { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    .client { font-weight: 900; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+    .branch-name { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .report-amount { font-weight: 900; font-size: 20px; color: #10251d; line-height: 1.1; white-space: nowrap; }
+    .report-info { color: var(--muted); font-size: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .report-bottom { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+    .report-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .report-actions .btn { min-height: 34px; padding: 0 9px; font-size: 13px; }
+    .report-actions .btn.done,
+    .report-actions .btn.pending { max-width: 92px; padding: 0 7px; font-size: 12px; line-height: 1.15; white-space: normal; }
+    .badge { display: inline-flex; align-items: center; min-height: 23px; border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .badge.new { background: var(--blue-soft); color: var(--blue); }
+    .badge.growth { background: var(--amber-soft); color: var(--amber); }
+    .empty { color: var(--muted); text-align: center; padding: 18px 10px; border: 1px dashed #cbd8d1; border-radius: 8px; background: #fff; }
+    @media (max-width: 900px) {
+      header { padding: 12px 12px 10px; }
+      .mobile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; padding: 4px; border: 1px solid #cbd8d1; border-radius: 8px; background: #f5f8f6; }
+      .mobile-tab { min-height: 38px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
+      .mobile-tab.active { background: var(--green); color: #fff; }
+      main { display: block; padding: 14px 12px 24px; }
+      body.view-dashboard .input-panel, body.view-dashboard .today-panel { display: none; }
+      body.view-form .dashboard, body.view-form .today-panel { display: none; }
+      body.view-today .input-panel, body.view-today .dashboard { display: none; }
+      .input-panel, .dashboard, .today-panel { scroll-margin-top: 108px; }
+      .dashboard, .today-panel { margin-top: 0; }
+      .summary { grid-template-columns: 1fr 1fr; }
+      .row, .month-nav, .month-main { grid-template-columns: 1fr; }
+      .collection-nav { grid-template-columns: 1fr 1.15fr 1fr; }
+      .month-actions { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .quick-row { grid-template-columns: repeat(3, 1fr); }
+      .owner-grid { border-radius: 7px; }
+      .owner-button { min-height: 41px; grid-template-columns: 64px 1fr; padding: 7px 10px; }
+      .owner-name { font-size: 15px; }
+      .owner-line { grid-template-columns: 38px 38px 38px; gap: 4px; justify-self: end; letter-spacing: 0; }
+      .owner-count { font-size: 11px; }
+      .owner-rate { font-size: 11px; padding: 5px 6px; }
+      .team-line { grid-template-columns: 36px 36px minmax(92px, auto); gap: 4px; justify-self: end; letter-spacing: 0; }
+      .team-line .team-count { font-size: 11px; }
+      .team-line .team-amount { font-size: 13px; }
+      .day-control, .week-control { grid-template-columns: .68fr minmax(154px, 1.64fr) .68fr; gap: 6px; }
+      .date-label, .week-label { min-height: 40px; padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
+      .owner-detail-summary { grid-template-columns: 1fr 1fr; }
+      .detail-reset { grid-column: 1 / -1; }
+      .report-card { padding: 8px 8px 8px 40px; }
+      .report-amount { font-size: 19px; }
+      .report-bottom { align-items: center; }
+    }
+  </style>
+</head>
+<body class="view-dashboard">
+  <header>
+    <h1>영업 일일보고</h1>
+    <div class="mobile-tabs" aria-label="화면 선택">
+      <button class="mobile-tab" type="button" data-view="form">작성하기</button>
+      <button class="mobile-tab active" type="button" data-view="dashboard">월간현황</button>
+      <button class="mobile-tab" type="button" data-view="today">일일현황</button>
+    </div>
+  </header>
+  <main>
+    <section class="input-panel">
+      <div class="head"><h2>거래처 입력</h2></div>
+      <form class="form" id="reportForm">
+        <label>담당자 이름
+          <select id="owner" required>
+            <option value="">선택</option>
+            <option value="성진욱">성진욱</option>
+            <option value="김무영">김무영</option>
+            <option value="이승엽">이승엽</option>
+            <option value="김태홍">김태홍</option>
+            <option value="제성규">제성규</option>
+            <option value="송진영">송진영</option>
+            <option value="이현욱">이현욱</option>
+          </select>
+        </label>
+        <label>날짜 <input id="date" type="date" required></label>
+        <label>거래처명 <input id="client" type="text" required autocomplete="off"></label>
+        <label><span>지점명 <span class="label-muted">(선택)</span></span>
+          <input id="branchName" type="text" placeholder="선택 입력" autocomplete="off">
+          <span class="optional-note">입력하지 않아도 저장됩니다.</span>
+        </label>
+        <label>구분
+          <div class="seg">
+            <button type="button" class="active" data-type="신규">신규</button>
+            <button type="button" data-type="매출증대">매출증대</button>
+          </div>
+        </label>
+        <label>통계 수거 월
+          <div class="collection-nav">
+            <button class="btn" type="button" id="prevCollectionBtn">이전 달</button>
+            <div class="collection-label" id="collectionLabel">2026.07</div>
+            <button class="btn" type="button" id="nextCollectionBtn">다음 달</button>
+          </div>
+        </label>
+        <div class="row">
+          <label>품목/제품군
+            <select id="product" required>
+              <option value="">선택</option>
+              <option value="3제+클로르">3제+클로르</option>
+              <option value="3제">3제</option>
+              <option value="클로르">클로르</option>
+            </select>
+          </label>
+          <label>예상 금액
+            <div class="amount-wrap">
+              <input id="amount" type="text" inputmode="numeric" required autocomplete="off">
+              <span class="amount-unit">만원</span>
+            </div>
+          </label>
+        </div>
+        <div class="quick-row">
+          <button class="btn" type="button" data-add-amount="1">+1만</button>
+          <button class="btn" type="button" data-add-amount="5">+5만</button>
+          <button class="btn" type="button" data-add-amount="10">+10만</button>
+          <button class="btn" type="button" data-add-amount="50">+50만</button>
+          <button class="btn" type="button" data-add-amount="100">+100만</button>
+        </div>
+        <div class="helper" id="amountPreview">1 입력 = 10,000원</div>
+        <button class="btn primary" id="submitBtn" type="submit">저장</button>
+        <button class="btn" id="cancelEditBtn" type="button">입력 초기화</button>
+        <div class="toast" id="toast"></div>
+      </form>
+    </section>
+
+    <section class="dashboard" id="dashboard">
+      <section>
+        <div class="head"><h2>담당자별 현황</h2></div>
+        <div class="body">
+          <div class="status" id="statusBox">연결 확인 중입니다.</div>
+          <div class="month-nav">
+            <div class="month-main">
+              <input id="monthPicker" type="month" aria-label="월 선택">
+            </div>
+            <div class="month-actions">
+              <button class="btn" type="button" id="prevMonthBtn">전 달</button>
+              <button class="btn" type="button" id="currentMonthBtn">현재</button>
+              <button class="btn" type="button" id="nextMonthBtn">다음 달</button>
+            </div>
+          </div>
+          <div class="owner-grid" id="ownerCards"></div>
+          <div class="empty" id="empty">아직 입력된 보고가 없습니다.</div>
+        </div>
+      </section>
+      <div class="body">
+        <div class="summary-title">월 전체 요약</div>
+        <div class="summary">
+          <div class="metric"><span>전체</span><strong id="totalAmount">0원</strong><small id="totalCount">0건</small></div>
+          <div class="metric"><span>신규</span><strong id="newAmount">0원</strong><small id="newCount">0건</small></div>
+          <div class="metric"><span>매출증대</span><strong id="growthAmount">0원</strong><small id="growthCount">0건</small></div>
+          <div class="metric"><span>목표 달성율</span><strong id="doneRate">0%</strong><small id="doneCount">총매출 0원 / 목표 0원</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="today-panel" id="todayPanel">
+      <section>
+        <div class="head"><h2>일일현황</h2></div>
+        <div class="body">
+          <div class="seg period-switch">
+            <button type="button" class="active" data-period="day">일간</button>
+            <button type="button" data-period="week">주간</button>
+          </div>
+          <div class="period-controls">
+            <div class="day-control" id="teamDayControl">
+              <button class="btn" type="button" id="prevDayBtn">이전 일</button>
+              <div class="date-pick-wrap">
+                <button class="date-label" type="button" id="teamDateLabel">2026. 07. 01. 수</button>
+                <input class="hidden-date" id="teamDatePicker" type="date" aria-label="일일현황 날짜 선택">
+              </div>
+              <button class="btn" type="button" id="nextDayBtn">다음 일</button>
+            </div>
+            <div class="week-control" id="teamWeekControl">
+              <button class="btn" type="button" id="prevWeekBtn">이전 주</button>
+              <div class="date-pick-wrap">
+                <button class="week-label" type="button" id="teamWeekLabel">7월 1주차</button>
+                <input class="hidden-date" id="teamWeekPicker" type="date" aria-label="일일현황 주차 선택">
+              </div>
+              <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
+            </div>
+          </div>
+          <div class="summary">
+            <div class="metric"><span>전체</span><strong id="todayTotalAmount">0원</strong><small id="todayTotalCount">0건</small></div>
+            <div class="metric"><span>신규</span><strong id="todayNewAmount">0원</strong><small id="todayNewCount">0건</small></div>
+            <div class="metric"><span>매출증대</span><strong id="todayGrowthAmount">0원</strong><small id="todayGrowthCount">0건</small></div>
+          </div>
+          <div class="owner-grid" id="todayOwnerCards"></div>
+          <div class="empty" id="todayEmpty">오늘 입력된 보고가 없습니다.</div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div class="notice-overlay" id="noticeOverlay" aria-hidden="true">
+    <div class="notice-box" role="dialog" aria-modal="true" aria-labelledby="noticeText">
+      <strong id="noticeText">저장되었습니다.</strong>
+      <button class="btn primary" type="button" id="noticeOkBtn">확인</button>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

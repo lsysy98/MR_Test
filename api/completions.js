@@ -122,8 +122,10 @@ module.exports = async function handler(req, res) {
     if (req.method === "DELETE") {
       const date = requestUrl.searchParams.get("date") || "";
       const owner = requestUrl.searchParams.get("owner") || "";
+      const status = requestUrl.searchParams.get("status") || "";
       if (!date || !owner) return json(res, 400, { error: "date and owner are required" });
-      await supabase(`daily_completions?report_date=eq.${encodeURIComponent(date)}&owner=eq.${encodeURIComponent(owner)}`, {
+      const statusFilter = status ? `&status=eq.${encodeURIComponent(status)}` : "";
+      await supabase(`daily_completions?report_date=eq.${encodeURIComponent(date)}&owner=eq.${encodeURIComponent(owner)}${statusFilter}`, {
         method: "DELETE"
       });
       return json(res, 200, { ok: true });

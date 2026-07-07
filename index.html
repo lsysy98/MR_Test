@@ -87,6 +87,32 @@
       background: #c24141;
       border-color: #c24141;
     }
+    .leave-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 49;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(23, 33, 28, .28);
+    }
+    .leave-overlay.active { display: flex; }
+    .leave-box {
+      width: min(360px, 100%);
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 44px rgba(27,45,37,.22);
+    }
+    .leave-box h3 { margin: 0; font-size: 17px; }
+    .leave-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .leave-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .leave-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .leave-actions .wide { grid-column: 1 / -1; }
     .notice-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
     .notice-actions.has-action { grid-template-columns: 1fr 1fr; }
     #noticeActionBtn { display: none; }
@@ -200,7 +226,6 @@
     .completion-summary strong { font-size: 15px; }
     .completion-summary span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
     .completion-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .completion-panel:not(.shot-ready):not(.week-only) .completion-actions { grid-template-columns: 1fr 1fr; }
     .completion-panel.week-only .completion-actions { grid-template-columns: 1fr; }
     .completion-actions .btn {
       min-height: 42px;
@@ -440,7 +465,7 @@
             </div>
             <div class="completion-actions">
               <button class="btn" type="button" id="completeDayBtn">내 보고 완료</button>
-              <button class="btn" type="button" id="leaveDayBtn">연차</button>
+              <button class="btn" type="button" id="leaveDayBtn">연차 설정</button>
               <button class="btn" type="button" id="dayScreenshotBtn">스크린샷 저장</button>
               <button class="btn" type="button" id="weekScreenshotBtn">스크린샷 저장</button>
             </div>
@@ -456,6 +481,21 @@
       </section>
     </section>
   </main>
+  <div class="leave-overlay" id="leaveOverlay" aria-hidden="true">
+    <div class="leave-box" role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
+      <h3 id="leaveTitle">연차 설정</h3>
+      <p id="leaveHelp">선택한 기간을 연차로 표시합니다.</p>
+      <div class="leave-grid">
+        <label>시작일<input id="leaveStartDate" type="date"></label>
+        <label>종료일<input id="leaveEndDate" type="date"></label>
+      </div>
+      <div class="leave-actions">
+        <button class="btn primary" type="button" id="leaveSaveBtn">연차 저장</button>
+        <button class="btn danger" type="button" id="leaveCancelRangeBtn">연차 취소</button>
+        <button class="btn wide" type="button" id="leaveCloseBtn">닫기</button>
+      </div>
+    </div>
+  </div>
   <div class="notice-overlay" id="noticeOverlay" aria-hidden="true">
     <div class="notice-box" role="dialog" aria-modal="true" aria-labelledby="noticeText">
       <strong id="noticeText">저장되었습니다.</strong>

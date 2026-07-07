@@ -49,6 +49,14 @@ var completeDayBtn = document.getElementById("completeDayBtn");
 var leaveDayBtn = document.getElementById("leaveDayBtn");
 var dayScreenshotBtn = document.getElementById("dayScreenshotBtn");
 var weekScreenshotBtn = document.getElementById("weekScreenshotBtn");
+var leaveOverlay = document.getElementById("leaveOverlay");
+var leaveTitle = document.getElementById("leaveTitle");
+var leaveHelp = document.getElementById("leaveHelp");
+var leaveStartDate = document.getElementById("leaveStartDate");
+var leaveEndDate = document.getElementById("leaveEndDate");
+var leaveSaveBtn = document.getElementById("leaveSaveBtn");
+var leaveCancelRangeBtn = document.getElementById("leaveCancelRangeBtn");
+var leaveCloseBtn = document.getElementById("leaveCloseBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
 var noticeText = document.getElementById("noticeText");
 var noticeOkBtn = document.getElementById("noticeOkBtn");
@@ -63,6 +71,36 @@ if (teamWeekPicker) teamWeekPicker.value = selectedWeekStart;
 var savedOwnerName = localStorage.getItem("ownerName") || "";
 ownerInput.value = ownerNames.indexOf(savedOwnerName) >= 0 ? savedOwnerName : "";
 productInput.value = "클로르";
+var koreaHolidays = {
+  "2026-01-01": true,
+  "2026-02-16": true,
+  "2026-02-17": true,
+  "2026-02-18": true,
+  "2026-03-02": true,
+  "2026-05-05": true,
+  "2026-05-25": true,
+  "2026-06-03": true,
+  "2026-08-17": true,
+  "2026-09-24": true,
+  "2026-09-25": true,
+  "2026-09-28": true,
+  "2026-10-05": true,
+  "2026-10-09": true,
+  "2026-12-25": true,
+  "2027-01-01": true,
+  "2027-02-08": true,
+  "2027-02-09": true,
+  "2027-03-01": true,
+  "2027-05-05": true,
+  "2027-05-13": true,
+  "2027-08-16": true,
+  "2027-09-14": true,
+  "2027-09-15": true,
+  "2027-09-16": true,
+  "2027-10-04": true,
+  "2027-10-11": true,
+  "2027-12-27": true
+};
 
 function dateText(d) {
   return [
@@ -100,19 +138,40 @@ function dayLabel(value) {
 function isFridayDate(value) {
   return parseDateText(value).getDay() === 5;
 }
-function isSelectedTeamDateFriday() {
-  return isFridayDate(selectedTeamDate);
+function isWeekdayDate(d) {
+  var day = d.getDay();
+  return day >= 1 && day <= 5;
+}
+function isKoreanHolidayDateText(value) {
+  return Boolean(koreaHolidays[value]);
+}
+function remainingWeekdaysAfter(value) {
+  var d = parseDateText(value);
+  var days = [];
+  for (var cursor = addDays(d, 1); cursor.getDay() !== 1; cursor = addDays(cursor, 1)) {
+    if (isWeekdayDate(cursor)) days.push(dateText(cursor));
+  }
+  return days;
+}
+function shouldCaptureWeeklyForDate(value) {
+  if (isFridayDate(value)) return true;
+  var rest = remainingWeekdaysAfter(value);
+  return rest.length > 0 && rest.every(isKoreanHolidayDateText);
+}
+function weeklyCaptureMessage(value) {
+  if (isFridayDate(value)) return "금요일이니 주간 보고를 캡쳐합니다.";
+  return "이번 주 남은 평일이 휴일이므로 주간 보고를 캡쳐합니다.";
 }
 function downloadResolvedScreenshot() {
-  if (isSelectedTeamDateFriday()) {
-    downloadWeekScreenshot();
+  if (shouldCaptureWeeklyForDate(selectedTeamDate)) {
+    showNotice(weeklyCaptureMessage(selectedTeamDate), "", "주간 캡쳐 저장", downloadWeekScreenshot);
   } else {
     downloadDayScreenshot();
   }
 }
 function showAllResolvedNotice() {
-  if (isSelectedTeamDateFriday()) {
-    showNotice("모든 담당자의 일일보고가 완료되었습니다. 금요일이니 주간 보고를 캡쳐합니다.", "", "주간 캡쳐 저장", downloadWeekScreenshot, true);
+  if (shouldCaptureWeeklyForDate(selectedTeamDate)) {
+    showNotice("모든 담당자의 일일보고가 완료되었습니다. " + weeklyCaptureMessage(selectedTeamDate), "", "주간 캡쳐 저장", downloadWeekScreenshot, true);
   } else {
     showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot, true);
   }
@@ -449,11 +508,10 @@ function renderCompletionPanel() {
 
   var isDay = selectedTeamPeriod === "day";
   completionPanel.classList.toggle("week-only", !isDay);
-  completionPanel.classList.remove("shot-ready");
   if (completionSummary) completionSummary.style.display = "none";
   if (completeDayBtn) completeDayBtn.style.display = isDay ? "inline-flex" : "none";
   if (leaveDayBtn) leaveDayBtn.style.display = isDay ? "inline-flex" : "none";
-  if (dayScreenshotBtn) dayScreenshotBtn.style.display = "none";
+  if (dayScreenshotBtn) dayScreenshotBtn.style.display = isDay ? "inline-flex" : "none";
   if (weekScreenshotBtn) weekScreenshotBtn.style.display = isDay ? "none" : "inline-flex";
 
   if (!isDay) {
@@ -471,12 +529,10 @@ function renderCompletionPanel() {
   }
 
   var stats = completionStats();
-  completionPanel.classList.toggle("shot-ready", stats.allResolved);
   if (completionCount) completionCount.textContent = "완료 " + stats.done.length + "/" + ownerNames.length;
   if (completionMissing) completionMissing.textContent = "";
   if (dayScreenshotBtn) {
-    dayScreenshotBtn.style.display = stats.allResolved ? "inline-flex" : "none";
-    dayScreenshotBtn.textContent = isSelectedTeamDateFriday() ? "주간 캡쳐 저장" : "스크린샷 저장";
+    dayScreenshotBtn.textContent = shouldCaptureWeeklyForDate(selectedTeamDate) ? "주간 캡쳐 저장" : "스크린샷 저장";
   }
   if (completeDayBtn) {
     var owner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
@@ -487,10 +543,8 @@ function renderCompletionPanel() {
     completeDayBtn.classList.toggle("primary", alreadyDone);
   }
   if (leaveDayBtn) {
-    var leaveOwner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
-    var leaveStatus = stats.statusMap[leaveOwner] || "missing";
     leaveDayBtn.disabled = false;
-    leaveDayBtn.textContent = leaveStatus === "leave" ? "연차 취소" : "연차";
+    leaveDayBtn.textContent = "연차 설정";
   }
 }
 function currentOwnerName() {
@@ -532,21 +586,39 @@ async function markDailyComplete() {
     showNotice("완료 처리되었습니다.");
   }
 }
-function parseLeaveDates(raw) {
-  var seen = {};
-  return String(raw || "")
-    .split(/[,\s]+/)
-    .map(function(value) { return value.trim(); })
-    .filter(Boolean)
-    .filter(function(value) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-      if (dateText(parseDateText(value)) !== value) return false;
-      if (seen[value]) return false;
-      seen[value] = true;
-      return true;
-    });
+function datesBetween(startText, endText) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startText) || !/^\d{4}-\d{2}-\d{2}$/.test(endText)) return [];
+  var start = parseDateText(startText);
+  var end = parseDateText(endText);
+  if (dateText(start) !== startText || dateText(end) !== endText || end < start) return [];
+  var dates = [];
+  for (var cursor = start; cursor <= end; cursor = addDays(cursor, 1)) {
+    dates.push(dateText(cursor));
+  }
+  return dates;
 }
-async function markAnnualLeave() {
+function openAnnualLeaveModal() {
+  var owner = currentOwnerName();
+  if (!owner) {
+    showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
+    return;
+  }
+
+  if (leaveTitle) leaveTitle.textContent = owner + " 연차 설정";
+  if (leaveHelp) leaveHelp.textContent = "시작일과 종료일을 선택하면 해당 기간이 모두 연차로 표시됩니다.";
+  if (leaveStartDate) leaveStartDate.value = selectedTeamDate;
+  if (leaveEndDate) leaveEndDate.value = selectedTeamDate;
+  if (leaveOverlay) {
+    leaveOverlay.classList.add("active");
+    leaveOverlay.setAttribute("aria-hidden", "false");
+  }
+}
+function closeAnnualLeaveModal() {
+  if (!leaveOverlay) return;
+  leaveOverlay.classList.remove("active");
+  leaveOverlay.setAttribute("aria-hidden", "true");
+}
+async function saveAnnualLeaveRange() {
   var owner = currentOwnerName();
   if (!owner) {
     showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
@@ -554,20 +626,9 @@ async function markAnnualLeave() {
   }
 
   var beforeStats = completionStats();
-  if (beforeStats.statusMap[owner] === "leave") {
-    await completionApi("DELETE", null, "?date=" + encodeURIComponent(selectedTeamDate) + "&owner=" + encodeURIComponent(owner));
-    await loadCompletionsForSelectedDate(true);
-    render();
-    showNotice("연차 표시를 취소했습니다.");
-    return;
-  }
-
-  var raw = window.prompt("연차 날짜를 입력해주세요.\n예: 2026-07-07\n여러 날이면 쉼표로 구분해주세요.", selectedTeamDate);
-  if (raw === null) return;
-
-  var dates = parseLeaveDates(raw);
+  var dates = datesBetween(leaveStartDate ? leaveStartDate.value : "", leaveEndDate ? leaveEndDate.value : "");
   if (!dates.length) {
-    showNotice("날짜 형식이 맞지 않습니다. 예: 2026-07-07", "danger");
+    showNotice("시작일과 종료일을 올바르게 선택해주세요.", "danger");
     return;
   }
 
@@ -575,6 +636,7 @@ async function markAnnualLeave() {
     return completionApi("POST", { date: date, owner: owner, status: "leave" });
   }));
   await loadCompletionsForSelectedDate(true);
+  closeAnnualLeaveModal();
   render();
 
   var afterStats = completionStats();
@@ -583,6 +645,27 @@ async function markAnnualLeave() {
   } else {
     showNotice("연차로 표시했습니다.");
   }
+}
+async function cancelAnnualLeaveRange() {
+  var owner = currentOwnerName();
+  if (!owner) {
+    showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
+    return;
+  }
+
+  var dates = datesBetween(leaveStartDate ? leaveStartDate.value : "", leaveEndDate ? leaveEndDate.value : "");
+  if (!dates.length) {
+    showNotice("취소할 시작일과 종료일을 올바르게 선택해주세요.", "danger");
+    return;
+  }
+
+  await Promise.all(dates.map(function(date) {
+    return completionApi("DELETE", null, "?date=" + encodeURIComponent(date) + "&owner=" + encodeURIComponent(owner) + "&status=leave");
+  }));
+  await loadCompletionsForSelectedDate(true);
+  closeAnnualLeaveModal();
+  render();
+  showNotice("선택한 기간의 연차를 취소했습니다.");
 }
 function groupByOwner(items) {
   var map = {};
@@ -1108,9 +1191,29 @@ if (completeDayBtn) {
 }
 if (leaveDayBtn) {
   leaveDayBtn.addEventListener("click", function() {
-    markAnnualLeave().catch(function(error) {
-      showNotice("연차 처리 실패: " + error.message, "danger");
+    openAnnualLeaveModal();
+  });
+}
+if (leaveSaveBtn) {
+  leaveSaveBtn.addEventListener("click", function() {
+    saveAnnualLeaveRange().catch(function(error) {
+      showNotice("연차 저장 실패: " + error.message, "danger");
     });
+  });
+}
+if (leaveCancelRangeBtn) {
+  leaveCancelRangeBtn.addEventListener("click", function() {
+    cancelAnnualLeaveRange().catch(function(error) {
+      showNotice("연차 취소 실패: " + error.message, "danger");
+    });
+  });
+}
+if (leaveCloseBtn) {
+  leaveCloseBtn.addEventListener("click", closeAnnualLeaveModal);
+}
+if (leaveOverlay) {
+  leaveOverlay.addEventListener("click", function(e) {
+    if (e.target === leaveOverlay) closeAnnualLeaveModal();
   });
 }
 if (dayScreenshotBtn) {
@@ -1119,6 +1222,13 @@ if (dayScreenshotBtn) {
 if (weekScreenshotBtn) {
   weekScreenshotBtn.addEventListener("click", downloadWeekScreenshot);
 }
+ownerInput.addEventListener("change", function() {
+  var owner = ownerInput.value.trim();
+  if (ownerNames.indexOf(owner) >= 0) {
+    localStorage.setItem("ownerName", owner);
+  }
+  renderCompletionPanel();
+});
 amountInput.addEventListener("input", function() {
   amountInput.value = digits(amountInput.value);
   updateAmountPreview();

@@ -165,11 +165,17 @@ function weeklyCaptureMessage(value) {
   return "이번 주 남은 평일이 휴일이므로 주간 보고를 캡쳐합니다.";
 }
 function downloadResolvedScreenshot() {
-  if (shouldCaptureWeeklyForDate(selectedTeamDate)) {
-    showNotice(weeklyCaptureMessage(selectedTeamDate), "", "주간 캡쳐 저장", downloadWeekScreenshot);
-  } else {
-    downloadDayScreenshot();
-  }
+  var isWeekly = shouldCaptureWeeklyForDate(selectedTeamDate);
+  var message = "스크린샷을 저장합니다.";
+  if (isWeekly) message += " " + weeklyCaptureMessage(selectedTeamDate);
+  showNotice(message, "", "저장", function() {
+    hideNotice();
+    if (isWeekly) {
+      downloadWeekScreenshot();
+    } else {
+      downloadDayScreenshot();
+    }
+  });
 }
 function showAllResolvedNotice() {
   if (shouldCaptureWeeklyForDate(selectedTeamDate)) {
@@ -601,11 +607,12 @@ function datesBetween(startText, endText) {
 }
 function koreanDateShort(value) {
   var d = parseDateText(value);
-  return (d.getMonth() + 1) + "월 " + d.getDate() + "일";
+  var days = ["일", "월", "화", "수", "목", "금", "토"];
+  return (d.getMonth() + 1) + "/" + d.getDate() + "(" + days[d.getDay()] + ")";
 }
 function leaveRangeText(range) {
   if (range.start === range.end) return koreanDateShort(range.start);
-  return koreanDateShort(range.start) + "부터 " + koreanDateShort(range.end) + "까지";
+  return koreanDateShort(range.start) + "~" + koreanDateShort(range.end);
 }
 function groupLeaveRanges(rows) {
   var seen = {};

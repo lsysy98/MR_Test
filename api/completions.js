@@ -91,8 +91,15 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET") {
       const date = requestUrl.searchParams.get("date") || "";
-      if (!date) return json(res, 400, { error: "date is required" });
-      const rows = await supabase(`daily_completions?report_date=eq.${encodeURIComponent(date)}&select=*&order=completed_at.asc`);
+      const owner = requestUrl.searchParams.get("owner") || "";
+      const status = requestUrl.searchParams.get("status") || "";
+      if (!date && !owner) return json(res, 400, { error: "date or owner is required" });
+      const filters = [
+        date ? `report_date=eq.${encodeURIComponent(date)}` : "",
+        owner ? `owner=eq.${encodeURIComponent(owner)}` : "",
+        status ? `status=eq.${encodeURIComponent(status)}` : ""
+      ].filter(Boolean).join("&");
+      const rows = await supabase(`daily_completions?${filters}&select=*&order=report_date.asc,completed_at.asc`);
       return json(res, 200, rows.map(fromDb));
     }
 

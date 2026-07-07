@@ -54,8 +54,8 @@ var leaveTitle = document.getElementById("leaveTitle");
 var leaveHelp = document.getElementById("leaveHelp");
 var leaveStartDate = document.getElementById("leaveStartDate");
 var leaveEndDate = document.getElementById("leaveEndDate");
+var leaveList = document.getElementById("leaveList");
 var leaveSaveBtn = document.getElementById("leaveSaveBtn");
-var leaveCancelRangeBtn = document.getElementById("leaveCancelRangeBtn");
 var leaveCloseBtn = document.getElementById("leaveCloseBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
 var noticeText = document.getElementById("noticeText");
@@ -64,6 +64,8 @@ var noticeActions = document.getElementById("noticeActions");
 var noticeActionBtn = document.getElementById("noticeActionBtn");
 var noticeActionHandler = null;
 var noticeLocked = false;
+var ownerLeaveRows = [];
+var editingLeaveRangeDates = [];
 
 dateInput.value = todayText;
 if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
@@ -597,21 +599,109 @@ function datesBetween(startText, endText) {
   }
   return dates;
 }
-function openAnnualLeaveModal() {
+function koreanDateShort(value) {
+  var d = parseDateText(value);
+  return (d.getMonth() + 1) + "월 " + d.getDate() + "일";
+}
+function leaveRangeText(range) {
+  if (range.start === range.end) return koreanDateShort(range.start);
+  return koreanDateShort(range.start) + "부터 " + koreanDateShort(range.end) + "까지";
+}
+function groupLeaveRanges(rows) {
+  var seen = {};
+  var dates = rows
+    .filter(function(row) { return row.status === "leave"; })
+    .map(function(row) { return row.date; })
+    .filter(function(date) {
+      if (seen[date]) return false;
+      seen[date] = true;
+      return true;
+    })
+    .sort();
+  var ranges = [];
+  dates.forEach(function(date) {
+    var last = ranges[ranges.length - 1];
+    if (last && dateText(addDays(parseDateText(last.end), 1)) === date) {
+      last.end = date;
+      last.dates.push(date);
+    } else {
+      ranges.push({ start: date, end: date, dates: [date] });
+    }
+  });
+  return ranges;
+}
+function renderLeaveList(message) {
+  if (!leaveList) return;
+  leaveList.textContent = "";
+  if (message) {
+    var msg = document.createElement("div");
+    msg.className = "leave-empty";
+    msg.textContent = message;
+    leaveList.appendChild(msg);
+    return;
+  }
+  var ranges = groupLeaveRanges(ownerLeaveRows);
+  if (!ranges.length) {
+    var empty = document.createElement("div");
+    empty.className = "leave-empty";
+    empty.textContent = "저장된 연차가 없습니다.";
+    leaveList.appendChild(empty);
+    return;
+  }
+  ranges.forEach(function(range) {
+    var item = document.createElement("div");
+    item.className = "leave-item";
+    var text = document.createElement("span");
+    text.textContent = leaveRangeText(range);
+    var edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "btn";
+    edit.textContent = "수정";
+    edit.addEventListener("click", function() {
+      editingLeaveRangeDates = range.dates.slice();
+      if (leaveStartDate) leaveStartDate.value = range.start;
+      if (leaveEndDate) leaveEndDate.value = range.end;
+      if (leaveSaveBtn) leaveSaveBtn.textContent = "수정 저장";
+      if (leaveHelp) leaveHelp.textContent = "날짜를 바꾼 뒤 수정 저장을 누르면 이 연차가 바뀝니다.";
+    });
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn danger";
+    del.textContent = "삭제";
+    del.addEventListener("click", function() {
+      deleteLeaveDates(range.dates).catch(function(error) {
+        showNotice("연차 삭제 실패: " + error.message, "danger");
+      });
+    });
+    item.appendChild(text);
+    item.appendChild(edit);
+    item.appendChild(del);
+    leaveList.appendChild(item);
+  });
+}
+async function loadOwnerLeaveRows(owner) {
+  ownerLeaveRows = await completionApi("GET", null, "?owner=" + encodeURIComponent(owner) + "&status=leave");
+  renderLeaveList();
+}
+async function openAnnualLeaveModal() {
   var owner = currentOwnerName();
   if (!owner) {
     showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
     return;
   }
 
+  editingLeaveRangeDates = [];
   if (leaveTitle) leaveTitle.textContent = owner + " 연차 설정";
   if (leaveHelp) leaveHelp.textContent = "시작일과 종료일을 선택하면 해당 기간이 모두 연차로 표시됩니다.";
   if (leaveStartDate) leaveStartDate.value = selectedTeamDate;
   if (leaveEndDate) leaveEndDate.value = selectedTeamDate;
+  if (leaveSaveBtn) leaveSaveBtn.textContent = "연차 저장";
+  renderLeaveList("연차 목록을 불러오는 중입니다.");
   if (leaveOverlay) {
     leaveOverlay.classList.add("active");
     leaveOverlay.setAttribute("aria-hidden", "false");
   }
+  await loadOwnerLeaveRows(owner);
 }
 function closeAnnualLeaveModal() {
   if (!leaveOverlay) return;
@@ -632,30 +722,36 @@ async function saveAnnualLeaveRange() {
     return;
   }
 
+  if (editingLeaveRangeDates.length) {
+    await Promise.all(editingLeaveRangeDates.map(function(date) {
+      return completionApi("DELETE", null, "?date=" + encodeURIComponent(date) + "&owner=" + encodeURIComponent(owner) + "&status=leave");
+    }));
+  }
   await Promise.all(dates.map(function(date) {
     return completionApi("POST", { date: date, owner: owner, status: "leave" });
   }));
   await loadCompletionsForSelectedDate(true);
-  closeAnnualLeaveModal();
+  await loadOwnerLeaveRows(owner);
+  editingLeaveRangeDates = [];
+  if (leaveSaveBtn) leaveSaveBtn.textContent = "연차 저장";
+  if (leaveHelp) leaveHelp.textContent = "시작일과 종료일을 선택하면 해당 기간이 모두 연차로 표시됩니다.";
   render();
 
   var afterStats = completionStats();
   if (!beforeStats.allResolved && afterStats.allResolved) {
     showAllResolvedNotice();
   } else {
-    showNotice("연차로 표시했습니다.");
+    showNotice("연차를 저장했습니다.");
   }
 }
-async function cancelAnnualLeaveRange() {
+async function deleteLeaveDates(dates) {
   var owner = currentOwnerName();
   if (!owner) {
     showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
     return;
   }
-
-  var dates = datesBetween(leaveStartDate ? leaveStartDate.value : "", leaveEndDate ? leaveEndDate.value : "");
   if (!dates.length) {
-    showNotice("취소할 시작일과 종료일을 올바르게 선택해주세요.", "danger");
+    showNotice("삭제할 연차가 없습니다.", "danger");
     return;
   }
 
@@ -663,9 +759,14 @@ async function cancelAnnualLeaveRange() {
     return completionApi("DELETE", null, "?date=" + encodeURIComponent(date) + "&owner=" + encodeURIComponent(owner) + "&status=leave");
   }));
   await loadCompletionsForSelectedDate(true);
-  closeAnnualLeaveModal();
+  await loadOwnerLeaveRows(owner);
+  editingLeaveRangeDates = [];
+  if (leaveSaveBtn) leaveSaveBtn.textContent = "연차 저장";
+  if (leaveStartDate) leaveStartDate.value = selectedTeamDate;
+  if (leaveEndDate) leaveEndDate.value = selectedTeamDate;
+  if (leaveHelp) leaveHelp.textContent = "시작일과 종료일을 선택하면 해당 기간이 모두 연차로 표시됩니다.";
   render();
-  showNotice("선택한 기간의 연차를 취소했습니다.");
+  showNotice("연차를 삭제했습니다.");
 }
 function groupByOwner(items) {
   var map = {};
@@ -1191,20 +1292,15 @@ if (completeDayBtn) {
 }
 if (leaveDayBtn) {
   leaveDayBtn.addEventListener("click", function() {
-    openAnnualLeaveModal();
+    openAnnualLeaveModal().catch(function(error) {
+      showNotice("연차 목록 불러오기 실패: " + error.message, "danger");
+    });
   });
 }
 if (leaveSaveBtn) {
   leaveSaveBtn.addEventListener("click", function() {
     saveAnnualLeaveRange().catch(function(error) {
       showNotice("연차 저장 실패: " + error.message, "danger");
-    });
-  });
-}
-if (leaveCancelRangeBtn) {
-  leaveCancelRangeBtn.addEventListener("click", function() {
-    cancelAnnualLeaveRange().catch(function(error) {
-      showNotice("연차 취소 실패: " + error.message, "danger");
     });
   });
 }

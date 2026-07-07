@@ -113,6 +113,22 @@
     .leave-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .leave-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .leave-actions .wide { grid-column: 1 / -1; }
+    .leave-list-wrap { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .leave-list-title { font-size: 13px; font-weight: 900; color: var(--muted); }
+    .leave-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; }
+    .leave-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 6px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfc;
+    }
+    .leave-item span { font-size: 13px; font-weight: 800; }
+    .leave-item .btn { min-height: 34px; padding: 0 9px; font-size: 12px; }
+    .leave-empty { color: var(--muted); font-size: 13px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
     .notice-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
     .notice-actions.has-action { grid-template-columns: 1fr 1fr; }
     #noticeActionBtn { display: none; }
@@ -489,9 +505,14 @@
         <label>시작일<input id="leaveStartDate" type="date"></label>
         <label>종료일<input id="leaveEndDate" type="date"></label>
       </div>
+      <div class="leave-list-wrap">
+        <div class="leave-list-title">저장된 연차</div>
+        <div class="leave-list" id="leaveList">
+          <div class="leave-empty">저장된 연차가 없습니다.</div>
+        </div>
+      </div>
       <div class="leave-actions">
         <button class="btn primary" type="button" id="leaveSaveBtn">연차 저장</button>
-        <button class="btn danger" type="button" id="leaveCancelRangeBtn">연차 취소</button>
         <button class="btn wide" type="button" id="leaveCloseBtn">닫기</button>
       </div>
     </div>

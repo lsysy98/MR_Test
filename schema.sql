@@ -48,8 +48,12 @@ create table if not exists public.daily_completions (
   id text primary key,
   report_date date not null,
   owner text not null,
-  completed_at bigint not null
+  completed_at bigint not null,
+  status text not null default 'done'
 );
+
+alter table public.daily_completions
+  add column if not exists status text not null default 'done';
 
 create unique index if not exists daily_completions_date_owner_uidx
 on public.daily_completions (report_date, owner);

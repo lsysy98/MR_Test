@@ -52,7 +52,8 @@ function toDb(item) {
     id: item.id,
     report_date: item.date,
     owner: item.owner,
-    completed_at: Number(item.completedAt || Date.now())
+    completed_at: Number(item.completedAt || Date.now()),
+    status: item.status || "done"
   };
 }
 
@@ -61,7 +62,8 @@ function fromDb(row) {
     id: row.id,
     date: row.report_date,
     owner: row.owner,
-    completedAt: Number(row.completed_at)
+    completedAt: Number(row.completed_at),
+    status: row.status || "done"
   };
 }
 
@@ -99,12 +101,15 @@ module.exports = async function handler(req, res) {
       const date = String(body.date || "");
       const owner = String(body.owner || "");
       if (!date || !owner) return json(res, 400, { error: "date and owner are required" });
+      const status = String(body.status || "done");
+      if (!["done", "leave"].includes(status)) return json(res, 400, { error: "invalid status" });
 
       const item = {
         id: `${date}-${owner}`,
         date,
         owner,
-        completedAt: Date.now()
+        completedAt: Date.now(),
+        status
       };
       const rows = await supabase("daily_completions?on_conflict=report_date,owner", {
         method: "POST",

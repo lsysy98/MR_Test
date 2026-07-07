@@ -123,7 +123,14 @@
     .owner-button.active { background: var(--green-soft); }
     .owner-card.report-done > .owner-button { background: #edf9f4; }
     .owner-card.report-done > .owner-button.active { background: #dff4ec; }
+    .owner-card.report-leave > .owner-button { background: #f7f8f7; }
+    .owner-card.report-leave > .owner-button.active { background: #eef1ef; }
     .owner-name { font-size: 15px; font-weight: 900; color: var(--text); }
+    .owner-title { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+    .daily-status { font-size: 12px; font-weight: 900; }
+    .daily-status.done { color: var(--green); }
+    .daily-status.leave { color: #7b8580; }
+    .daily-status.missing { color: #d13b3b; }
     .owner-line {
       display: grid;
       grid-template-columns: 42px 42px 42px;
@@ -192,7 +199,9 @@
     .completion-summary { display: none; gap: 4px; min-width: 0; }
     .completion-summary strong { font-size: 15px; }
     .completion-summary span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
-    .completion-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .completion-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .completion-panel:not(.shot-ready):not(.week-only) .completion-actions { grid-template-columns: 1fr 1fr; }
+    .completion-panel.week-only .completion-actions { grid-template-columns: 1fr; }
     .completion-actions .btn {
       min-height: 42px;
       display: inline-flex;
@@ -285,7 +294,7 @@
       .team-line .team-amount { font-size: 13px; }
       .day-control, .week-control { grid-template-columns: .68fr minmax(154px, 1.64fr) .68fr; gap: 6px; }
       .date-label, .week-label { min-height: 40px; padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
-      .completion-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .completion-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; }
       .completion-actions .btn { padding: 0 8px; }
       .owner-detail-summary { grid-template-columns: 1fr 1fr; }
       .detail-reset { grid-column: 1 / -1; }
@@ -431,6 +440,7 @@
             </div>
             <div class="completion-actions">
               <button class="btn" type="button" id="completeDayBtn">내 보고 완료</button>
+              <button class="btn" type="button" id="leaveDayBtn">연차</button>
               <button class="btn" type="button" id="dayScreenshotBtn">스크린샷 저장</button>
               <button class="btn" type="button" id="weekScreenshotBtn">스크린샷 저장</button>
             </div>

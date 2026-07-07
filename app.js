@@ -46,6 +46,7 @@ var completionSummary = document.getElementById("completionSummary");
 var completionCount = document.getElementById("completionCount");
 var completionMissing = document.getElementById("completionMissing");
 var completeDayBtn = document.getElementById("completeDayBtn");
+var leaveDayBtn = document.getElementById("leaveDayBtn");
 var dayScreenshotBtn = document.getElementById("dayScreenshotBtn");
 var weekScreenshotBtn = document.getElementById("weekScreenshotBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
@@ -95,6 +96,26 @@ function dayLabel(value) {
     String(d.getMonth() + 1).padStart(2, "0") + ". " +
     String(d.getDate()).padStart(2, "0") + ". " +
     days[d.getDay()];
+}
+function isFridayDate(value) {
+  return parseDateText(value).getDay() === 5;
+}
+function isSelectedTeamDateFriday() {
+  return isFridayDate(selectedTeamDate);
+}
+function downloadResolvedScreenshot() {
+  if (isSelectedTeamDateFriday()) {
+    downloadWeekScreenshot();
+  } else {
+    downloadDayScreenshot();
+  }
+}
+function showAllResolvedNotice() {
+  if (isSelectedTeamDateFriday()) {
+    showNotice("모든 담당자의 일일보고가 완료되었습니다. 금요일이니 주간 보고를 캡쳐합니다.", "", "주간 캡쳐 저장", downloadWeekScreenshot, true);
+  } else {
+    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot, true);
+  }
 }
 function nextCollectionMonth(d) {
   var year = d.getFullYear();
@@ -384,25 +405,55 @@ function teamPeriodItems() {
 function completedOwnerSet() {
   var map = {};
   dailyCompletions.forEach(function(item) {
-    if (item.date === selectedTeamDate && ownerNames.indexOf(item.owner) >= 0) {
+    if (item.date === selectedTeamDate && ownerNames.indexOf(item.owner) >= 0 && (item.status || "done") === "done") {
       map[item.owner] = true;
     }
   });
   return map;
 }
+function dailyStatusMap() {
+  var map = {};
+  dailyCompletions.forEach(function(item) {
+    if (item.date === selectedTeamDate && ownerNames.indexOf(item.owner) >= 0) {
+      map[item.owner] = item.status === "leave" ? "leave" : "done";
+    }
+  });
+  return map;
+}
+function ownerDailyStatus(owner) {
+  return dailyStatusMap()[owner] || "missing";
+}
+function dailyStatusLabel(status) {
+  if (status === "done") return "완료";
+  if (status === "leave") return "연차";
+  return "미완료";
+}
 function completionStats() {
-  var doneMap = completedOwnerSet();
-  var done = ownerNames.filter(function(owner) { return doneMap[owner]; });
-  var missing = ownerNames.filter(function(owner) { return !doneMap[owner]; });
-  return { doneMap: doneMap, done: done, missing: missing };
+  var statusMap = dailyStatusMap();
+  var done = ownerNames.filter(function(owner) { return statusMap[owner] === "done"; });
+  var leave = ownerNames.filter(function(owner) { return statusMap[owner] === "leave"; });
+  var missing = ownerNames.filter(function(owner) { return !statusMap[owner]; });
+  var resolved = ownerNames.filter(function(owner) { return Boolean(statusMap[owner]); });
+  return {
+    statusMap: statusMap,
+    doneMap: completedOwnerSet(),
+    done: done,
+    leave: leave,
+    missing: missing,
+    resolved: resolved,
+    allResolved: resolved.length === ownerNames.length
+  };
 }
 function renderCompletionPanel() {
   if (!completionPanel) return;
 
   var isDay = selectedTeamPeriod === "day";
+  completionPanel.classList.toggle("week-only", !isDay);
+  completionPanel.classList.remove("shot-ready");
   if (completionSummary) completionSummary.style.display = "none";
   if (completeDayBtn) completeDayBtn.style.display = isDay ? "inline-flex" : "none";
-  if (dayScreenshotBtn) dayScreenshotBtn.style.display = isDay ? "inline-flex" : "none";
+  if (leaveDayBtn) leaveDayBtn.style.display = isDay ? "inline-flex" : "none";
+  if (dayScreenshotBtn) dayScreenshotBtn.style.display = "none";
   if (weekScreenshotBtn) weekScreenshotBtn.style.display = isDay ? "none" : "inline-flex";
 
   if (!isDay) {
@@ -415,18 +466,31 @@ function renderCompletionPanel() {
     if (completionCount) completionCount.textContent = "완료 상태 연결 실패";
     if (completionMissing) completionMissing.textContent = completionLoadError;
     if (completeDayBtn) completeDayBtn.disabled = true;
+    if (leaveDayBtn) leaveDayBtn.disabled = true;
     return;
   }
 
   var stats = completionStats();
+  completionPanel.classList.toggle("shot-ready", stats.allResolved);
   if (completionCount) completionCount.textContent = "완료 " + stats.done.length + "/" + ownerNames.length;
   if (completionMissing) completionMissing.textContent = "";
+  if (dayScreenshotBtn) {
+    dayScreenshotBtn.style.display = stats.allResolved ? "inline-flex" : "none";
+    dayScreenshotBtn.textContent = isSelectedTeamDateFriday() ? "주간 캡쳐 저장" : "스크린샷 저장";
+  }
   if (completeDayBtn) {
     var owner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
-    var alreadyDone = Boolean(stats.doneMap[owner]);
+    var status = stats.statusMap[owner] || "missing";
+    var alreadyDone = status === "done";
     completeDayBtn.disabled = false;
     completeDayBtn.textContent = alreadyDone ? "완료됨" : "내 보고 완료";
     completeDayBtn.classList.toggle("primary", alreadyDone);
+  }
+  if (leaveDayBtn) {
+    var leaveOwner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
+    var leaveStatus = stats.statusMap[leaveOwner] || "missing";
+    leaveDayBtn.disabled = false;
+    leaveDayBtn.textContent = leaveStatus === "leave" ? "연차 취소" : "연차";
   }
 }
 function currentOwnerName() {
@@ -439,8 +503,8 @@ async function markDailyComplete() {
     showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
     return;
   }
-  var beforeCount = completionStats().done.length;
-  if (completionStats().doneMap[owner]) {
+  var beforeStats = completionStats();
+  if (beforeStats.statusMap[owner] === "done") {
     await completionApi("DELETE", null, "?date=" + encodeURIComponent(selectedTeamDate) + "&owner=" + encodeURIComponent(owner));
     dailyCompletions = dailyCompletions.filter(function(item) {
       return !(item.owner === owner && item.date === selectedTeamDate);
@@ -449,7 +513,7 @@ async function markDailyComplete() {
     showNotice("미완료로 변경되었습니다.");
     return;
   }
-  var saved = await completionApi("POST", { date: selectedTeamDate, owner: owner });
+  var saved = await completionApi("POST", { date: selectedTeamDate, owner: owner, status: "done" });
   var found = false;
   dailyCompletions = dailyCompletions.map(function(item) {
     if (item.owner === saved.owner && item.date === saved.date) {
@@ -461,11 +525,63 @@ async function markDailyComplete() {
   if (!found) dailyCompletions.push(saved);
   render();
 
-  var afterCount = completionStats().done.length;
-  if (beforeCount < ownerNames.length && afterCount === ownerNames.length) {
-    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot, true);
+  var afterStats = completionStats();
+  if (!beforeStats.allResolved && afterStats.allResolved) {
+    showAllResolvedNotice();
   } else {
     showNotice("완료 처리되었습니다.");
+  }
+}
+function parseLeaveDates(raw) {
+  var seen = {};
+  return String(raw || "")
+    .split(/[,\s]+/)
+    .map(function(value) { return value.trim(); })
+    .filter(Boolean)
+    .filter(function(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      if (dateText(parseDateText(value)) !== value) return false;
+      if (seen[value]) return false;
+      seen[value] = true;
+      return true;
+    });
+}
+async function markAnnualLeave() {
+  var owner = currentOwnerName();
+  if (!owner) {
+    showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
+    return;
+  }
+
+  var beforeStats = completionStats();
+  if (beforeStats.statusMap[owner] === "leave") {
+    await completionApi("DELETE", null, "?date=" + encodeURIComponent(selectedTeamDate) + "&owner=" + encodeURIComponent(owner));
+    await loadCompletionsForSelectedDate(true);
+    render();
+    showNotice("연차 표시를 취소했습니다.");
+    return;
+  }
+
+  var raw = window.prompt("연차 날짜를 입력해주세요.\n예: 2026-07-07\n여러 날이면 쉼표로 구분해주세요.", selectedTeamDate);
+  if (raw === null) return;
+
+  var dates = parseLeaveDates(raw);
+  if (!dates.length) {
+    showNotice("날짜 형식이 맞지 않습니다. 예: 2026-07-07", "danger");
+    return;
+  }
+
+  await Promise.all(dates.map(function(date) {
+    return completionApi("POST", { date: date, owner: owner, status: "leave" });
+  }));
+  await loadCompletionsForSelectedDate(true);
+  render();
+
+  var afterStats = completionStats();
+  if (!beforeStats.allResolved && afterStats.allResolved) {
+    showAllResolvedNotice();
+  } else {
+    showNotice("연차로 표시했습니다.");
   }
 }
 function groupByOwner(items) {
@@ -684,6 +800,7 @@ function renderOwnerCards(items) {
 function renderTeamCards(items) {
   if (!todayOwnerCards) return;
   todayOwnerCards.textContent = "";
+  var statusMap = dailyStatusMap();
 
   groupByOwner(items).sort(function(a, b) {
     var amountDiff = b.summary.total.amount - a.summary.total.amount;
@@ -692,10 +809,11 @@ function renderTeamCards(items) {
   }).forEach(function(group) {
     var summary = group.summary;
     var card = document.createElement("div");
-    var doneMap = completedOwnerSet();
+    var status = selectedTeamPeriod === "day" ? (statusMap[group.owner] || "missing") : "";
     card.className = "owner-card" +
       (openedTeamOwner === group.owner ? " open" : "") +
-      (selectedTeamPeriod === "day" && doneMap[group.owner] ? " report-done" : "");
+      (status === "done" ? " report-done" : "") +
+      (status === "leave" ? " report-leave" : "");
 
     var button = document.createElement("button");
     button.type = "button";
@@ -708,6 +826,16 @@ function renderTeamCards(items) {
     var name = document.createElement("div");
     name.className = "owner-name";
     name.textContent = group.owner;
+
+    var title = document.createElement("div");
+    title.className = "owner-title";
+    title.appendChild(name);
+    if (selectedTeamPeriod === "day") {
+      var statusBadge = document.createElement("span");
+      statusBadge.className = "daily-status " + status;
+      statusBadge.textContent = dailyStatusLabel(status);
+      title.appendChild(statusBadge);
+    }
 
     var line = document.createElement("div");
     line.className = "team-line";
@@ -724,7 +852,7 @@ function renderTeamCards(items) {
     line.appendChild(teamGrowth);
     line.appendChild(teamAmount);
 
-    button.appendChild(name);
+    button.appendChild(title);
     button.appendChild(line);
 
     var detail = document.createElement("div");
@@ -835,16 +963,22 @@ function makeTeamScreenshot(period) {
   if (!isWeek) {
     ctx.fillStyle = "#14765c";
     ctx.font = "900 15px Malgun Gothic, sans-serif";
-    ctx.fillText("완료 " + stats.done.length + "/" + ownerNames.length, 22, y);
+    ctx.fillText("완료 " + stats.done.length + " · 연차 " + stats.leave.length, 22, y);
     y += 26;
   }
 
   groups.forEach(function(group) {
-    var isDone = !isWeek && stats.doneMap[group.owner];
-    drawRoundedBox(ctx, 22, y - 24, width - 44, 42, isDone ? "#edf9f4" : "#ffffff", "#d9e2dc");
+    var status = !isWeek ? (stats.statusMap[group.owner] || "missing") : "";
+    var bg = status === "done" ? "#edf9f4" : (status === "leave" ? "#f7f8f7" : "#ffffff");
+    drawRoundedBox(ctx, 22, y - 24, width - 44, 42, bg, "#d9e2dc");
     ctx.fillStyle = "#17211c";
     ctx.font = "900 17px Malgun Gothic, sans-serif";
     ctx.fillText(group.owner, 36, y + 3);
+    if (!isWeek) {
+      ctx.fillStyle = status === "done" ? "#14765c" : (status === "leave" ? "#7b8580" : "#d13b3b");
+      ctx.font = "900 12px Malgun Gothic, sans-serif";
+      ctx.fillText(dailyStatusLabel(status), 92, y + 2);
+    }
     ctx.fillStyle = "#66736d";
     ctx.font = "800 13px Malgun Gothic, sans-serif";
     ctx.textAlign = "right";
@@ -972,8 +1106,15 @@ if (completeDayBtn) {
     });
   });
 }
+if (leaveDayBtn) {
+  leaveDayBtn.addEventListener("click", function() {
+    markAnnualLeave().catch(function(error) {
+      showNotice("연차 처리 실패: " + error.message, "danger");
+    });
+  });
+}
 if (dayScreenshotBtn) {
-  dayScreenshotBtn.addEventListener("click", downloadDayScreenshot);
+  dayScreenshotBtn.addEventListener("click", downloadResolvedScreenshot);
 }
 if (weekScreenshotBtn) {
   weekScreenshotBtn.addEventListener("click", downloadWeekScreenshot);

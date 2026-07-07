@@ -43,3 +43,18 @@ create table if not exists public.report_logs (
 
 create index if not exists report_logs_created_at_idx on public.report_logs (created_at desc);
 create index if not exists report_logs_report_id_idx on public.report_logs (report_id);
+
+create table if not exists public.daily_completions (
+  id text primary key,
+  report_date date not null,
+  owner text not null,
+  completed_at bigint not null
+);
+
+create unique index if not exists daily_completions_date_owner_uidx
+on public.daily_completions (report_date, owner);
+
+create index if not exists daily_completions_report_date_idx
+on public.daily_completions (report_date);
+
+select pg_notify('pgrst', 'reload schema');

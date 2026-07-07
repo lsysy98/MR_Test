@@ -9,6 +9,8 @@ var defaultCollection = nextCollectionMonth(today);
 var collectionYear = defaultCollection.year;
 var collectionMonth = defaultCollection.month;
 var reports = [];
+var dailyCompletions = [];
+var completionLoadError = "";
 var selectedType = "신규";
 var selectedTeamPeriod = "day";
 var selectedTeamDate = todayText;
@@ -39,9 +41,19 @@ var teamDatePicker = document.getElementById("teamDatePicker");
 var teamWeekControl = document.getElementById("teamWeekControl");
 var teamWeekLabel = document.getElementById("teamWeekLabel");
 var teamWeekPicker = document.getElementById("teamWeekPicker");
+var completionPanel = document.getElementById("completionPanel");
+var completionSummary = document.getElementById("completionSummary");
+var completionCount = document.getElementById("completionCount");
+var completionMissing = document.getElementById("completionMissing");
+var completeDayBtn = document.getElementById("completeDayBtn");
+var dayScreenshotBtn = document.getElementById("dayScreenshotBtn");
+var weekScreenshotBtn = document.getElementById("weekScreenshotBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
 var noticeText = document.getElementById("noticeText");
 var noticeOkBtn = document.getElementById("noticeOkBtn");
+var noticeActions = document.getElementById("noticeActions");
+var noticeActionBtn = document.getElementById("noticeActionBtn");
+var noticeActionHandler = null;
 
 dateInput.value = todayText;
 if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
@@ -155,13 +167,24 @@ function toast(msg) {
 function hideNotice() {
   if (!noticeOverlay) return;
   noticeOverlay.classList.remove("active");
+  noticeOverlay.classList.remove("danger");
   noticeOverlay.setAttribute("aria-hidden", "true");
+  noticeActionHandler = null;
+  if (noticeActionBtn) noticeActionBtn.style.display = "none";
+  if (noticeActions) noticeActions.classList.remove("has-action");
 }
-function showNotice(msg) {
+function showNotice(msg, type, actionLabel, actionHandler) {
   if (!noticeOverlay || !noticeText) {
     toast(msg);
     return;
   }
+  noticeOverlay.classList.toggle("danger", type === "danger");
+  noticeActionHandler = typeof actionHandler === "function" ? actionHandler : null;
+  if (noticeActionBtn) {
+    noticeActionBtn.textContent = actionLabel || "";
+    noticeActionBtn.style.display = noticeActionHandler ? "block" : "none";
+  }
+  if (noticeActions) noticeActions.classList.toggle("has-action", Boolean(noticeActionHandler));
   noticeText.textContent = msg;
   noticeOverlay.classList.add("active");
   noticeOverlay.setAttribute("aria-hidden", "false");
@@ -246,9 +269,28 @@ async function api(method, body, query) {
   if (!response.ok) throw new Error(data.error || "요청 실패");
   return data;
 }
+async function completionApi(method, body, query) {
+  var options = { method: method, headers: { "Content-Type": "application/json" } };
+  if (body) options.body = JSON.stringify(body);
+  var response = await fetch("/api/completions" + (query || ""), options);
+  var data = await response.json().catch(function() { return {}; });
+  if (!response.ok) throw new Error(data.error || "완료 상태 요청 실패");
+  return data;
+}
+async function loadCompletionsForSelectedDate(skipRender) {
+  try {
+    dailyCompletions = await completionApi("GET", null, "?date=" + encodeURIComponent(selectedTeamDate));
+    completionLoadError = "";
+  } catch (error) {
+    dailyCompletions = [];
+    completionLoadError = error.message;
+  }
+  if (!skipRender) render();
+}
 async function loadData() {
   status("Supabase 저장소와 연결 확인 중입니다.", "");
   reports = await api("GET");
+  await loadCompletionsForSelectedDate(true);
   status("", "");
   render();
 }
@@ -273,7 +315,7 @@ async function deleteData(id) {
   var typed = prompt("삭제하려면 거래처명을 정확히 입력해주세요.\n\n거래처명: " + item.client);
   if (typed === null) return;
   if (typed.trim() !== item.client) {
-    toast("거래처명이 일치하지 않아 삭제하지 않았습니다.");
+    showNotice("거래처명이 정확하지 않아 삭제되지 않았습니다.", "danger");
     return;
   }
   var actor = ownerInput.value.trim() || localStorage.getItem("ownerName") || item.owner || "";
@@ -335,6 +377,83 @@ function teamPeriodItems() {
     }
     return item.date === selectedTeamDate;
   });
+}
+function completedOwnerSet() {
+  var map = {};
+  dailyCompletions.forEach(function(item) {
+    if (item.date === selectedTeamDate && ownerNames.indexOf(item.owner) >= 0) {
+      map[item.owner] = true;
+    }
+  });
+  return map;
+}
+function completionStats() {
+  var doneMap = completedOwnerSet();
+  var done = ownerNames.filter(function(owner) { return doneMap[owner]; });
+  var missing = ownerNames.filter(function(owner) { return !doneMap[owner]; });
+  return { doneMap: doneMap, done: done, missing: missing };
+}
+function renderCompletionPanel() {
+  if (!completionPanel) return;
+
+  var isDay = selectedTeamPeriod === "day";
+  if (completionSummary) completionSummary.style.display = isDay ? "grid" : "grid";
+  if (completeDayBtn) completeDayBtn.style.display = isDay ? "inline-flex" : "none";
+  if (dayScreenshotBtn) dayScreenshotBtn.style.display = isDay ? "inline-flex" : "none";
+  if (weekScreenshotBtn) weekScreenshotBtn.style.display = isDay ? "none" : "inline-flex";
+
+  if (!isDay) {
+    if (completionCount) completionCount.textContent = "주간현황";
+    if (completionMissing) completionMissing.textContent = weekLabelFromStart(selectedWeekStart) + " 스크린샷을 저장할 수 있습니다.";
+    return;
+  }
+
+  if (completionLoadError) {
+    if (completionCount) completionCount.textContent = "완료 상태 연결 실패";
+    if (completionMissing) completionMissing.textContent = completionLoadError;
+    if (completeDayBtn) completeDayBtn.disabled = true;
+    return;
+  }
+
+  var stats = completionStats();
+  if (completionCount) completionCount.textContent = "완료 " + stats.done.length + "/" + ownerNames.length;
+  if (completionMissing) completionMissing.textContent = stats.missing.length ? "미완료: " + stats.missing.join(", ") : "전원 완료";
+  if (completeDayBtn) {
+    var owner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
+    var alreadyDone = Boolean(stats.doneMap[owner]);
+    completeDayBtn.disabled = alreadyDone;
+    completeDayBtn.textContent = alreadyDone ? "완료됨" : "내 보고 완료";
+  }
+}
+function currentOwnerName() {
+  var owner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
+  return ownerNames.indexOf(owner) >= 0 ? owner : "";
+}
+async function markDailyComplete() {
+  var owner = currentOwnerName();
+  if (!owner) {
+    showNotice("작성하기에서 담당자 이름을 먼저 선택해주세요.", "danger");
+    return;
+  }
+  var beforeCount = completionStats().done.length;
+  var saved = await completionApi("POST", { date: selectedTeamDate, owner: owner });
+  var found = false;
+  dailyCompletions = dailyCompletions.map(function(item) {
+    if (item.owner === saved.owner && item.date === saved.date) {
+      found = true;
+      return saved;
+    }
+    return item;
+  });
+  if (!found) dailyCompletions.push(saved);
+  render();
+
+  var afterCount = completionStats().done.length;
+  if (beforeCount < ownerNames.length && afterCount === ownerNames.length) {
+    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot);
+  } else {
+    showNotice("완료 처리되었습니다.");
+  }
 }
 function groupByOwner(items) {
   var map = {};
@@ -488,9 +607,19 @@ function renderOwnerCards(items) {
       render();
     });
 
+    var nameWrap = document.createElement("div");
+    nameWrap.className = "owner-name-wrap";
     var name = document.createElement("div");
     name.className = "owner-name";
     name.textContent = group.owner;
+    nameWrap.appendChild(name);
+    if (selectedTeamPeriod === "day") {
+      var doneMap = completedOwnerSet();
+      var badge = document.createElement("span");
+      badge.className = "completion-badge " + (doneMap[group.owner] ? "done" : "pending");
+      badge.textContent = doneMap[group.owner] ? "완료" : "미완료";
+      nameWrap.appendChild(badge);
+    }
     var line = document.createElement("div");
     line.className = "owner-line";
     var newCount = document.createElement("span");
@@ -505,7 +634,7 @@ function renderOwnerCards(items) {
     line.appendChild(newCount);
     line.appendChild(growthCount);
     line.appendChild(rate);
-    button.appendChild(name);
+    button.appendChild(nameWrap);
     button.appendChild(line);
 
     var detailSummary = document.createElement("div");
@@ -613,6 +742,130 @@ function renderTeamCards(items) {
     todayOwnerCards.appendChild(card);
   });
 }
+function teamGroupsForScreenshot(items) {
+  return groupByOwner(items).sort(function(a, b) {
+    var amountDiff = b.summary.total.amount - a.summary.total.amount;
+    if (amountDiff !== 0) return amountDiff;
+    return ownerNames.indexOf(a.owner) - ownerNames.indexOf(b.owner);
+  });
+}
+function downloadCanvas(canvas, filename) {
+  var link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+function drawRoundedBox(ctx, x, y, w, h, color, stroke) {
+  ctx.fillStyle = color;
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 14);
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    return;
+  }
+  ctx.fillRect(x, y, w, h);
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+  }
+}
+function makeTeamScreenshot(period) {
+  var isWeek = period === "week";
+  var range = weekRange();
+  var items = reports.filter(function(item) {
+    if (ownerNames.indexOf(item.owner) < 0) return false;
+    if (isWeek) return item.date >= range.start && item.date <= range.end;
+    return item.date === selectedTeamDate;
+  });
+  var summary = summarize(items);
+  var groups = teamGroupsForScreenshot(items);
+  var stats = completionStats();
+  var width = 1080;
+  var rowHeight = 62;
+  var height = 280 + groups.length * rowHeight + (isWeek ? 20 : 58);
+  var canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#f4f7f5";
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#17211c";
+  ctx.font = "900 34px Malgun Gothic, sans-serif";
+  ctx.fillText(isWeek ? "주간현황" : "일일현황", 48, 58);
+  ctx.font = "700 22px Malgun Gothic, sans-serif";
+  ctx.fillStyle = "#66736d";
+  ctx.fillText(isWeek ? weekLabelFromStart(selectedWeekStart) + " (" + range.start + " ~ " + range.end + ")" : dayLabel(selectedTeamDate), 48, 96);
+
+  var boxY = 124;
+  var boxW = 306;
+  [
+    ["전체", won(summary.total.amount), summary.total.count + "건"],
+    ["신규", won(summary.new.amount), summary.new.count + "건"],
+    ["매출증대", won(summary.growth.amount), summary.growth.count + "건"]
+  ].forEach(function(box, index) {
+    var x = 48 + index * (boxW + 24);
+    drawRoundedBox(ctx, x, boxY, boxW, 104, "#ffffff", "#d9e2dc");
+    ctx.fillStyle = "#66736d";
+    ctx.font = "700 18px Malgun Gothic, sans-serif";
+    ctx.fillText(box[0], x + 22, boxY + 32);
+    ctx.fillStyle = "#17211c";
+    ctx.font = "900 28px Malgun Gothic, sans-serif";
+    ctx.fillText(box[1], x + 22, boxY + 68);
+    ctx.fillStyle = "#66736d";
+    ctx.font = "700 17px Malgun Gothic, sans-serif";
+    ctx.fillText(box[2], x + 22, boxY + 92);
+  });
+
+  var y = 260;
+  if (!isWeek) {
+    ctx.fillStyle = "#14765c";
+    ctx.font = "900 21px Malgun Gothic, sans-serif";
+    ctx.fillText("완료 " + stats.done.length + "/" + ownerNames.length, 48, y);
+    ctx.fillStyle = "#66736d";
+    ctx.font = "700 18px Malgun Gothic, sans-serif";
+    ctx.fillText(stats.missing.length ? "미완료: " + stats.missing.join(", ") : "전원 완료", 170, y);
+    y += 36;
+  }
+
+  groups.forEach(function(group) {
+    drawRoundedBox(ctx, 48, y - 28, width - 96, 50, "#ffffff", "#d9e2dc");
+    ctx.fillStyle = "#17211c";
+    ctx.font = "900 22px Malgun Gothic, sans-serif";
+    ctx.fillText(group.owner, 72, y + 4);
+    if (!isWeek) {
+      ctx.fillStyle = stats.doneMap[group.owner] ? "#14765c" : "#c24141";
+      ctx.font = "900 16px Malgun Gothic, sans-serif";
+      ctx.fillText(stats.doneMap[group.owner] ? "완료" : "미완료", 170, y + 3);
+    }
+    ctx.fillStyle = "#66736d";
+    ctx.font = "800 18px Malgun Gothic, sans-serif";
+    ctx.fillText("신규" + group.summary.new.count, 470, y + 3);
+    ctx.fillText("증대" + group.summary.growth.count, 570, y + 3);
+    ctx.fillStyle = "#17211c";
+    ctx.font = "900 22px Malgun Gothic, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(won(group.summary.total.amount), width - 72, y + 4);
+    ctx.textAlign = "left";
+    y += rowHeight;
+  });
+
+  return canvas;
+}
+function downloadDayScreenshot() {
+  downloadCanvas(makeTeamScreenshot("day"), "일일현황-" + selectedTeamDate + ".png");
+}
+function downloadWeekScreenshot() {
+  downloadCanvas(makeTeamScreenshot("week"), "주간현황-" + weekLabelFromStart(selectedWeekStart).replace(/\s+/g, "") + ".png");
+}
 function render() {
   var items = monthlyItems();
   var teamItems = teamPeriodItems();
@@ -623,6 +876,7 @@ function render() {
 
   syncMonthPicker();
   syncTeamPeriodControls();
+  renderCompletionPanel();
   document.getElementById("totalAmount").textContent = won(summary.total.amount);
   document.getElementById("totalCount").textContent = summary.total.count + "건";
   document.getElementById("newAmount").textContent = won(summary.new.amount);
@@ -702,10 +956,28 @@ syncTeamPeriodControls();
 if (noticeOkBtn) {
   noticeOkBtn.addEventListener("click", hideNotice);
 }
+if (noticeActionBtn) {
+  noticeActionBtn.addEventListener("click", function() {
+    if (noticeActionHandler) noticeActionHandler();
+  });
+}
 if (noticeOverlay) {
   noticeOverlay.addEventListener("click", function(e) {
     if (e.target === noticeOverlay) hideNotice();
   });
+}
+if (completeDayBtn) {
+  completeDayBtn.addEventListener("click", function() {
+    markDailyComplete().catch(function(error) {
+      showNotice("완료 처리 실패: " + error.message, "danger");
+    });
+  });
+}
+if (dayScreenshotBtn) {
+  dayScreenshotBtn.addEventListener("click", downloadDayScreenshot);
+}
+if (weekScreenshotBtn) {
+  weekScreenshotBtn.addEventListener("click", downloadWeekScreenshot);
 }
 amountInput.addEventListener("input", function() {
   amountInput.value = digits(amountInput.value);
@@ -748,14 +1020,18 @@ document.querySelectorAll("[data-period]").forEach(function(button) {
     document.querySelectorAll("[data-period]").forEach(function(periodButton) {
       periodButton.classList.toggle("active", periodButton.dataset.period === selectedTeamPeriod);
     });
-    render();
+    if (selectedTeamPeriod === "day") {
+      loadCompletionsForSelectedDate();
+    } else {
+      render();
+    }
   });
 });
 if (teamDatePicker) {
   teamDatePicker.addEventListener("change", function() {
     selectedTeamDate = teamDatePicker.value || todayText;
     openedTeamOwner = "";
-    render();
+    loadCompletionsForSelectedDate();
   });
 }
 if (teamDateLabel) {
@@ -766,12 +1042,12 @@ if (teamDateLabel) {
 document.getElementById("prevDayBtn").addEventListener("click", function() {
   selectedTeamDate = dateText(addDays(parseDateText(selectedTeamDate), -1));
   openedTeamOwner = "";
-  render();
+  loadCompletionsForSelectedDate();
 });
 document.getElementById("nextDayBtn").addEventListener("click", function() {
   selectedTeamDate = dateText(addDays(parseDateText(selectedTeamDate), 1));
   openedTeamOwner = "";
-  render();
+  loadCompletionsForSelectedDate();
 });
 if (teamWeekPicker) {
   teamWeekPicker.addEventListener("change", function() {

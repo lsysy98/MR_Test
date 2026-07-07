@@ -114,6 +114,16 @@ module.exports = async function handler(req, res) {
       return json(res, 200, fromDb(rows[0]));
     }
 
+    if (req.method === "DELETE") {
+      const date = requestUrl.searchParams.get("date") || "";
+      const owner = requestUrl.searchParams.get("owner") || "";
+      if (!date || !owner) return json(res, 400, { error: "date and owner are required" });
+      await supabase(`daily_completions?report_date=eq.${encodeURIComponent(date)}&owner=eq.${encodeURIComponent(owner)}`, {
+        method: "DELETE"
+      });
+      return json(res, 200, { ok: true });
+    }
+
     return json(res, 405, { error: "Method not allowed" });
   } catch (error) {
     return json(res, 500, { error: error.message });

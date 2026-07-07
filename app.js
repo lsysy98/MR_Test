@@ -397,7 +397,7 @@ function renderCompletionPanel() {
   if (!completionPanel) return;
 
   var isDay = selectedTeamPeriod === "day";
-  if (completionSummary) completionSummary.style.display = isDay ? "grid" : "grid";
+  if (completionSummary) completionSummary.style.display = "none";
   if (completeDayBtn) completeDayBtn.style.display = isDay ? "inline-flex" : "none";
   if (dayScreenshotBtn) dayScreenshotBtn.style.display = isDay ? "inline-flex" : "none";
   if (weekScreenshotBtn) weekScreenshotBtn.style.display = isDay ? "none" : "inline-flex";
@@ -417,11 +417,11 @@ function renderCompletionPanel() {
 
   var stats = completionStats();
   if (completionCount) completionCount.textContent = "완료 " + stats.done.length + "/" + ownerNames.length;
-  if (completionMissing) completionMissing.textContent = stats.missing.length ? "미완료: " + stats.missing.join(", ") : "전원 완료";
+  if (completionMissing) completionMissing.textContent = "";
   if (completeDayBtn) {
     var owner = ownerInput.value.trim() || localStorage.getItem("ownerName") || "";
     var alreadyDone = Boolean(stats.doneMap[owner]);
-    completeDayBtn.disabled = alreadyDone;
+    completeDayBtn.disabled = false;
     completeDayBtn.textContent = alreadyDone ? "완료됨" : "내 보고 완료";
   }
 }
@@ -436,6 +436,15 @@ async function markDailyComplete() {
     return;
   }
   var beforeCount = completionStats().done.length;
+  if (completionStats().doneMap[owner]) {
+    await completionApi("DELETE", null, "?date=" + encodeURIComponent(selectedTeamDate) + "&owner=" + encodeURIComponent(owner));
+    dailyCompletions = dailyCompletions.filter(function(item) {
+      return !(item.owner === owner && item.date === selectedTeamDate);
+    });
+    render();
+    showNotice("미완료로 변경되었습니다.");
+    return;
+  }
   var saved = await completionApi("POST", { date: selectedTeamDate, owner: owner });
   var found = false;
   dailyCompletions = dailyCompletions.map(function(item) {
@@ -607,19 +616,9 @@ function renderOwnerCards(items) {
       render();
     });
 
-    var nameWrap = document.createElement("div");
-    nameWrap.className = "owner-name-wrap";
     var name = document.createElement("div");
     name.className = "owner-name";
     name.textContent = group.owner;
-    nameWrap.appendChild(name);
-    if (selectedTeamPeriod === "day") {
-      var doneMap = completedOwnerSet();
-      var badge = document.createElement("span");
-      badge.className = "completion-badge " + (doneMap[group.owner] ? "done" : "pending");
-      badge.textContent = doneMap[group.owner] ? "완료" : "미완료";
-      nameWrap.appendChild(badge);
-    }
     var line = document.createElement("div");
     line.className = "owner-line";
     var newCount = document.createElement("span");
@@ -634,7 +633,7 @@ function renderOwnerCards(items) {
     line.appendChild(newCount);
     line.appendChild(growthCount);
     line.appendChild(rate);
-    button.appendChild(nameWrap);
+    button.appendChild(name);
     button.appendChild(line);
 
     var detailSummary = document.createElement("div");
@@ -689,7 +688,10 @@ function renderTeamCards(items) {
   }).forEach(function(group) {
     var summary = group.summary;
     var card = document.createElement("div");
-    card.className = "owner-card" + (openedTeamOwner === group.owner ? " open" : "");
+    var doneMap = completedOwnerSet();
+    card.className = "owner-card" +
+      (openedTeamOwner === group.owner ? " open" : "") +
+      (selectedTeamPeriod === "day" && doneMap[group.owner] ? " report-done" : "");
 
     var button = document.createElement("button");
     button.type = "button";
@@ -788,9 +790,9 @@ function makeTeamScreenshot(period) {
   var summary = summarize(items);
   var groups = teamGroupsForScreenshot(items);
   var stats = completionStats();
-  var width = 1080;
-  var rowHeight = 62;
-  var height = 280 + groups.length * rowHeight + (isWeek ? 20 : 58);
+  var width = 430;
+  var rowHeight = 52;
+  var height = 246 + groups.length * rowHeight + (isWeek ? 10 : 42);
   var canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -799,61 +801,54 @@ function makeTeamScreenshot(period) {
   ctx.fillStyle = "#f4f7f5";
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = "#17211c";
-  ctx.font = "900 34px Malgun Gothic, sans-serif";
-  ctx.fillText(isWeek ? "주간현황" : "일일현황", 48, 58);
-  ctx.font = "700 22px Malgun Gothic, sans-serif";
+  ctx.font = "900 25px Malgun Gothic, sans-serif";
+  ctx.fillText(isWeek ? "주간현황" : "일일현황", 22, 42);
+  ctx.font = "700 14px Malgun Gothic, sans-serif";
   ctx.fillStyle = "#66736d";
-  ctx.fillText(isWeek ? weekLabelFromStart(selectedWeekStart) + " (" + range.start + " ~ " + range.end + ")" : dayLabel(selectedTeamDate), 48, 96);
+  ctx.fillText(isWeek ? weekLabelFromStart(selectedWeekStart) + " (" + range.start + " ~ " + range.end + ")" : dayLabel(selectedTeamDate), 22, 66);
 
-  var boxY = 124;
-  var boxW = 306;
+  var boxY = 86;
+  var boxW = 124;
   [
     ["전체", won(summary.total.amount), summary.total.count + "건"],
     ["신규", won(summary.new.amount), summary.new.count + "건"],
     ["매출증대", won(summary.growth.amount), summary.growth.count + "건"]
   ].forEach(function(box, index) {
-    var x = 48 + index * (boxW + 24);
-    drawRoundedBox(ctx, x, boxY, boxW, 104, "#ffffff", "#d9e2dc");
+    var x = 22 + index * (boxW + 8);
+    drawRoundedBox(ctx, x, boxY, boxW, 82, "#ffffff", "#d9e2dc");
     ctx.fillStyle = "#66736d";
-    ctx.font = "700 18px Malgun Gothic, sans-serif";
-    ctx.fillText(box[0], x + 22, boxY + 32);
+    ctx.font = "700 13px Malgun Gothic, sans-serif";
+    ctx.fillText(box[0], x + 12, boxY + 24);
     ctx.fillStyle = "#17211c";
-    ctx.font = "900 28px Malgun Gothic, sans-serif";
-    ctx.fillText(box[1], x + 22, boxY + 68);
+    ctx.font = "900 17px Malgun Gothic, sans-serif";
+    ctx.fillText(box[1], x + 12, boxY + 52);
     ctx.fillStyle = "#66736d";
-    ctx.font = "700 17px Malgun Gothic, sans-serif";
-    ctx.fillText(box[2], x + 22, boxY + 92);
+    ctx.font = "700 12px Malgun Gothic, sans-serif";
+    ctx.fillText(box[2], x + 12, boxY + 72);
   });
 
-  var y = 260;
+  var y = 202;
   if (!isWeek) {
     ctx.fillStyle = "#14765c";
-    ctx.font = "900 21px Malgun Gothic, sans-serif";
-    ctx.fillText("완료 " + stats.done.length + "/" + ownerNames.length, 48, y);
-    ctx.fillStyle = "#66736d";
-    ctx.font = "700 18px Malgun Gothic, sans-serif";
-    ctx.fillText(stats.missing.length ? "미완료: " + stats.missing.join(", ") : "전원 완료", 170, y);
-    y += 36;
+    ctx.font = "900 15px Malgun Gothic, sans-serif";
+    ctx.fillText("완료 " + stats.done.length + "/" + ownerNames.length, 22, y);
+    y += 26;
   }
 
   groups.forEach(function(group) {
-    drawRoundedBox(ctx, 48, y - 28, width - 96, 50, "#ffffff", "#d9e2dc");
+    var isDone = !isWeek && stats.doneMap[group.owner];
+    drawRoundedBox(ctx, 22, y - 24, width - 44, 42, isDone ? "#edf9f4" : "#ffffff", "#d9e2dc");
     ctx.fillStyle = "#17211c";
-    ctx.font = "900 22px Malgun Gothic, sans-serif";
-    ctx.fillText(group.owner, 72, y + 4);
-    if (!isWeek) {
-      ctx.fillStyle = stats.doneMap[group.owner] ? "#14765c" : "#c24141";
-      ctx.font = "900 16px Malgun Gothic, sans-serif";
-      ctx.fillText(stats.doneMap[group.owner] ? "완료" : "미완료", 170, y + 3);
-    }
+    ctx.font = "900 17px Malgun Gothic, sans-serif";
+    ctx.fillText(group.owner, 36, y + 3);
     ctx.fillStyle = "#66736d";
-    ctx.font = "800 18px Malgun Gothic, sans-serif";
-    ctx.fillText("신규" + group.summary.new.count, 470, y + 3);
-    ctx.fillText("증대" + group.summary.growth.count, 570, y + 3);
+    ctx.font = "800 13px Malgun Gothic, sans-serif";
+    ctx.fillText("신규" + group.summary.new.count, 142, y + 2);
+    ctx.fillText("증대" + group.summary.growth.count, 190, y + 2);
     ctx.fillStyle = "#17211c";
-    ctx.font = "900 22px Malgun Gothic, sans-serif";
+    ctx.font = "900 15px Malgun Gothic, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(won(group.summary.total.amount), width - 72, y + 4);
+    ctx.fillText(won(group.summary.total.amount), width - 36, y + 3);
     ctx.textAlign = "left";
     y += rowHeight;
   });

@@ -121,6 +121,8 @@
       cursor: pointer;
     }
     .owner-button.active { background: var(--green-soft); }
+    .owner-card.report-done > .owner-button { background: #edf9f4; }
+    .owner-card.report-done > .owner-button.active { background: #dff4ec; }
     .owner-name { font-size: 15px; font-weight: 900; color: var(--text); }
     .owner-line {
       display: grid;
@@ -180,7 +182,6 @@
     }
     .completion-panel {
       display: grid;
-      grid-template-columns: 1fr auto;
       gap: 10px;
       align-items: center;
       border: 1px solid var(--line);
@@ -188,14 +189,18 @@
       background: #fbfdfc;
       padding: 10px;
     }
-    .completion-summary { display: grid; gap: 4px; min-width: 0; }
+    .completion-summary { display: none; gap: 4px; min-width: 0; }
     .completion-summary strong { font-size: 15px; }
     .completion-summary span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
-    .completion-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .owner-name-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
-    .completion-badge { border-radius: 999px; padding: 4px 7px; font-size: 11px; font-weight: 900; white-space: nowrap; }
-    .completion-badge.done { background: var(--green-soft); color: var(--green); }
-    .completion-badge.pending { background: var(--red-soft); color: var(--red); }
+    .completion-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .completion-actions .btn {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+    }
     .owner-detail-summary { display: none; grid-template-columns: 1fr 1fr auto; gap: 8px; padding: 8px; border-top: 1px solid var(--line); background: #fbfdfc; }
     .owner-card.open .owner-detail-summary { display: grid; }
     .detail-metric { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px; display: grid; gap: 3px; text-align: left; cursor: pointer; }
@@ -280,7 +285,6 @@
       .team-line .team-amount { font-size: 13px; }
       .day-control, .week-control { grid-template-columns: .68fr minmax(154px, 1.64fr) .68fr; gap: 6px; }
       .date-label, .week-label { min-height: 40px; padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
-      .completion-panel { grid-template-columns: 1fr; }
       .completion-actions { display: grid; grid-template-columns: 1fr 1fr; }
       .completion-actions .btn { padding: 0 8px; }
       .owner-detail-summary { grid-template-columns: 1fr 1fr; }
@@ -423,7 +427,7 @@
           <div class="completion-panel" id="completionPanel">
             <div class="completion-summary" id="completionSummary">
               <strong id="completionCount">완료 0/7</strong>
-              <span id="completionMissing">미완료: 전체</span>
+              <span id="completionMissing"></span>
             </div>
             <div class="completion-actions">
               <button class="btn primary" type="button" id="completeDayBtn">내 보고 완료</button>

@@ -54,6 +54,7 @@ var noticeOkBtn = document.getElementById("noticeOkBtn");
 var noticeActions = document.getElementById("noticeActions");
 var noticeActionBtn = document.getElementById("noticeActionBtn");
 var noticeActionHandler = null;
+var noticeLocked = false;
 
 dateInput.value = todayText;
 if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
@@ -170,16 +171,18 @@ function hideNotice() {
   noticeOverlay.classList.remove("danger");
   noticeOverlay.setAttribute("aria-hidden", "true");
   noticeActionHandler = null;
+  noticeLocked = false;
   if (noticeActionBtn) noticeActionBtn.style.display = "none";
   if (noticeActions) noticeActions.classList.remove("has-action");
 }
-function showNotice(msg, type, actionLabel, actionHandler) {
+function showNotice(msg, type, actionLabel, actionHandler, lockOutside) {
   if (!noticeOverlay || !noticeText) {
     toast(msg);
     return;
   }
   noticeOverlay.classList.toggle("danger", type === "danger");
   noticeActionHandler = typeof actionHandler === "function" ? actionHandler : null;
+  noticeLocked = Boolean(lockOutside);
   if (noticeActionBtn) {
     noticeActionBtn.textContent = actionLabel || "";
     noticeActionBtn.style.display = noticeActionHandler ? "block" : "none";
@@ -423,6 +426,7 @@ function renderCompletionPanel() {
     var alreadyDone = Boolean(stats.doneMap[owner]);
     completeDayBtn.disabled = false;
     completeDayBtn.textContent = alreadyDone ? "완료됨" : "내 보고 완료";
+    completeDayBtn.classList.toggle("primary", alreadyDone);
   }
 }
 function currentOwnerName() {
@@ -459,7 +463,7 @@ async function markDailyComplete() {
 
   var afterCount = completionStats().done.length;
   if (beforeCount < ownerNames.length && afterCount === ownerNames.length) {
-    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot);
+    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해주세요.", "", "스크린샷 저장", downloadDayScreenshot, true);
   } else {
     showNotice("완료 처리되었습니다.");
   }
@@ -843,11 +847,11 @@ function makeTeamScreenshot(period) {
     ctx.fillText(group.owner, 36, y + 3);
     ctx.fillStyle = "#66736d";
     ctx.font = "800 13px Malgun Gothic, sans-serif";
-    ctx.fillText("신규" + group.summary.new.count, 142, y + 2);
-    ctx.fillText("증대" + group.summary.growth.count, 190, y + 2);
+    ctx.textAlign = "right";
+    ctx.fillText("신규" + group.summary.new.count, 246, y + 2);
+    ctx.fillText("증대" + group.summary.growth.count, 294, y + 2);
     ctx.fillStyle = "#17211c";
     ctx.font = "900 15px Malgun Gothic, sans-serif";
-    ctx.textAlign = "right";
     ctx.fillText(won(group.summary.total.amount), width - 36, y + 3);
     ctx.textAlign = "left";
     y += rowHeight;
@@ -958,7 +962,7 @@ if (noticeActionBtn) {
 }
 if (noticeOverlay) {
   noticeOverlay.addEventListener("click", function(e) {
-    if (e.target === noticeOverlay) hideNotice();
+    if (e.target === noticeOverlay && !noticeLocked) hideNotice();
   });
 }
 if (completeDayBtn) {

@@ -227,6 +227,10 @@ function won(v) {
   var n = Number(v || 0);
   return n ? money.format(n) + "원" : "0원";
 }
+function wonMan(v) {
+  var n = Number(v || 0);
+  return n ? money.format(Math.round(n / 10000)) + "만원" : "0원";
+}
 function yearOf(x) {
   return x.date ? Number(String(x.date).slice(0, 4)) : currentYear;
 }
@@ -1326,9 +1330,9 @@ function makeTeamScreenshot(period) {
   var boxY = 86;
   var boxW = 124;
   [
-    ["전체", won(summary.total.amount), summary.total.count + "건"],
-    ["신규", won(summary.new.amount), summary.new.count + "건"],
-    ["매출증대", won(summary.growth.amount), summary.growth.count + "건"]
+    ["전체", wonMan(summary.total.amount), summary.total.count + "건"],
+    ["신규", wonMan(summary.new.amount), summary.new.count + "건"],
+    ["매출증대", wonMan(summary.growth.amount), summary.growth.count + "건"]
   ].forEach(function(box, index) {
     var x = 22 + index * (boxW + 8);
     drawRoundedBox(ctx, x, boxY, boxW, 82, "#ffffff", "#d9e2dc");
@@ -1387,22 +1391,22 @@ function render() {
   syncMonthPicker();
   syncTeamPeriodControls();
   renderCompletionPanel();
-  document.getElementById("totalAmount").textContent = won(summary.total.amount);
+  document.getElementById("totalAmount").textContent = wonMan(summary.total.amount);
   document.getElementById("totalCount").textContent = summary.total.count + "건";
-  document.getElementById("newAmount").textContent = won(summary.new.amount);
+  document.getElementById("newAmount").textContent = wonMan(summary.new.amount);
   document.getElementById("newCount").textContent = summary.new.count + "건";
-  document.getElementById("growthAmount").textContent = won(summary.growth.amount);
+  document.getElementById("growthAmount").textContent = wonMan(summary.growth.amount);
   document.getElementById("growthCount").textContent = summary.growth.count + "건";
   document.getElementById("doneRate").textContent = achievementRate + "%";
-  document.getElementById("doneCount").textContent = "총매출 " + won(summary.total.amount) + " / 목표 " + won(targetAmount);
+  document.getElementById("doneCount").textContent = "총매출 " + wonMan(summary.total.amount) + " / 목표 " + wonMan(targetAmount);
   document.getElementById("empty").style.display = items.length ? "none" : "block";
   renderOwnerCards(items);
 
-  document.getElementById("todayTotalAmount").textContent = won(teamSummary.total.amount);
+  document.getElementById("todayTotalAmount").textContent = wonMan(teamSummary.total.amount);
   document.getElementById("todayTotalCount").textContent = teamSummary.total.count + "건";
-  document.getElementById("todayNewAmount").textContent = won(teamSummary.new.amount);
+  document.getElementById("todayNewAmount").textContent = wonMan(teamSummary.new.amount);
   document.getElementById("todayNewCount").textContent = teamSummary.new.count + "건";
-  document.getElementById("todayGrowthAmount").textContent = won(teamSummary.growth.amount);
+  document.getElementById("todayGrowthAmount").textContent = wonMan(teamSummary.growth.amount);
   document.getElementById("todayGrowthCount").textContent = teamSummary.growth.count + "건";
   if (todayEmpty) {
     todayEmpty.textContent = selectedTeamPeriod === "week" ? "선택한 주의 보고가 없습니다." : "선택한 날짜의 보고가 없습니다.";

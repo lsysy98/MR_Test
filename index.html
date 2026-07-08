@@ -7,32 +7,34 @@
   <style>
     * { box-sizing: border-box; }
     :root {
-      --bg: #f3f0e8;
-      --panel: #fffdf8;
-      --line: #d9d0c1;
-      --text: #18231e;
-      --muted: #6c746f;
-      --green: #0e6a55;
-      --green-soft: #e8f3ee;
-      --blue-soft: #e8eef8;
-      --blue: #355f95;
-      --amber-soft: #fbefd7;
-      --amber: #a66d20;
-      --red: #b43f3f;
-      --red-soft: #fff0ee;
-      --gold: #b89458;
+      --bg: #0e1412;
+      --panel: #151f1b;
+      --surface: #1b2822;
+      --surface-soft: #22342c;
+      --line: #34473d;
+      --text: #f4efe6;
+      --muted: #a7b2aa;
+      --green: #2fa37f;
+      --green-soft: #203f34;
+      --blue-soft: #1f3045;
+      --blue: #8bb3ee;
+      --amber-soft: #3e321f;
+      --amber: #d1a24f;
+      --red: #e07373;
+      --red-soft: #3f2424;
+      --gold: #d6b46f;
     }
     body {
       margin: 0;
       background:
-        radial-gradient(circle at 12% -10%, rgba(184,148,88,.18), transparent 34%),
-        linear-gradient(145deg, #f8f5ee 0%, #eef4ef 58%, #f3f0e8 100%);
+        radial-gradient(circle at 12% -10%, rgba(214,180,111,.16), transparent 34%),
+        linear-gradient(145deg, #0b100e 0%, #12201a 58%, #0e1412 100%);
       color: var(--text);
       font-family: "Malgun Gothic", system-ui, sans-serif;
     }
     header {
-      background: rgba(255,253,248,.94);
-      border-bottom: 1px solid rgba(184,148,88,.34);
+      background: rgba(16,24,20,.94);
+      border-bottom: 1px solid rgba(214,180,111,.26);
       padding: 14px 16px;
       position: sticky;
       top: 0;
@@ -47,15 +49,15 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 16px 36px rgba(24,35,30,.10);
+      box-shadow: 0 18px 42px rgba(0,0,0,.22);
     }
     .head { padding: 16px 16px 6px; }
     .form, .body { padding: 12px 16px 16px; display: grid; gap: 12px; }
     label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
     .label-muted { color: #8a9691; font-size: 12px; font-weight: 400; }
-    input, select { width: 100%; min-height: 44px; border: 1px solid #cfc6b6; border-radius: 8px; padding: 10px 12px; background: #fffefb; color: var(--text); }
+    input, select { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); color: var(--text); }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn { min-height: 42px; border: 1px solid #cbbfae; border-radius: 8px; background: #fffefb; color: #0e5c49; padding: 0 13px; cursor: pointer; }
+    .btn { min-height: 42px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: #d8f4e9; padding: 0 13px; cursor: pointer; }
     .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
     .btn.danger { color: var(--red); border-color: #efc8c8; }
     .btn.done { background: var(--green-soft); border-color: #98d8bf; color: #0f5b47; font-weight: 800; }
@@ -460,13 +462,52 @@
     .app-credit {
       max-width: 1120px;
       margin: 0 auto;
-      padding: 0 14px 26px;
-      color: #7d7567;
+      padding: 2px 14px 28px;
+      color: var(--muted);
       font-size: 12px;
       text-align: center;
       letter-spacing: .02em;
+      display: grid;
+      gap: 4px;
     }
-    .app-credit strong { color: #4a4031; }
+    .app-credit strong { color: var(--text); font-weight: 900; }
+    .app-credit a { color: #f0a84f; text-decoration: none; font-weight: 900; }
+    section, .metric, .owner-card, .report-card,
+    .calendar-box, .leave-box, .notice-box {
+      background: var(--panel);
+      border-color: var(--line);
+    }
+    input, select, .btn, .collection-label, .date-label, .week-label,
+    .detail-metric, .owner-button, .completion-panel, .status, .empty,
+    .seg, .calendar-day, .leave-item {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--line);
+    }
+    .metric span, .metric small, label, .helper, .summary-title,
+    .report-info, .branch-name, .completion-summary span,
+    .calendar-weekdays span, .leave-list-title, .leave-empty {
+      color: var(--muted);
+    }
+    .metric strong, .report-amount, .owner-name, .client { color: var(--text); }
+    .seg button { background: transparent; color: var(--muted); }
+    .mobile-tabs { background: #111b17; border-color: var(--line); }
+    .mobile-tab { color: var(--muted); }
+    .owner-button.active,
+    .owner-card.report-done > .owner-button.active,
+    .detail-metric.active,
+    .leave-item.editing {
+      background: var(--green-soft);
+      border-color: var(--green);
+    }
+    .owner-card.report-done > .owner-button { background: #182d25; }
+    .owner-card.report-leave > .owner-button { background: #202822; }
+    .detail-list, .owner-detail-summary { background: #111a16; border-color: var(--line); }
+    .report-number { background: var(--surface-soft); color: #d8f4e9; }
+    .notice-overlay.danger .notice-box { background: #321d1d; border-color: #805050; }
+    .btn.danger { color: #ff9c9c; border-color: #734646; }
+    .btn.done { background: #1e4638; border-color: #3e8d73; color: #d8f4e9; }
+    .btn.pending { background: #3b2424; border-color: #8a5050; color: #ffc7c7; }
   </style>
 </head>
 <body class="view-dashboard">
@@ -621,7 +662,12 @@
       </section>
     </section>
   </main>
-  <footer class="app-credit">Created by <strong>LSY</strong> · lsysy98@gmail.com</footer>
+  <footer class="app-credit">
+    <strong>무단 배포 금지</strong>
+    <span>본 자료는 오스템 MR팀 소유입니다.</span>
+    <span>made by 이승엽</span>
+    <span>문의 <a href="mailto:homerun@osstem.com">homerun@osstem.com</a></span>
+  </footer>
   <div class="leave-overlay" id="leaveOverlay" aria-hidden="true">
     <div class="leave-box" role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
       <h3 id="leaveTitle">연차 설정</h3>

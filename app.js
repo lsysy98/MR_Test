@@ -409,7 +409,7 @@ function renderCalendar() {
 }
 function updateAmountPreview() {
   var man = amountMan(amountInput.value);
-  amountPreview.textContent = man ? money.format(man) + "만원 = " + won(man * 10000) : "1 입력 = 10,000원";
+  amountPreview.textContent = man ? money.format(man) + "만원" : "1 입력 = 1만원";
 }
 function updateTypeButtons() {
   document.querySelectorAll("[data-type]").forEach(function(button) {
@@ -1029,7 +1029,7 @@ function reportCard(item, index) {
   }
   var amount = document.createElement("div");
   amount.className = "report-amount";
-  amount.textContent = won(item.amount);
+  amount.textContent = wonMan(item.amount);
   top.appendChild(clientWrap);
   top.appendChild(amount);
 
@@ -1146,8 +1146,8 @@ function renderOwnerCards(items) {
 
     var detailSummary = document.createElement("div");
     detailSummary.className = "owner-detail-summary";
-    addDetailMetric(detailSummary, group.owner, "신규", won(summary.new.amount), summary.new.count + "건");
-    addDetailMetric(detailSummary, group.owner, "매출증대", won(summary.growth.amount), summary.growth.count + "건");
+    addDetailMetric(detailSummary, group.owner, "신규", wonMan(summary.new.amount), summary.new.count + "건");
+    addDetailMetric(detailSummary, group.owner, "매출증대", wonMan(summary.growth.amount), summary.growth.count + "건");
 
     var reset = document.createElement("button");
     reset.type = "button";
@@ -1235,7 +1235,7 @@ function renderTeamCards(items) {
     teamGrowth.textContent = "증대" + summary.growth.count;
     var teamAmount = document.createElement("span");
     teamAmount.className = "team-amount";
-    teamAmount.textContent = won(summary.total.amount);
+    teamAmount.textContent = wonMan(summary.total.amount);
     line.appendChild(teamNew);
     line.appendChild(teamGrowth);
     line.appendChild(teamAmount);
@@ -1367,7 +1367,7 @@ function makeTeamScreenshot(period) {
     ctx.fillText("증대" + group.summary.growth.count, 294, y + 2);
     ctx.fillStyle = "#17211c";
     ctx.font = "900 15px Malgun Gothic, sans-serif";
-    ctx.fillText(won(group.summary.total.amount), width - 36, y + 3);
+    ctx.fillText(wonMan(group.summary.total.amount), width - 36, y + 3);
     ctx.textAlign = "left";
     y += rowHeight;
   });

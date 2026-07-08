@@ -7,40 +7,22 @@
   <style>
     * { box-sizing: border-box; }
     :root {
-      --bg: #eef4f8;
+      --bg: #f4f7f5;
       --panel: #ffffff;
-      --surface: #ffffff;
-      --surface-soft: #eef4f8;
-      --line: #d5e0e8;
-      --text: #1d2b36;
-      --muted: #6b7b86;
-      --green: #5d7893;
-      --green-soft: #e8eff4;
-      --blue-soft: #e8eff7;
-      --blue: #5d7893;
-      --amber-soft: #fff0ed;
-      --amber: #d9786d;
-      --red: #b43f3f;
-      --red-soft: #fff0ee;
-      --gold: #d9786d;
+      --line: #d9e2dc;
+      --text: #17211c;
+      --muted: #66736d;
+      --green: #14765c;
+      --green-soft: #e6f5ef;
+      --blue-soft: #e7f1ff;
+      --blue: #2563eb;
+      --amber-soft: #fff2d8;
+      --amber: #b7791f;
+      --red: #c24141;
+      --red-soft: #fff1f1;
     }
-    body {
-      margin: 0;
-      background:
-        radial-gradient(circle at 12% -10%, rgba(217,120,109,.12), transparent 34%),
-        linear-gradient(145deg, #ffffff 0%, #f7fbfd 54%, #eef4f8 100%);
-      color: var(--text);
-      font-family: "Malgun Gothic", system-ui, sans-serif;
-    }
-    header {
-      background: rgba(255,255,255,.94);
-      border-bottom: 1px solid rgba(93,120,147,.22);
-      padding: 14px 16px;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      backdrop-filter: blur(10px);
-    }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Malgun Gothic", system-ui, sans-serif; }
+    header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 16px; position: sticky; top: 0; z-index: 5; }
     h1 { margin: 0; font-size: 19px; }
     h2 { margin: 0; font-size: 17px; }
     button, input, select { font: inherit; }
@@ -49,15 +31,15 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 14px 32px rgba(24,35,30,.10);
+      box-shadow: 0 8px 22px rgba(27,45,37,.08);
     }
     .head { padding: 16px 16px 6px; }
     .form, .body { padding: 12px 16px 16px; display: grid; gap: 12px; }
     label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
     .label-muted { color: #8a9691; font-size: 12px; font-weight: 400; }
-    input, select { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); color: var(--text); }
+    input, select { width: 100%; min-height: 44px; border: 1px solid #cbd8d1; border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--text); }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn { min-height: 42px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: #0e5c49; padding: 0 13px; cursor: pointer; }
+    .btn { min-height: 42px; border: 1px solid #bfd0c8; border-radius: 8px; background: #fff; color: #0f5b47; padding: 0 13px; cursor: pointer; }
     .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
     .btn.danger { color: var(--red); border-color: #efc8c8; }
     .btn.done { background: var(--green-soft); border-color: #98d8bf; color: #0f5b47; font-weight: 800; }
@@ -161,7 +143,6 @@
     .leave-empty { color: var(--muted); font-size: 13px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
     .notice-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
     .notice-actions.has-action { grid-template-columns: 1fr 1fr; }
-    .notice-actions.action-required { grid-template-columns: 1fr; }
     #noticeActionBtn { display: none; }
     .calendar-overlay {
       position: fixed;
@@ -466,6 +447,7 @@
       .report-amount { font-size: 19px; }
       .report-bottom { align-items: center; }
     }
+    .notice-actions.action-required { grid-template-columns: 1fr; }
     .app-credit {
       max-width: 1120px;
       margin: 0 auto;
@@ -478,43 +460,7 @@
       gap: 4px;
     }
     .app-credit strong { color: var(--text); font-weight: 900; }
-    .app-credit a { color: #d9786d; text-decoration: none; font-weight: 900; }
-    section, .metric, .owner-card, .report-card,
-    .calendar-box, .leave-box, .notice-box {
-      background: var(--panel);
-      border-color: var(--line);
-    }
-    input, select, .btn, .collection-label, .date-label, .week-label,
-    .detail-metric, .owner-button, .completion-panel, .status, .empty,
-    .seg, .calendar-day, .leave-item {
-      background: var(--surface);
-      color: var(--text);
-      border-color: var(--line);
-    }
-    .metric span, .metric small, label, .helper, .summary-title,
-    .report-info, .branch-name, .completion-summary span,
-    .calendar-weekdays span, .leave-list-title, .leave-empty {
-      color: var(--muted);
-    }
-    .metric strong, .report-amount, .owner-name, .client { color: var(--text); }
-    .seg button { background: transparent; color: var(--muted); }
-    .mobile-tabs { background: #ffffff; border-color: var(--line); }
-    .mobile-tab { color: var(--muted); }
-    .owner-button.active,
-    .owner-card.report-done > .owner-button.active,
-    .detail-metric.active,
-    .leave-item.editing {
-      background: var(--green-soft);
-      border-color: var(--green);
-    }
-    .owner-card.report-done > .owner-button { background: #f3f8fb; }
-    .owner-card.report-leave > .owner-button { background: #fafafa; }
-    .detail-list, .owner-detail-summary { background: #f7fbfd; border-color: var(--line); }
-    .report-number { background: var(--surface-soft); color: #334b5f; }
-    .notice-overlay.danger .notice-box { background: #fff7f7; border-color: #efb8b8; }
-    .btn.danger { color: var(--red); border-color: #efc8c8; }
-    .btn.done { background: #e8eff4; border-color: #b7c7d5; color: #405b73; }
-    .btn.pending { background: #fff0ed; border-color: #efbeb7; color: #b84d43; }
+    .app-credit a { color: #b7791f; text-decoration: none; font-weight: 900; }
   </style>
 </head>
 <body class="view-dashboard">

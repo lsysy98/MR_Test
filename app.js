@@ -46,7 +46,7 @@ var weeklyReportStart = document.getElementById("weeklyReportStart");
 var weeklyReportEnd = document.getElementById("weeklyReportEnd");
 var copyWeeklyReportBtn = document.getElementById("copyWeeklyReportBtn");
 var weeklyReportPanel = document.getElementById("weeklyReportPanel");
-var weeklyReportRange = document.getElementById("weeklyReportRange");
+var weeklyReportRangeBox = document.getElementById("weeklyReportRange");
 var weeklyDateToggleBtn = document.getElementById("weeklyDateToggleBtn");
 var weeklyReportPreview = document.getElementById("weeklyReportPreview");
 var confirmCopyWeeklyReportBtn = document.getElementById("confirmCopyWeeklyReportBtn");
@@ -769,7 +769,7 @@ function openWeeklyReportPanel() {
   if (!weeklyReportPanel) return;
   if (!weeklyReportPanel.classList.contains("active")) {
     setDefaultWeeklyReportRange();
-    if (weeklyReportRange) weeklyReportRange.classList.remove("active");
+    if (weeklyReportRangeBox) weeklyReportRangeBox.classList.remove("active");
     if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
   }
   weeklyReportPanel.classList.add("active");
@@ -777,13 +777,13 @@ function openWeeklyReportPanel() {
 }
 function closeWeeklyReportPanel() {
   if (weeklyReportPanel) weeklyReportPanel.classList.remove("active");
-  if (weeklyReportRange) weeklyReportRange.classList.remove("active");
+  if (weeklyReportRangeBox) weeklyReportRangeBox.classList.remove("active");
   if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
 }
 function toggleWeeklyDateSettings() {
-  if (!weeklyReportRange) return;
-  var open = !weeklyReportRange.classList.contains("active");
-  weeklyReportRange.classList.toggle("active", open);
+  if (!weeklyReportRangeBox) return;
+  var open = !weeklyReportRangeBox.classList.contains("active");
+  weeklyReportRangeBox.classList.toggle("active", open);
   if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = open ? "날짜 설정 닫기" : "날짜 설정";
 }
 async function copyWeeklyReportText() {

@@ -257,6 +257,20 @@
     .period-switch { grid-template-columns: 1fr 1fr; }
     .period-controls { display: grid; gap: 8px; }
     .day-control, .week-control { display: grid; grid-template-columns: .8fr minmax(150px, 1.4fr) .8fr; gap: 8px; align-items: center; }
+    .weekly-report-tools {
+      display: none;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfc;
+    }
+    .weekly-report-range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .weekly-report-range label { gap: 5px; font-size: 12px; }
+    .weekly-report-range input { min-height: 40px; }
+    #copyWeeklyReportBtn { min-height: 40px; white-space: nowrap; }
     .date-pick-wrap { position: relative; }
     .date-label, .week-label {
       width: 100%;
@@ -438,6 +452,7 @@
       .team-line .team-count { font-size: 11px; }
       .team-line .team-amount { font-size: 13px; }
       .day-control, .week-control { grid-template-columns: .68fr minmax(154px, 1.64fr) .68fr; gap: 6px; }
+      .weekly-report-tools { grid-template-columns: 1fr; }
       .date-label, .week-label { min-height: 40px; padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
       .completion-actions { display: grid; grid-template-columns: 1fr 1fr; }
       .completion-actions .btn { padding: 0 8px; }
@@ -590,6 +605,13 @@
                 <input class="hidden-date" id="teamWeekPicker" type="date" aria-label="일일현황 주차 선택">
               </div>
               <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
+            </div>
+            <div class="weekly-report-tools" id="weeklyReportTools">
+              <div class="weekly-report-range">
+                <label>보고 시작일 <input id="weeklyReportStart" type="date"></label>
+                <label>보고 종료일 <input id="weeklyReportEnd" type="date"></label>
+              </div>
+              <button class="btn primary" type="button" id="copyWeeklyReportBtn">카톡 보고 복사</button>
             </div>
           </div>
           <div class="summary">

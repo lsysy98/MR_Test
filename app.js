@@ -41,6 +41,10 @@ var teamDatePicker = document.getElementById("teamDatePicker");
 var teamWeekControl = document.getElementById("teamWeekControl");
 var teamWeekLabel = document.getElementById("teamWeekLabel");
 var teamWeekPicker = document.getElementById("teamWeekPicker");
+var weeklyReportTools = document.getElementById("weeklyReportTools");
+var weeklyReportStart = document.getElementById("weeklyReportStart");
+var weeklyReportEnd = document.getElementById("weeklyReportEnd");
+var copyWeeklyReportBtn = document.getElementById("copyWeeklyReportBtn");
 var completionPanel = document.getElementById("completionPanel");
 var completionSummary = document.getElementById("completionSummary");
 var completionCount = document.getElementById("completionCount");
@@ -137,6 +141,24 @@ function weekLabelFromStart(startText) {
   var firstOffset = (first.getDay() + 6) % 7;
   var weekNo = Math.ceil((base.getDate() + firstOffset) / 7);
   return (base.getMonth() + 1) + "월 " + weekNo + "주차";
+}
+function weekMonthInfo(startText) {
+  var base = addDays(parseDateText(startText || selectedWeekStart), 3);
+  return { year: base.getFullYear(), month: base.getMonth() + 1 };
+}
+function clampDateToMonth(value, info) {
+  var date = parseDateText(value);
+  var first = new Date(info.year, info.month - 1, 1);
+  var last = new Date(info.year, info.month, 0);
+  if (date < first) date = first;
+  if (date > last) date = last;
+  return dateText(date);
+}
+function weekNumberOfDate(value) {
+  var d = parseDateText(value);
+  var first = new Date(d.getFullYear(), d.getMonth(), 1);
+  var firstOffset = (first.getDay() + 6) % 7;
+  return Math.ceil((d.getDate() + firstOffset) / 7);
 }
 function dayLabel(value) {
   var d = parseDateText(value);
@@ -392,6 +414,7 @@ function renderCalendar() {
         } else if (calendarMode === "week") {
           selectedWeekStart = dateText(startOfWeekDate(parseDateText(selectedKey)));
           if (teamWeekPicker) teamWeekPicker.value = selectedWeekStart;
+          setDefaultWeeklyReportRange();
           openedTeamOwner = "";
           closeCalendar();
           render();
@@ -442,6 +465,9 @@ function syncTeamPeriodControls() {
   }
   if (teamWeekPicker) {
     teamWeekPicker.value = selectedWeekStart;
+  }
+  if (weeklyReportTools) {
+    weeklyReportTools.style.display = selectedTeamPeriod === "week" ? "grid" : "none";
   }
 }
 function moveCollectionMonth(delta) {
@@ -586,18 +612,139 @@ function monthlyItems() {
 }
 function weekRange() {
   var start = parseDateText(selectedWeekStart);
-  var end = addDays(start, 6);
+  var end = addDays(start, 4);
   return { start: dateText(start), end: dateText(end) };
 }
-function teamPeriodItems() {
+function monthBoundedWeekRange() {
   var range = weekRange();
+  var info = weekMonthInfo(selectedWeekStart);
+  return {
+    start: clampDateToMonth(range.start, info),
+    end: clampDateToMonth(range.end, info),
+    year: info.year,
+    month: info.month
+  };
+}
+function defaultWeeklyReportRange() {
+  var range = monthBoundedWeekRange();
+  return {
+    start: dateText(new Date(range.year, range.month - 1, 1)),
+    end: range.end,
+    year: range.year,
+    month: range.month
+  };
+}
+function setDefaultWeeklyReportRange() {
+  if (!weeklyReportStart || !weeklyReportEnd) return;
+  var range = defaultWeeklyReportRange();
+  weeklyReportStart.value = range.start;
+  weeklyReportEnd.value = range.end;
+}
+function weeklyReportRange() {
+  var defaults = defaultWeeklyReportRange();
+  var info = { year: defaults.year, month: defaults.month };
+  var start = clampDateToMonth(weeklyReportStart && weeklyReportStart.value ? weeklyReportStart.value : defaults.start, info);
+  var end = clampDateToMonth(weeklyReportEnd && weeklyReportEnd.value ? weeklyReportEnd.value : defaults.end, info);
+  if (end < start) {
+    var temp = start;
+    start = end;
+    end = temp;
+  }
+  return { start: start, end: end, year: info.year, month: info.month };
+}
+function teamPeriodItems() {
+  var range = monthBoundedWeekRange();
   return reports.filter(function(item) {
     if (ownerNames.indexOf(item.owner) < 0) return false;
     if (selectedTeamPeriod === "week") {
-      return item.date >= range.start && item.date <= range.end;
+      return item.date >= range.start &&
+        item.date <= range.end &&
+        isWeekdayDate(parseDateText(item.date));
     }
     return item.date === selectedTeamDate;
   });
+}
+function dateRangeItems(range) {
+  return reports.filter(function(item) {
+    return ownerNames.indexOf(item.owner) >= 0 &&
+      item.date >= range.start &&
+      item.date <= range.end &&
+      isWeekdayDate(parseDateText(item.date));
+  });
+}
+function koreanMonthDay(value, includeMonth) {
+  var d = parseDateText(value);
+  return (includeMonth ? (d.getMonth() + 1) + "월 " : "") + d.getDate() + "일";
+}
+function weekNumbersText(start, end) {
+  var numbers = [];
+  for (var cursor = parseDateText(start); cursor <= parseDateText(end); cursor = addDays(cursor, 1)) {
+    var number = weekNumberOfDate(dateText(cursor));
+    if (numbers.indexOf(number) < 0) numbers.push(number);
+  }
+  return numbers.join(", ") + "주차";
+}
+function percentText(amount, target) {
+  var value = target ? Number(amount || 0) / target * 100 : 0;
+  var rounded = Math.round(value * 10) / 10;
+  return (Math.abs(rounded - Math.round(rounded)) < 0.05 ? String(Math.round(rounded)) : rounded.toFixed(1)) + "%";
+}
+function reportWonMan(value) {
+  return money.format(Math.round(Number(value || 0) / 10000)) + "만원";
+}
+function weeklyReportText() {
+  var range = weeklyReportRange();
+  var items = dateRangeItems(range);
+  var summary = summarize(items);
+  var targetAmount = ownerCount() * 2000000;
+  var ownerLines = groupByOwner(items)
+    .sort(function(a, b) {
+      var amountDiff = b.summary.total.amount - a.summary.total.amount;
+      if (amountDiff !== 0) return amountDiff;
+      return ownerNames.indexOf(a.owner) - ownerNames.indexOf(b.owner);
+    })
+    .map(function(group) {
+      return group.owner + " " + reportWonMan(group.summary.total.amount) + " / " +
+        percentText(group.summary.total.amount, 2000000) + "\n" +
+        "(신규 " + group.summary.new.count + " / 증대 " + group.summary.growth.count + ")";
+    });
+
+  return [
+    "< 수도권팀 주간보고 >",
+    "*" + koreanMonthDay(range.start, true) + " ~ " + koreanMonthDay(range.end, false) + " (" + weekNumbersText(range.start, range.end) + ")",
+    "",
+    "---------------------------",
+    "MR 수도권팀",
+    "",
+    "주간 누적 신규 " + summary.new.count + "건 / 증대 " + summary.growth.count + "건",
+    "누적 매출합 " + reportWonMan(summary.total.amount),
+    "",
+    "---------------------------",
+    String(range.month).padStart(2, "0") + "월 누적 매출",
+    "",
+    "팀 목표 : " + reportWonMan(targetAmount),
+    "누적매출 : " + reportWonMan(summary.total.amount) + " / " + percentText(summary.total.amount, targetAmount),
+    "",
+    "담당자별 실적",
+    ownerLines.join("\n\n")
+  ].join("\n");
+}
+async function copyWeeklyReportText() {
+  var text = weeklyReportText();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+  } else {
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+  }
+  showNotice("카톡 보고 문구를 복사했습니다.");
 }
 function completedOwnerSet() {
   var map = {};
@@ -1301,10 +1448,14 @@ function drawRoundedBox(ctx, x, y, w, h, color, stroke) {
 }
 function makeTeamScreenshot(period) {
   var isWeek = period === "week";
-  var range = weekRange();
+  var range = monthBoundedWeekRange();
   var items = reports.filter(function(item) {
     if (ownerNames.indexOf(item.owner) < 0) return false;
-    if (isWeek) return item.date >= range.start && item.date <= range.end;
+    if (isWeek) {
+      return item.date >= range.start &&
+        item.date <= range.end &&
+        isWeekdayDate(parseDateText(item.date));
+    }
     return item.date === selectedTeamDate;
   });
   var summary = summarize(items);
@@ -1525,6 +1676,13 @@ if (dayScreenshotBtn) {
 if (weekScreenshotBtn) {
   weekScreenshotBtn.addEventListener("click", downloadWeekScreenshot);
 }
+if (copyWeeklyReportBtn) {
+  copyWeeklyReportBtn.addEventListener("click", function() {
+    copyWeeklyReportText().catch(function(error) {
+      showNotice("카톡 보고 복사 실패: " + error.message, "danger");
+    });
+  });
+}
 ownerInput.addEventListener("change", function() {
   var owner = ownerInput.value.trim();
   if (ownerNames.indexOf(owner) >= 0) {
@@ -1576,6 +1734,7 @@ document.querySelectorAll("[data-period]").forEach(function(button) {
     if (selectedTeamPeriod === "day") {
       loadCompletionsForSelectedDate();
     } else {
+      setDefaultWeeklyReportRange();
       render();
     }
   });
@@ -1605,6 +1764,7 @@ document.getElementById("nextDayBtn").addEventListener("click", function() {
 if (teamWeekPicker) {
   teamWeekPicker.addEventListener("change", function() {
     selectedWeekStart = dateText(startOfWeekDate(parseDateText(teamWeekPicker.value || todayText)));
+    setDefaultWeeklyReportRange();
     openedTeamOwner = "";
     render();
   });
@@ -1636,11 +1796,13 @@ if (calendarOverlay) {
 }
 document.getElementById("prevWeekBtn").addEventListener("click", function() {
   selectedWeekStart = dateText(addDays(parseDateText(selectedWeekStart), -7));
+  setDefaultWeeklyReportRange();
   openedTeamOwner = "";
   render();
 });
 document.getElementById("nextWeekBtn").addEventListener("click", function() {
   selectedWeekStart = dateText(addDays(parseDateText(selectedWeekStart), 7));
+  setDefaultWeeklyReportRange();
   openedTeamOwner = "";
   render();
 });
@@ -1722,6 +1884,7 @@ form.addEventListener("submit", async function(e) {
 });
 
 syncMonthPicker();
+setDefaultWeeklyReportRange();
 updateAmountPreview();
 loadData().catch(function(error) {
   status("연결 실패: " + error.message, "error");

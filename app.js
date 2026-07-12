@@ -295,6 +295,13 @@ function status(message, type) {
   statusBox.textContent = message;
   statusBox.className = "status " + (type || "");
 }
+window.addEventListener("error", function(event) {
+  status("화면 오류: " + (event.message || "알 수 없는 오류"), "error");
+});
+window.addEventListener("unhandledrejection", function(event) {
+  var reason = event.reason && event.reason.message ? event.reason.message : String(event.reason || "알 수 없는 오류");
+  status("화면 오류: " + reason, "error");
+});
 function toast(msg) {
   var box = document.getElementById("toast");
   box.textContent = msg;

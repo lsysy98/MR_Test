@@ -505,21 +505,33 @@ function resetToCurrentMonth() {
   render();
 }
 
+async function requestJson(url, options, timeoutMs) {
+  var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  var timer = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 12000) : null;
+  if (controller) options.signal = controller.signal;
+  try {
+    var response = await fetch(url, options);
+    var data = await response.json().catch(function() { return {}; });
+    if (!response.ok) throw new Error(data.error || "요청 실패");
+    return data;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("서버 응답이 너무 늦습니다. Vercel 환경변수 또는 Supabase 연결을 확인해주세요.");
+    }
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 async function api(method, body, query) {
   var options = { method: method, headers: { "Content-Type": "application/json" } };
   if (body) options.body = JSON.stringify(body);
-  var response = await fetch("/api/reports" + (query || ""), options);
-  var data = await response.json().catch(function() { return {}; });
-  if (!response.ok) throw new Error(data.error || "요청 실패");
-  return data;
+  return requestJson("/api/reports" + (query || ""), options, 12000);
 }
 async function completionApi(method, body, query) {
   var options = { method: method, headers: { "Content-Type": "application/json" } };
   if (body) options.body = JSON.stringify(body);
-  var response = await fetch("/api/completions" + (query || ""), options);
-  var data = await response.json().catch(function() { return {}; });
-  if (!response.ok) throw new Error(data.error || "완료 상태 요청 실패");
-  return data;
+  return requestJson("/api/completions" + (query || ""), options, 8000);
 }
 async function loadCompletionsForSelectedDate(skipRender) {
   try {
@@ -532,11 +544,11 @@ async function loadCompletionsForSelectedDate(skipRender) {
   if (!skipRender) render();
 }
 async function loadData() {
-  status("Supabase 저장소와 연결 확인 중입니다.", "");
+  status("보고 데이터를 불러오는 중입니다.", "");
   reports = await api("GET");
-  await loadCompletionsForSelectedDate(true);
   status("", "");
   render();
+  loadCompletionsForSelectedDate();
 }
 async function addData(item, skipNotice) {
   var saved = await api("POST", item);

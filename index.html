@@ -624,21 +624,6 @@
               </div>
               <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
             </div>
-            <div class="weekly-report-tools" id="weeklyReportTools">
-              <button class="btn" type="button" id="copyWeeklyReportBtn">카톡 보고 미리보기</button>
-              <div class="weekly-report-panel" id="weeklyReportPanel">
-                <button class="btn" type="button" id="weeklyDateToggleBtn">날짜 설정</button>
-                <div class="weekly-report-range" id="weeklyReportRange">
-                  <label>보고 시작일 <input id="weeklyReportStart" type="date"></label>
-                  <label>보고 종료일 <input id="weeklyReportEnd" type="date"></label>
-                </div>
-                <pre class="weekly-report-preview" id="weeklyReportPreview"></pre>
-                <div class="weekly-report-actions">
-                  <button class="btn" type="button" id="closeWeeklyReportBtn">닫기</button>
-                  <button class="btn primary" type="button" id="confirmCopyWeeklyReportBtn">카톡 보고 복사</button>
-                </div>
-              </div>
-            </div>
           </div>
           <div class="summary">
             <div class="metric"><span>전체</span><strong id="todayTotalAmount">0원</strong><small id="todayTotalCount">0건</small></div>
@@ -647,6 +632,21 @@
           </div>
           <div class="owner-grid" id="todayOwnerCards"></div>
           <div class="empty" id="todayEmpty">오늘 입력된 보고가 없습니다.</div>
+          <div class="weekly-report-tools" id="weeklyReportTools">
+            <button class="btn primary" type="button" id="copyWeeklyReportBtn">카톡 문구 복사</button>
+            <div class="weekly-report-panel" id="weeklyReportPanel">
+              <button class="btn" type="button" id="weeklyDateToggleBtn">날짜 설정</button>
+              <div class="weekly-report-range" id="weeklyReportRange">
+                <label>보고 시작일 <input id="weeklyReportStart" type="date"></label>
+                <label>보고 종료일 <input id="weeklyReportEnd" type="date"></label>
+              </div>
+              <pre class="weekly-report-preview" id="weeklyReportPreview"></pre>
+              <div class="weekly-report-actions">
+                <button class="btn" type="button" id="closeWeeklyReportBtn">닫기</button>
+                <button class="btn primary" type="button" id="confirmCopyWeeklyReportBtn">문구 복사하기</button>
+              </div>
+            </div>
+          </div>
           <div class="completion-panel" id="completionPanel">
             <div class="completion-summary" id="completionSummary">
               <strong id="completionCount">완료 0/7</strong>

@@ -259,18 +259,36 @@
     .day-control, .week-control { display: grid; grid-template-columns: .8fr minmax(150px, 1.4fr) .8fr; gap: 8px; align-items: center; }
     .weekly-report-tools {
       display: none;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: 1fr;
       gap: 8px;
-      align-items: end;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfdfc;
     }
-    .weekly-report-range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .weekly-report-panel { display: none; gap: 8px; }
+    .weekly-report-panel.active { display: grid; }
+    .weekly-report-range { display: none; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .weekly-report-range.active { display: grid; }
     .weekly-report-range label { gap: 5px; font-size: 12px; }
     .weekly-report-range input { min-height: 40px; }
-    #copyWeeklyReportBtn { min-height: 40px; white-space: nowrap; }
+    .weekly-report-preview {
+      margin: 0;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: keep-all;
+      line-height: 1.55;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-family: "Malgun Gothic", system-ui, sans-serif;
+      font-size: 13px;
+    }
+    .weekly-report-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #copyWeeklyReportBtn, #confirmCopyWeeklyReportBtn { min-height: 40px; white-space: nowrap; }
     .date-pick-wrap { position: relative; }
     .date-label, .week-label {
       width: 100%;
@@ -607,11 +625,19 @@
               <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
             </div>
             <div class="weekly-report-tools" id="weeklyReportTools">
-              <div class="weekly-report-range">
-                <label>보고 시작일 <input id="weeklyReportStart" type="date"></label>
-                <label>보고 종료일 <input id="weeklyReportEnd" type="date"></label>
+              <button class="btn" type="button" id="copyWeeklyReportBtn">카톡 보고 미리보기</button>
+              <div class="weekly-report-panel" id="weeklyReportPanel">
+                <button class="btn" type="button" id="weeklyDateToggleBtn">날짜 설정</button>
+                <div class="weekly-report-range" id="weeklyReportRange">
+                  <label>보고 시작일 <input id="weeklyReportStart" type="date"></label>
+                  <label>보고 종료일 <input id="weeklyReportEnd" type="date"></label>
+                </div>
+                <pre class="weekly-report-preview" id="weeklyReportPreview"></pre>
+                <div class="weekly-report-actions">
+                  <button class="btn" type="button" id="closeWeeklyReportBtn">닫기</button>
+                  <button class="btn primary" type="button" id="confirmCopyWeeklyReportBtn">카톡 보고 복사</button>
+                </div>
               </div>
-              <button class="btn primary" type="button" id="copyWeeklyReportBtn">카톡 보고 복사</button>
             </div>
           </div>
           <div class="summary">

@@ -45,6 +45,12 @@ var weeklyReportTools = document.getElementById("weeklyReportTools");
 var weeklyReportStart = document.getElementById("weeklyReportStart");
 var weeklyReportEnd = document.getElementById("weeklyReportEnd");
 var copyWeeklyReportBtn = document.getElementById("copyWeeklyReportBtn");
+var weeklyReportPanel = document.getElementById("weeklyReportPanel");
+var weeklyReportRange = document.getElementById("weeklyReportRange");
+var weeklyDateToggleBtn = document.getElementById("weeklyDateToggleBtn");
+var weeklyReportPreview = document.getElementById("weeklyReportPreview");
+var confirmCopyWeeklyReportBtn = document.getElementById("confirmCopyWeeklyReportBtn");
+var closeWeeklyReportBtn = document.getElementById("closeWeeklyReportBtn");
 var completionPanel = document.getElementById("completionPanel");
 var completionSummary = document.getElementById("completionSummary");
 var completionCount = document.getElementById("completionCount");
@@ -469,6 +475,9 @@ function syncTeamPeriodControls() {
   if (weeklyReportTools) {
     weeklyReportTools.style.display = selectedTeamPeriod === "week" ? "grid" : "none";
   }
+  if (selectedTeamPeriod !== "week") {
+    closeWeeklyReportPanel();
+  }
 }
 function moveCollectionMonth(delta) {
   var d = new Date(collectionYear, collectionMonth - 1 + delta, 1);
@@ -626,12 +635,13 @@ function monthBoundedWeekRange() {
   };
 }
 function defaultWeeklyReportRange() {
-  var range = monthBoundedWeekRange();
+  var range = weekRange();
+  var info = weekMonthInfo(selectedWeekStart);
   return {
-    start: dateText(new Date(range.year, range.month - 1, 1)),
+    start: range.start,
     end: range.end,
-    year: range.year,
-    month: range.month
+    year: info.year,
+    month: info.month
   };
 }
 function setDefaultWeeklyReportRange() {
@@ -639,18 +649,18 @@ function setDefaultWeeklyReportRange() {
   var range = defaultWeeklyReportRange();
   weeklyReportStart.value = range.start;
   weeklyReportEnd.value = range.end;
+  updateWeeklyReportPreview();
 }
 function weeklyReportRange() {
   var defaults = defaultWeeklyReportRange();
-  var info = { year: defaults.year, month: defaults.month };
-  var start = clampDateToMonth(weeklyReportStart && weeklyReportStart.value ? weeklyReportStart.value : defaults.start, info);
-  var end = clampDateToMonth(weeklyReportEnd && weeklyReportEnd.value ? weeklyReportEnd.value : defaults.end, info);
+  var start = weeklyReportStart && weeklyReportStart.value ? weeklyReportStart.value : defaults.start;
+  var end = weeklyReportEnd && weeklyReportEnd.value ? weeklyReportEnd.value : defaults.end;
   if (end < start) {
     var temp = start;
     start = end;
     end = temp;
   }
-  return { start: start, end: end, year: info.year, month: info.month };
+  return { start: start, end: end, year: defaults.year, month: defaults.month };
 }
 function teamPeriodItems() {
   var range = monthBoundedWeekRange();
@@ -697,6 +707,9 @@ function weeklyReportText() {
   var items = dateRangeItems(range);
   var summary = summarize(items);
   var targetAmount = ownerCount() * 2000000;
+  var startDate = parseDateText(range.start);
+  var endDate = parseDateText(range.end);
+  var endIncludesMonth = startDate.getFullYear() !== endDate.getFullYear() || startDate.getMonth() !== endDate.getMonth();
   var ownerLines = groupByOwner(items)
     .sort(function(a, b) {
       var amountDiff = b.summary.total.amount - a.summary.total.amount;
@@ -711,7 +724,7 @@ function weeklyReportText() {
 
   return [
     "< 수도권팀 주간보고 >",
-    "*" + koreanMonthDay(range.start, true) + " ~ " + koreanMonthDay(range.end, false) + " (" + weekNumbersText(range.start, range.end) + ")",
+    "*" + koreanMonthDay(range.start, true) + " ~ " + koreanMonthDay(range.end, endIncludesMonth) + " (" + weekNumbersText(range.start, range.end) + ")",
     "",
     "---------------------------",
     "MR 수도권팀",
@@ -728,6 +741,31 @@ function weeklyReportText() {
     "담당자별 실적",
     ownerLines.join("\n\n")
   ].join("\n");
+}
+function updateWeeklyReportPreview() {
+  if (!weeklyReportPreview) return;
+  weeklyReportPreview.textContent = weeklyReportText();
+}
+function openWeeklyReportPanel() {
+  if (!weeklyReportPanel) return;
+  if (!weeklyReportPanel.classList.contains("active")) {
+    setDefaultWeeklyReportRange();
+    if (weeklyReportRange) weeklyReportRange.classList.remove("active");
+    if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
+  }
+  weeklyReportPanel.classList.add("active");
+  updateWeeklyReportPreview();
+}
+function closeWeeklyReportPanel() {
+  if (weeklyReportPanel) weeklyReportPanel.classList.remove("active");
+  if (weeklyReportRange) weeklyReportRange.classList.remove("active");
+  if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
+}
+function toggleWeeklyDateSettings() {
+  if (!weeklyReportRange) return;
+  var open = !weeklyReportRange.classList.contains("active");
+  weeklyReportRange.classList.toggle("active", open);
+  if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = open ? "날짜 설정 닫기" : "날짜 설정";
 }
 async function copyWeeklyReportText() {
   var text = weeklyReportText();
@@ -1564,6 +1602,9 @@ function render() {
     todayEmpty.style.display = teamItems.length ? "none" : "block";
   }
   renderTeamCards(teamItems);
+  if (weeklyReportPanel && weeklyReportPanel.classList.contains("active")) {
+    updateWeeklyReportPreview();
+  }
 }
 function resetAfterSave() {
   editingId = "";
@@ -1678,6 +1719,23 @@ if (weekScreenshotBtn) {
 }
 if (copyWeeklyReportBtn) {
   copyWeeklyReportBtn.addEventListener("click", function() {
+    openWeeklyReportPanel();
+  });
+}
+if (weeklyDateToggleBtn) {
+  weeklyDateToggleBtn.addEventListener("click", toggleWeeklyDateSettings);
+}
+if (weeklyReportStart) {
+  weeklyReportStart.addEventListener("change", updateWeeklyReportPreview);
+}
+if (weeklyReportEnd) {
+  weeklyReportEnd.addEventListener("change", updateWeeklyReportPreview);
+}
+if (closeWeeklyReportBtn) {
+  closeWeeklyReportBtn.addEventListener("click", closeWeeklyReportPanel);
+}
+if (confirmCopyWeeklyReportBtn) {
+  confirmCopyWeeklyReportBtn.addEventListener("click", function() {
     copyWeeklyReportText().catch(function(error) {
       showNotice("카톡 보고 복사 실패: " + error.message, "danger");
     });

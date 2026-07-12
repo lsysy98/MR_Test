@@ -72,6 +72,7 @@ var calendarTitle = document.getElementById("calendarTitle");
 var calendarDays = document.getElementById("calendarDays");
 var calendarPrevBtn = document.getElementById("calendarPrevBtn");
 var calendarNextBtn = document.getElementById("calendarNextBtn");
+var calendarTodayBtn = document.getElementById("calendarTodayBtn");
 var calendarCloseBtn = document.getElementById("calendarCloseBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
 var noticeText = document.getElementById("noticeText");
@@ -381,7 +382,51 @@ function openCalendar(mode, value) {
 function selectedCalendarDateText() {
   if (calendarMode === "leaveStart") return leaveDateValue(leaveStartDate) || selectedTeamDate;
   if (calendarMode === "leaveEnd") return leaveDateValue(leaveEndDate) || selectedTeamDate;
+  if (calendarMode === "weeklyStart") return leaveDateValue(weeklyReportStart) || selectedTeamDate;
+  if (calendarMode === "weeklyEnd") return leaveDateValue(weeklyReportEnd) || selectedTeamDate;
   return calendarMode === "week" ? selectedWeekStart : selectedTeamDate;
+}
+function applyCalendarDate(selectedKey) {
+  if (calendarMode === "leaveStart") {
+    setLeaveDateInput(leaveStartDate, selectedKey);
+    if (leaveEndDate && (!leaveDateValue(leaveEndDate) || leaveDateValue(leaveEndDate) < selectedKey)) {
+      setLeaveDateInput(leaveEndDate, selectedKey);
+    }
+    closeCalendar();
+  } else if (calendarMode === "leaveEnd") {
+    setLeaveDateInput(leaveEndDate, selectedKey);
+    if (leaveStartDate && leaveDateValue(leaveStartDate) && selectedKey < leaveDateValue(leaveStartDate)) {
+      setLeaveDateInput(leaveStartDate, selectedKey);
+    }
+    closeCalendar();
+  } else if (calendarMode === "weeklyStart") {
+    setLeaveDateInput(weeklyReportStart, selectedKey);
+    if (weeklyReportEnd && (!leaveDateValue(weeklyReportEnd) || leaveDateValue(weeklyReportEnd) < selectedKey)) {
+      setLeaveDateInput(weeklyReportEnd, selectedKey);
+    }
+    updateWeeklyReportPreview();
+    closeCalendar();
+  } else if (calendarMode === "weeklyEnd") {
+    setLeaveDateInput(weeklyReportEnd, selectedKey);
+    if (weeklyReportStart && leaveDateValue(weeklyReportStart) && selectedKey < leaveDateValue(weeklyReportStart)) {
+      setLeaveDateInput(weeklyReportStart, selectedKey);
+    }
+    updateWeeklyReportPreview();
+    closeCalendar();
+  } else if (calendarMode === "week") {
+    selectedWeekStart = dateText(startOfWeekDate(parseDateText(selectedKey)));
+    if (teamWeekPicker) teamWeekPicker.value = selectedWeekStart;
+    setDefaultWeeklyReportRange();
+    openedTeamOwner = "";
+    closeCalendar();
+    render();
+  } else {
+    selectedTeamDate = selectedKey;
+    if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
+    openedTeamOwner = "";
+    closeCalendar();
+    loadCompletionsForSelectedDate();
+  }
 }
 function renderCalendar() {
   if (!calendarDays || !calendarTitle) return;
@@ -412,32 +457,7 @@ function renderCalendar() {
     if (key === selectedCalendarDateText()) btn.classList.add("selected");
     btn.addEventListener("click", function(selectedKey) {
       return function() {
-        if (calendarMode === "leaveStart") {
-          setLeaveDateInput(leaveStartDate, selectedKey);
-          if (leaveEndDate && (!leaveDateValue(leaveEndDate) || leaveDateValue(leaveEndDate) < selectedKey)) {
-            setLeaveDateInput(leaveEndDate, selectedKey);
-          }
-          closeCalendar();
-        } else if (calendarMode === "leaveEnd") {
-          setLeaveDateInput(leaveEndDate, selectedKey);
-          if (leaveStartDate && leaveDateValue(leaveStartDate) && selectedKey < leaveDateValue(leaveStartDate)) {
-            setLeaveDateInput(leaveStartDate, selectedKey);
-          }
-          closeCalendar();
-        } else if (calendarMode === "week") {
-          selectedWeekStart = dateText(startOfWeekDate(parseDateText(selectedKey)));
-          if (teamWeekPicker) teamWeekPicker.value = selectedWeekStart;
-          setDefaultWeeklyReportRange();
-          openedTeamOwner = "";
-          closeCalendar();
-          render();
-        } else {
-          selectedTeamDate = selectedKey;
-          if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
-          openedTeamOwner = "";
-          closeCalendar();
-          loadCompletionsForSelectedDate();
-        }
+        applyCalendarDate(selectedKey);
       };
     }(key));
     calendarDays.appendChild(btn);
@@ -666,14 +686,14 @@ function defaultWeeklyReportRange() {
 function setDefaultWeeklyReportRange() {
   if (!weeklyReportStart || !weeklyReportEnd) return;
   var range = defaultWeeklyReportRange();
-  weeklyReportStart.value = range.start;
-  weeklyReportEnd.value = range.end;
+  setLeaveDateInput(weeklyReportStart, range.start);
+  setLeaveDateInput(weeklyReportEnd, range.end);
   updateWeeklyReportPreview();
 }
 function weeklyReportRange() {
   var defaults = defaultWeeklyReportRange();
-  var start = weeklyReportStart && weeklyReportStart.value ? weeklyReportStart.value : defaults.start;
-  var end = weeklyReportEnd && weeklyReportEnd.value ? weeklyReportEnd.value : defaults.end;
+  var start = leaveDateValue(weeklyReportStart) || defaults.start;
+  var end = leaveDateValue(weeklyReportEnd) || defaults.end;
   if (end < start) {
     var temp = start;
     start = end;
@@ -773,10 +793,12 @@ function openWeeklyReportPanel() {
     if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
   }
   weeklyReportPanel.classList.add("active");
+  weeklyReportPanel.setAttribute("aria-hidden", "false");
   updateWeeklyReportPreview();
 }
 function closeWeeklyReportPanel() {
   if (weeklyReportPanel) weeklyReportPanel.classList.remove("active");
+  if (weeklyReportPanel) weeklyReportPanel.setAttribute("aria-hidden", "true");
   if (weeklyReportRangeBox) weeklyReportRangeBox.classList.remove("active");
   if (weeklyDateToggleBtn) weeklyDateToggleBtn.textContent = "날짜 설정";
 }
@@ -1745,13 +1767,22 @@ if (weeklyDateToggleBtn) {
   weeklyDateToggleBtn.addEventListener("click", toggleWeeklyDateSettings);
 }
 if (weeklyReportStart) {
-  weeklyReportStart.addEventListener("change", updateWeeklyReportPreview);
+  weeklyReportStart.addEventListener("click", function() {
+    openCalendar("weeklyStart", leaveDateValue(weeklyReportStart) || selectedWeekStart);
+  });
 }
 if (weeklyReportEnd) {
-  weeklyReportEnd.addEventListener("change", updateWeeklyReportPreview);
+  weeklyReportEnd.addEventListener("click", function() {
+    openCalendar("weeklyEnd", leaveDateValue(weeklyReportEnd) || dateText(addDays(parseDateText(selectedWeekStart), 4)));
+  });
 }
 if (closeWeeklyReportBtn) {
   closeWeeklyReportBtn.addEventListener("click", closeWeeklyReportPanel);
+}
+if (weeklyReportPanel) {
+  weeklyReportPanel.addEventListener("click", function(e) {
+    if (e.target === weeklyReportPanel) closeWeeklyReportPanel();
+  });
 }
 if (confirmCopyWeeklyReportBtn) {
   confirmCopyWeeklyReportBtn.addEventListener("click", function() {
@@ -1861,6 +1892,11 @@ if (calendarNextBtn) {
   calendarNextBtn.addEventListener("click", function() {
     calendarMonthDate = new Date(calendarMonthDate.getFullYear(), calendarMonthDate.getMonth() + 1, 1);
     renderCalendar();
+  });
+}
+if (calendarTodayBtn) {
+  calendarTodayBtn.addEventListener("click", function() {
+    applyCalendarDate(todayText);
   });
 }
 if (calendarCloseBtn) {

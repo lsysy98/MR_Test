@@ -2161,10 +2161,11 @@ function openMeetingPresentation(group) {
 
   var metrics = document.createElement("div");
   metrics.className = "presentation-metrics";
-  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규매출 " + wonMan(group.summary.new.amount), "count-focus");
-  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "증대매출 " + wonMan(group.summary.growth.amount), "count-sub");
-  appendPresentationMetric(metrics, "신규 매출", wonMan(group.summary.new.amount), group.summary.new.count + "건");
-  appendPresentationMetric(metrics, "증대 매출", wonMan(group.summary.growth.amount), group.summary.growth.count + "건");
+  var successCaseCount = group.items.filter(function(item) { return item.successCase; }).length;
+  appendPresentationMetric(metrics, "신규", group.summary.new.count + "건", wonMan(group.summary.new.amount), "count-focus");
+  appendPresentationMetric(metrics, "증대", group.summary.growth.count + "건", wonMan(group.summary.growth.amount), "count-sub");
+  appendPresentationMetric(metrics, "성공사례", successCaseCount + "건", "작성 완료");
+  appendPresentationMetric(metrics, "전체 거래처", group.items.length + "건", "등록 기준");
 
   var body = document.createElement("div");
   body.className = "presentation-body";

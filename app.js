@@ -2144,7 +2144,7 @@ function openMeetingPresentation(group) {
   var totalLabel = document.createElement("span");
   totalLabel.textContent = "월 총 매출";
   var totalValue = document.createElement("strong");
-  totalValue.textContent = won(group.summary.total.amount);
+  totalValue.textContent = wonMan(group.summary.total.amount);
   var goalLine = document.createElement("small");
   goalLine.textContent = "목표 200만원 · 목표대비 " + rateValue + "%";
   var progress = document.createElement("div");
@@ -2161,10 +2161,10 @@ function openMeetingPresentation(group) {
 
   var metrics = document.createElement("div");
   metrics.className = "presentation-metrics";
-  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규매출 " + won(group.summary.new.amount), "count-focus");
-  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "증대매출 " + won(group.summary.growth.amount), "count-sub");
-  appendPresentationMetric(metrics, "신규 매출", won(group.summary.new.amount), group.summary.new.count + "건");
-  appendPresentationMetric(metrics, "증대 매출", won(group.summary.growth.amount), group.summary.growth.count + "건");
+  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규매출 " + wonMan(group.summary.new.amount), "count-focus");
+  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "증대매출 " + wonMan(group.summary.growth.amount), "count-sub");
+  appendPresentationMetric(metrics, "신규 매출", wonMan(group.summary.new.amount), group.summary.new.count + "건");
+  appendPresentationMetric(metrics, "증대 매출", wonMan(group.summary.growth.amount), group.summary.growth.count + "건");
 
   var body = document.createElement("div");
   body.className = "presentation-body";

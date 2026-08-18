@@ -2133,7 +2133,7 @@ function openMeetingPresentation(group) {
   head.className = "presentation-head";
   var title = document.createElement("div");
   var eyebrow = document.createElement("span");
-  eyebrow.textContent = selectedYear + "년 " + String(selectedMonth).padStart(2, "0") + "월 개인 실적";
+  eyebrow.textContent = selectedYear + "년 " + selectedMonth + "월";
   var name = document.createElement("h2");
   name.textContent = group.owner;
   title.appendChild(eyebrow);
@@ -2161,11 +2161,16 @@ function openMeetingPresentation(group) {
 
   var metrics = document.createElement("div");
   metrics.className = "presentation-metrics";
-  var successCaseCount = group.items.filter(function(item) { return item.successCase; }).length;
+  var sortedByAmount = group.items
+    .slice()
+    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); });
+  var topClient = sortedByAmount[0] || null;
+  var caseItems = group.items.filter(function(item) { return item.successCase; });
+  var firstCase = caseItems[0] || null;
   appendPresentationMetric(metrics, "신규", group.summary.new.count + "건", wonMan(group.summary.new.amount), "count-focus");
   appendPresentationMetric(metrics, "증대", group.summary.growth.count + "건", wonMan(group.summary.growth.amount), "count-sub");
-  appendPresentationMetric(metrics, "성공사례", successCaseCount + "건", "작성 완료");
-  appendPresentationMetric(metrics, "전체 거래처", group.items.length + "건", "등록 기준");
+  appendPresentationMetric(metrics, "최대 거래처", topClient ? topClient.client : "-", topClient ? wonMan(topClient.amount) : "0원", "client-focus");
+  appendPresentationMetric(metrics, "성공사례", firstCase ? firstCase.client : "-", firstCase ? "작성 완료" : "미작성");
 
   var body = document.createElement("div");
   body.className = "presentation-body";
@@ -2191,7 +2196,6 @@ function openMeetingPresentation(group) {
   var caseTitle = document.createElement("h3");
   caseTitle.textContent = "성공사례";
   cases.appendChild(caseTitle);
-  var caseItems = group.items.filter(function(item) { return item.successCase; });
   if (caseItems.length) {
     caseItems.forEach(function(item) {
       var line = document.createElement("div");

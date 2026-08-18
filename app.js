@@ -2062,13 +2062,12 @@ function renderMeetingCards(items) {
   var clientBox = document.createElement("div");
   clientBox.className = "meeting-section";
   var clientTitle = document.createElement("h4");
-  clientTitle.textContent = "주요 거래처";
+  clientTitle.textContent = "전체 거래처";
   var clientList = document.createElement("div");
   clientList.className = "meeting-client-list";
   group.items
     .slice()
     .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); })
-    .slice(0, 5)
     .forEach(function(item) {
       var row = document.createElement("div");
       row.className = "meeting-client-item " + typeClass(item.type);
@@ -2197,14 +2196,44 @@ function openMeetingPresentation(group) {
 
   var clients = document.createElement("div");
   clients.className = "presentation-section presentation-clients";
+  var clientHead = document.createElement("div");
+  clientHead.className = "presentation-section-head";
   var clientsTitle = document.createElement("h3");
-  clientsTitle.textContent = "주요 거래처";
-  clients.appendChild(clientsTitle);
-  group.items
+  clientsTitle.textContent = "전체 거래처";
+  var pageInfo = document.createElement("span");
+  pageInfo.className = "presentation-page-info";
+  clientHead.appendChild(clientsTitle);
+  clientHead.appendChild(pageInfo);
+  var clientRows = document.createElement("div");
+  clientRows.className = "presentation-client-page";
+  var pageControls = document.createElement("div");
+  pageControls.className = "presentation-page-controls";
+  var prevPage = document.createElement("button");
+  prevPage.type = "button";
+  prevPage.className = "btn";
+  prevPage.textContent = "이전 페이지";
+  var nextPage = document.createElement("button");
+  nextPage.type = "button";
+  nextPage.className = "btn primary";
+  nextPage.textContent = "다음 페이지";
+  pageControls.appendChild(prevPage);
+  pageControls.appendChild(nextPage);
+  clients.appendChild(clientHead);
+  clients.appendChild(clientRows);
+  clients.appendChild(pageControls);
+
+  var allClients = group.items
     .slice()
-    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); })
-    .slice(0, 5)
-    .forEach(function(item) {
+    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); });
+  var pageSize = window.innerWidth <= 900 ? 5 : 7;
+  var clientPage = 0;
+  function renderClientPage() {
+    clientRows.textContent = "";
+    var totalPages = Math.max(1, Math.ceil(allClients.length / pageSize));
+    if (clientPage >= totalPages) clientPage = totalPages - 1;
+    if (clientPage < 0) clientPage = 0;
+    pageInfo.textContent = allClients.length ? (clientPage + 1) + " / " + totalPages + "페이지 · " + allClients.length + "건" : "0건";
+    allClients.slice(clientPage * pageSize, clientPage * pageSize + pageSize).forEach(function(item) {
       var line = document.createElement("div");
       line.className = "presentation-line";
       var left = document.createElement("span");
@@ -2213,14 +2242,27 @@ function openMeetingPresentation(group) {
       right.textContent = won(item.amount);
       line.appendChild(left);
       line.appendChild(right);
-      clients.appendChild(line);
+      clientRows.appendChild(line);
     });
-  if (clients.children.length === 1) {
-    var emptyClient = document.createElement("div");
-    emptyClient.className = "presentation-empty";
-    emptyClient.textContent = "등록된 거래처가 없습니다.";
-    clients.appendChild(emptyClient);
+    if (!clientRows.children.length) {
+      var emptyClient = document.createElement("div");
+      emptyClient.className = "presentation-empty";
+      emptyClient.textContent = "등록된 거래처가 없습니다.";
+      clientRows.appendChild(emptyClient);
+    }
+    pageControls.style.display = totalPages > 1 ? "grid" : "none";
+    prevPage.disabled = clientPage <= 0;
+    nextPage.disabled = clientPage >= totalPages - 1;
   }
+  prevPage.addEventListener("click", function() {
+    clientPage -= 1;
+    renderClientPage();
+  });
+  nextPage.addEventListener("click", function() {
+    clientPage += 1;
+    renderClientPage();
+  });
+  renderClientPage();
 
   body.appendChild(products);
   body.appendChild(cases);

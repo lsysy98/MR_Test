@@ -1596,9 +1596,16 @@ function reportCard(item, index) {
 
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
+  var bottomLeft = document.createElement("div");
+  bottomLeft.className = "report-bottom-left";
   var badge = document.createElement("span");
   badge.className = "badge " + typeClass(item.type);
   badge.textContent = item.type;
+  var prescriptionState = document.createElement("span");
+  prescriptionState.className = "prescription-state " + (item.prescriptionDone ? "done" : "pending");
+  prescriptionState.textContent = item.prescriptionDone ? "통계입력 완료" : "미완료";
+  bottomLeft.appendChild(badge);
+  bottomLeft.appendChild(prescriptionState);
 
   var actions = document.createElement("div");
   actions.className = "report-actions";
@@ -1637,7 +1644,7 @@ function reportCard(item, index) {
   actions.appendChild(caseBtn);
   actions.appendChild(edit);
   actions.appendChild(del);
-  bottom.appendChild(badge);
+  bottom.appendChild(bottomLeft);
   bottom.appendChild(actions);
 
   card.appendChild(number);
@@ -1971,8 +1978,19 @@ function renderMeetingCards(items) {
     selectedMeetingOwner = "";
     renderMeetingCards(items);
   });
+  var present = document.createElement("button");
+  present.type = "button";
+  present.className = "btn primary";
+  present.textContent = "크게 보기";
+  present.addEventListener("click", function() {
+    openMeetingPresentation(group);
+  });
+  var controls = document.createElement("div");
+  controls.className = "meeting-slide-controls";
+  controls.appendChild(back);
+  controls.appendChild(present);
   slideHead.appendChild(title);
-  slideHead.appendChild(back);
+  slideHead.appendChild(controls);
 
   var kpis = document.createElement("div");
   kpis.className = "meeting-slide-kpis";
@@ -2082,6 +2100,140 @@ function renderMeetingCards(items) {
   slide.appendChild(caseBox);
   slide.appendChild(clientBox);
   meetingCards.appendChild(slide);
+}
+
+function appendPresentationMetric(parent, label, value, note) {
+  var item = document.createElement("div");
+  item.className = "presentation-metric";
+  var labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  var valueEl = document.createElement("strong");
+  valueEl.textContent = value;
+  var noteEl = document.createElement("small");
+  noteEl.textContent = note;
+  item.appendChild(labelEl);
+  item.appendChild(valueEl);
+  item.appendChild(noteEl);
+  parent.appendChild(item);
+}
+function openMeetingPresentation(group) {
+  var overlay = document.createElement("div");
+  overlay.className = "presentation-overlay active";
+  var stage = document.createElement("div");
+  stage.className = "presentation-stage";
+
+  var close = document.createElement("button");
+  close.type = "button";
+  close.className = "presentation-close";
+  close.textContent = "닫기";
+  close.addEventListener("click", function() {
+    overlay.remove();
+  });
+
+  var head = document.createElement("div");
+  head.className = "presentation-head";
+  var title = document.createElement("div");
+  var eyebrow = document.createElement("span");
+  eyebrow.textContent = selectedYear + "년 " + String(selectedMonth).padStart(2, "0") + "월 개인 실적";
+  var name = document.createElement("h2");
+  name.textContent = group.owner;
+  title.appendChild(eyebrow);
+  title.appendChild(name);
+  var rate = document.createElement("div");
+  rate.className = "presentation-rate";
+  rate.textContent = ownerAchievementRate(group.summary.total.amount) + "%";
+  head.appendChild(title);
+  head.appendChild(rate);
+
+  var metrics = document.createElement("div");
+  metrics.className = "presentation-metrics";
+  appendPresentationMetric(metrics, "월 누적", won(group.summary.total.amount), "목표 200만원 기준");
+  appendPresentationMetric(metrics, "신규", won(group.summary.new.amount), group.summary.new.count + "건");
+  appendPresentationMetric(metrics, "매출증대", won(group.summary.growth.amount), group.summary.growth.count + "건");
+
+  var body = document.createElement("div");
+  body.className = "presentation-body";
+  var products = document.createElement("div");
+  products.className = "presentation-section";
+  var productTitle = document.createElement("h3");
+  productTitle.textContent = "품목별 요약";
+  products.appendChild(productTitle);
+  productSummary(group.items).forEach(function(row) {
+    var line = document.createElement("div");
+    line.className = "presentation-line";
+    var left = document.createElement("span");
+    left.textContent = row.product + " · " + row.count + "건";
+    var right = document.createElement("strong");
+    right.textContent = won(row.amount);
+    line.appendChild(left);
+    line.appendChild(right);
+    products.appendChild(line);
+  });
+
+  var cases = document.createElement("div");
+  cases.className = "presentation-section";
+  var caseTitle = document.createElement("h3");
+  caseTitle.textContent = "성공사례";
+  cases.appendChild(caseTitle);
+  var caseItems = group.items.filter(function(item) { return item.successCase; });
+  if (caseItems.length) {
+    caseItems.slice(0, 4).forEach(function(item) {
+      var line = document.createElement("div");
+      line.className = "presentation-case";
+      var client = document.createElement("strong");
+      client.textContent = "★ " + item.client;
+      var text = document.createElement("span");
+      text.textContent = item.successCase;
+      line.appendChild(client);
+      line.appendChild(text);
+      cases.appendChild(line);
+    });
+  } else {
+    var empty = document.createElement("div");
+    empty.className = "presentation-empty";
+    empty.textContent = "작성된 성공사례가 없습니다.";
+    cases.appendChild(empty);
+  }
+
+  var clients = document.createElement("div");
+  clients.className = "presentation-section presentation-clients";
+  var clientsTitle = document.createElement("h3");
+  clientsTitle.textContent = "주요 거래처";
+  clients.appendChild(clientsTitle);
+  group.items
+    .slice()
+    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); })
+    .slice(0, 5)
+    .forEach(function(item) {
+      var line = document.createElement("div");
+      line.className = "presentation-line";
+      var left = document.createElement("span");
+      left.textContent = item.client + " · " + item.type + " · " + item.product;
+      var right = document.createElement("strong");
+      right.textContent = won(item.amount);
+      line.appendChild(left);
+      line.appendChild(right);
+      clients.appendChild(line);
+    });
+  if (clients.children.length === 1) {
+    var emptyClient = document.createElement("div");
+    emptyClient.className = "presentation-empty";
+    emptyClient.textContent = "등록된 거래처가 없습니다.";
+    clients.appendChild(emptyClient);
+  }
+
+  body.appendChild(products);
+  body.appendChild(cases);
+  body.appendChild(clients);
+  stage.appendChild(close);
+  stage.appendChild(head);
+  stage.appendChild(metrics);
+  stage.appendChild(body);
+  overlay.appendChild(stage);
+  overlay.addEventListener("click", function(e) {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
 }
 
 function teamGroupsForScreenshot(items) {

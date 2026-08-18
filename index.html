@@ -485,6 +485,19 @@
     .report-amount { font-weight: 900; font-size: 20px; color: #201a16; line-height: 1.1; white-space: nowrap; }
     .report-info { color: var(--muted); font-size: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
     .report-bottom { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+    .report-bottom-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    .prescription-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 23px;
+      border-radius: 999px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .prescription-state.done { background: var(--done-soft); color: var(--done); }
+    .prescription-state.pending { background: var(--red-soft); color: #b42323; }
     .report-actions { display: none; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
     .report-card.open .report-actions { display: flex; }
     .report-actions .btn { min-height: 34px; padding: 0 9px; font-size: 13px; }
@@ -681,6 +694,7 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--line);
     }
+    .meeting-slide-controls { display: flex; gap: 8px; align-items: center; }
     .meeting-eyebrow {
       display: block;
       margin-bottom: 4px;
@@ -739,6 +753,110 @@
     .meeting-client-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
     .meeting-client-item b { white-space: nowrap; font-size: 15px; }
     .meeting-empty-line { color: var(--muted); font-size: 13px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
+    .presentation-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 140;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(32, 26, 22, .78);
+    }
+    .presentation-overlay.active { display: flex; }
+    .presentation-stage {
+      position: relative;
+      width: min(1120px, 100%);
+      min-height: min(680px, calc(100vh - 36px));
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 18px;
+      padding: 34px;
+      border-radius: 10px;
+      background: #fffaf6;
+      border: 1px solid #efc7ad;
+      box-shadow: 0 28px 80px rgba(0,0,0,.34);
+    }
+    .presentation-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      min-height: 36px;
+      border: 1px solid #efc7ad;
+      border-radius: 8px;
+      background: #fff;
+      color: #c64e13;
+      padding: 0 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .presentation-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      padding-right: 64px;
+      border-bottom: 2px solid #f2d7c4;
+      padding-bottom: 18px;
+    }
+    .presentation-head span { color: var(--green); font-size: 15px; font-weight: 900; letter-spacing: .08em; }
+    .presentation-head h2 { margin: 6px 0 0; font-size: clamp(44px, 7vw, 86px); line-height: .95; }
+    .presentation-rate {
+      min-width: 128px;
+      min-height: 78px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--green);
+      color: #fff;
+      font-size: clamp(30px, 4vw, 48px);
+      font-weight: 900;
+    }
+    .presentation-metrics { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 12px; }
+    .presentation-metric {
+      display: grid;
+      gap: 7px;
+      padding: 18px;
+      border: 1px solid #efc7ad;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .presentation-metric span, .presentation-metric small { color: var(--muted); font-size: 15px; font-weight: 900; }
+    .presentation-metric strong { font-size: clamp(26px, 4vw, 42px); line-height: 1; }
+    .presentation-body { display: grid; grid-template-columns: .9fr 1.1fr; gap: 12px; align-items: start; }
+    .presentation-section {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid #efc7ad;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .presentation-section h3 { margin: 0 0 4px; font-size: 18px; }
+    .presentation-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 9px 0;
+      border-top: 1px solid #f2e2d7;
+    }
+    .presentation-line span { color: var(--muted); font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+    .presentation-line strong { font-size: 18px; white-space: nowrap; }
+    .presentation-case {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border-left: 5px solid var(--green);
+      border-radius: 8px;
+      background: #fff7f0;
+    }
+    .presentation-case strong { font-size: 16px; }
+    .presentation-case span { color: var(--muted); font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+    .presentation-clients { grid-column: 1 / -1; }
+    .presentation-empty { color: var(--muted); font-size: 14px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
     @media (max-width: 900px) {
       .mobile-tabs { grid-template-columns: repeat(4, 1fr); }
       body.view-dashboard .input-panel, body.view-dashboard .today-panel, body.view-dashboard .meeting-panel { display: none; }
@@ -749,11 +867,19 @@
       .meeting-grid { grid-template-columns: 1fr; }
       .meeting-total { font-size: 20px; }
       .meeting-slide { padding: 12px; }
-      .meeting-slide-head { align-items: stretch; }
+      .meeting-slide-head { align-items: stretch; flex-direction: column; }
+      .meeting-slide-controls { display: grid; grid-template-columns: 1fr 1fr; }
       .meeting-slide h3 { font-size: 23px; }
       .meeting-slide-kpis, .meeting-product-grid { grid-template-columns: 1fr; }
       .meeting-client-item { grid-template-columns: 1fr; }
       .meeting-client-item b { font-size: 18px; }
+      .presentation-overlay { padding: 8px; align-items: stretch; }
+      .presentation-stage { min-height: calc(100vh - 16px); max-height: calc(100vh - 16px); padding: 22px 14px 14px; gap: 12px; border-radius: 8px; }
+      .presentation-head { display: grid; padding-right: 58px; gap: 10px; }
+      .presentation-rate { min-width: 96px; min-height: 56px; justify-self: start; }
+      .presentation-metrics, .presentation-body { grid-template-columns: 1fr; }
+      .presentation-line { grid-template-columns: 1fr; gap: 4px; }
+      .presentation-line strong { font-size: 20px; }
     }
 
   </style>

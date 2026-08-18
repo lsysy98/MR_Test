@@ -39,6 +39,8 @@ var amountInput = document.getElementById("amount");
 var amountPreview = document.getElementById("amountPreview");
 var ownerCards = document.getElementById("ownerCards");
 var todayOwnerCards = document.getElementById("todayOwnerCards");
+var meetingCards = document.getElementById("meetingCards");
+var meetingMonthLabel = document.getElementById("meetingMonthLabel");
 var todayEmpty = document.getElementById("todayEmpty");
 var statusBox = document.getElementById("statusBox");
 var monthPicker = document.getElementById("monthPicker");
@@ -94,7 +96,13 @@ var noticeText = document.getElementById("noticeText");
 var noticeOkBtn = document.getElementById("noticeOkBtn");
 var noticeActions = document.getElementById("noticeActions");
 var noticeActionBtn = document.getElementById("noticeActionBtn");
+var successCaseOverlay = document.getElementById("successCaseOverlay");
+var successCaseClient = document.getElementById("successCaseClient");
+var successCaseText = document.getElementById("successCaseText");
+var successCaseSaveBtn = document.getElementById("successCaseSaveBtn");
+var successCaseCloseBtn = document.getElementById("successCaseCloseBtn");
 var noticeActionHandler = null;
+var successCaseEditingId = "";
 var noticeLocked = false;
 var noticeActionRequired = false;
 var ownerLeaveRows = [];
@@ -1567,6 +1575,12 @@ function reportCard(item, index) {
   info.className = "report-info";
   info.textContent = item.date + " · 수거 " + collectionMonthOf(item) + "월 · " + item.product;
 
+  if (item.successCase) {
+    var casePreview = document.createElement("div");
+    casePreview.className = "success-case-preview";
+    casePreview.textContent = item.successCase;
+  }
+
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
   var badge = document.createElement("span");
@@ -1576,6 +1590,15 @@ function reportCard(item, index) {
   var actions = document.createElement("div");
   actions.className = "report-actions";
   actions.appendChild(prescriptionButton(item));
+
+  var caseBtn = document.createElement("button");
+  caseBtn.className = "btn";
+  caseBtn.type = "button";
+  caseBtn.textContent = item.successCase ? "사례수정" : "성공사례";
+  caseBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    openSuccessCaseModal(item);
+  });
 
   var edit = document.createElement("button");
   edit.className = "btn";
@@ -1598,6 +1621,7 @@ function reportCard(item, index) {
     });
   });
 
+  actions.appendChild(caseBtn);
   actions.appendChild(edit);
   actions.appendChild(del);
   bottom.appendChild(badge);
@@ -1606,6 +1630,7 @@ function reportCard(item, index) {
   card.appendChild(number);
   card.appendChild(top);
   card.appendChild(info);
+  if (casePreview) card.appendChild(casePreview);
   card.appendChild(bottom);
   return card;
 }
@@ -1645,13 +1670,16 @@ function renderOwnerCards(items) {
     var achievementRate = ownerAchievementRate(summary.total.amount);
     var card = document.createElement("div");
     card.className = "owner-card" + (openedOwner === group.owner ? " open" : "");
+    card.dataset.owner = group.owner;
 
     var button = document.createElement("button");
     button.type = "button";
     button.className = "owner-button" + (openedOwner === group.owner ? " active" : "");
     button.addEventListener("click", function() {
-      openedOwner = openedOwner === group.owner ? "" : group.owner;
+      var willOpen = openedOwner !== group.owner;
+      openedOwner = willOpen ? group.owner : "";
       render();
+      if (willOpen) scrollOpenedOwnerIntoView(ownerCards, group.owner);
     });
 
     var name = document.createElement("div");
@@ -1678,17 +1706,6 @@ function renderOwnerCards(items) {
     detailSummary.className = "owner-detail-summary";
     addDetailMetric(detailSummary, group.owner, "신규", won(summary.new.amount), summary.new.count + "건");
     addDetailMetric(detailSummary, group.owner, "매출증대", won(summary.growth.amount), summary.growth.count + "건");
-
-    var reset = document.createElement("button");
-    reset.type = "button";
-    reset.className = "btn detail-reset";
-    reset.textContent = ownerFilters[group.owner] ? "전체 보기" : "전체";
-    reset.addEventListener("click", function(e) {
-      e.stopPropagation();
-      ownerFilters[group.owner] = "";
-      render();
-    });
-    detailSummary.appendChild(reset);
 
     var detail = document.createElement("div");
     detail.className = "detail-list";
@@ -1732,13 +1749,16 @@ function renderTeamCards(items) {
       (openedTeamOwner === group.owner ? " open" : "") +
       (status === "done" ? " report-done" : "") +
       (status === "leave" ? " report-leave" : "");
+    card.dataset.owner = group.owner;
 
     var button = document.createElement("button");
     button.type = "button";
     button.className = "owner-button" + (openedTeamOwner === group.owner ? " active" : "");
     button.addEventListener("click", function() {
-      openedTeamOwner = openedTeamOwner === group.owner ? "" : group.owner;
+      var willOpen = openedTeamOwner !== group.owner;
+      openedTeamOwner = willOpen ? group.owner : "";
       render();
+      if (willOpen) scrollOpenedOwnerIntoView(todayOwnerCards, group.owner);
     });
 
     var name = document.createElement("div");
@@ -1794,6 +1814,119 @@ function renderTeamCards(items) {
     todayOwnerCards.appendChild(card);
   });
 }
+
+function scrollOpenedOwnerIntoView(container, owner) {
+  if (!container || !owner) return;
+  setTimeout(function() {
+    var card = container.querySelector('[data-owner="' + owner + '"]');
+    if (card && typeof card.scrollIntoView === "function") {
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 0);
+}
+function openSuccessCaseModal(item) {
+  successCaseEditingId = item.id;
+  if (successCaseClient) successCaseClient.textContent = item.owner + " · " + item.client;
+  if (successCaseText) successCaseText.value = item.successCase || "";
+  if (successCaseOverlay) {
+    successCaseOverlay.classList.add("active");
+    successCaseOverlay.setAttribute("aria-hidden", "false");
+  }
+  setTimeout(function() {
+    if (successCaseText) successCaseText.focus();
+  }, 0);
+}
+function closeSuccessCaseModal() {
+  successCaseEditingId = "";
+  if (!successCaseOverlay) return;
+  successCaseOverlay.classList.remove("active");
+  successCaseOverlay.setAttribute("aria-hidden", "true");
+}
+async function saveSuccessCase() {
+  var item = reports.find(function(report) { return report.id === successCaseEditingId; });
+  if (!item) {
+    showNotice("성공사례를 저장할 거래처를 찾지 못했습니다.", "danger");
+    return;
+  }
+  var actor = ownerInput.value.trim() || localStorage.getItem("ownerName") || item.owner || "";
+  var next = Object.assign({}, item, {
+    successCase: successCaseText ? successCaseText.value.trim() : "",
+    updatedAt: Date.now(),
+    actor: actor
+  });
+  var saved = await api("PUT", next);
+  reports = reports.map(function(report) {
+    return report.id === saved.id ? saved : report;
+  });
+  closeSuccessCaseModal();
+  render();
+  showNotice("성공사례를 저장했습니다.");
+}
+function productSummary(items) {
+  var products = ["3제+클로르", "3제", "클로르"];
+  return products.map(function(product) {
+    var productItems = items.filter(function(item) { return item.product === product; });
+    var summary = summarize(productItems);
+    return { product: product, count: summary.total.count, amount: summary.total.amount };
+  });
+}
+function renderMeetingCards(items) {
+  if (!meetingCards) return;
+  meetingCards.textContent = "";
+  if (meetingMonthLabel) meetingMonthLabel.textContent = selectedYear + "년 " + String(selectedMonth).padStart(2, "0") + "월 실적";
+
+  groupByOwner(items).sort(function(a, b) {
+    var amountDiff = b.summary.total.amount - a.summary.total.amount;
+    if (amountDiff !== 0) return amountDiff;
+    return ownerNames.indexOf(a.owner) - ownerNames.indexOf(b.owner);
+  }).forEach(function(group) {
+    var card = document.createElement("div");
+    card.className = "meeting-owner-card";
+
+    var head = document.createElement("div");
+    head.className = "meeting-owner-head";
+    var name = document.createElement("strong");
+    name.textContent = group.owner;
+    var rate = document.createElement("span");
+    rate.className = "meeting-rate";
+    rate.textContent = ownerAchievementRate(group.summary.total.amount) + "%";
+    head.appendChild(name);
+    head.appendChild(rate);
+
+    var total = document.createElement("div");
+    total.className = "meeting-total";
+    total.textContent = won(group.summary.total.amount);
+
+    var counts = document.createElement("div");
+    counts.className = "meeting-counts";
+    counts.textContent = "신규 " + group.summary.new.count + "건 · 증대 " + group.summary.growth.count + "건";
+
+    var products = document.createElement("div");
+    products.className = "meeting-products";
+    productSummary(group.items).forEach(function(row) {
+      var line = document.createElement("div");
+      line.textContent = row.product + " " + row.count + "건 · " + won(row.amount);
+      products.appendChild(line);
+    });
+
+    var caseItems = group.items.filter(function(item) { return item.successCase; });
+    if (caseItems.length) {
+      var cases = document.createElement("div");
+      cases.className = "meeting-cases";
+      cases.textContent = caseItems.map(function(item) {
+        return "• " + item.client + " : " + item.successCase;
+      }).join("\n");
+    }
+
+    card.appendChild(head);
+    card.appendChild(total);
+    card.appendChild(counts);
+    card.appendChild(products);
+    if (cases) card.appendChild(cases);
+    meetingCards.appendChild(card);
+  });
+}
+
 function teamGroupsForScreenshot(items) {
   return groupByOwner(items).sort(function(a, b) {
     var amountDiff = b.summary.total.amount - a.summary.total.amount;
@@ -1935,6 +2068,7 @@ function render() {
   document.getElementById("doneCount").textContent = "총매출 " + wonMan(summary.total.amount) + " / 목표 " + wonMan(targetAmount);
   document.getElementById("empty").style.display = items.length ? "none" : "block";
   renderOwnerCards(items);
+  renderMeetingCards(items);
 
   document.getElementById("todayTotalAmount").textContent = wonMan(teamSummary.total.amount);
   document.getElementById("todayTotalCount").textContent = teamSummary.total.count + "건";
@@ -1995,6 +2129,7 @@ function startEdit(item) {
   document.body.classList.add("view-form");
   document.body.classList.remove("view-dashboard");
   document.body.classList.remove("view-today");
+  document.body.classList.remove("view-meeting");
   document.querySelectorAll("[data-view]").forEach(function(tab) {
     tab.classList.toggle("active", tab.dataset.view === "form");
   });
@@ -2151,6 +2286,21 @@ if (confirmCopyWeeklyReportBtn) {
     });
   });
 }
+if (successCaseSaveBtn) {
+  successCaseSaveBtn.addEventListener("click", function() {
+    saveSuccessCase().catch(function(error) {
+      showNotice("성공사례 저장 실패: " + error.message, "danger");
+    });
+  });
+}
+if (successCaseCloseBtn) {
+  successCaseCloseBtn.addEventListener("click", closeSuccessCaseModal);
+}
+if (successCaseOverlay) {
+  successCaseOverlay.addEventListener("click", function(e) {
+    if (e.target === successCaseOverlay) closeSuccessCaseModal();
+  });
+}
 ownerInput.addEventListener("change", function() {
   var owner = ownerInput.value.trim();
   if (ownerNames.indexOf(owner) >= 0) {
@@ -2186,6 +2336,7 @@ document.querySelectorAll("[data-view]").forEach(function(button) {
     document.body.classList.toggle("view-form", view === "form");
     document.body.classList.toggle("view-dashboard", view === "dashboard");
     document.body.classList.toggle("view-today", view === "today");
+    document.body.classList.toggle("view-meeting", view === "meeting");
     document.querySelectorAll("[data-view]").forEach(function(tab) {
       tab.classList.toggle("active", tab.dataset.view === view);
     });
@@ -2337,7 +2488,8 @@ form.addEventListener("submit", async function(e) {
     amount: amountWon(amountInput.value),
     collectionYear: collectionYear,
     collectionMonth: collectionMonth,
-    prescriptionDone: Boolean(old.prescriptionDone)
+    prescriptionDone: Boolean(old.prescriptionDone),
+    successCase: old.successCase || ""
   };
 
   var duplicate = findDuplicateReport(item);
@@ -2372,4 +2524,5 @@ updateAmountPreview();
 loadData().catch(function(error) {
   status("연결 실패: " + error.message, "error");
 });
+
 

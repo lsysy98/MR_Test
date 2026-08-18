@@ -2101,9 +2101,9 @@ function renderMeetingCards(items) {
   meetingCards.appendChild(slide);
 }
 
-function appendPresentationMetric(parent, label, value, note) {
+function appendPresentationMetric(parent, label, value, note, extraClass) {
   var item = document.createElement("div");
-  item.className = "presentation-metric";
+  item.className = "presentation-metric" + (extraClass ? " " + extraClass : "");
   var labelEl = document.createElement("span");
   labelEl.textContent = label;
   var valueEl = document.createElement("strong");
@@ -2138,17 +2138,33 @@ function openMeetingPresentation(group) {
   name.textContent = group.owner;
   title.appendChild(eyebrow);
   title.appendChild(name);
-  var rate = document.createElement("div");
-  rate.className = "presentation-rate";
-  rate.textContent = ownerAchievementRate(group.summary.total.amount) + "%";
+  var rateValue = ownerAchievementRate(group.summary.total.amount);
+  var totalCard = document.createElement("div");
+  totalCard.className = "presentation-total-card";
+  var totalLabel = document.createElement("span");
+  totalLabel.textContent = "월 총 매출";
+  var totalValue = document.createElement("strong");
+  totalValue.textContent = won(group.summary.total.amount);
+  var goalLine = document.createElement("small");
+  goalLine.textContent = "목표 200만원 · 목표대비 " + rateValue + "%";
+  var progress = document.createElement("div");
+  progress.className = "presentation-progress";
+  var progressBar = document.createElement("i");
+  progressBar.style.width = Math.min(100, Math.max(0, rateValue)) + "%";
+  progress.appendChild(progressBar);
+  totalCard.appendChild(totalLabel);
+  totalCard.appendChild(totalValue);
+  totalCard.appendChild(goalLine);
+  totalCard.appendChild(progress);
   head.appendChild(title);
-  head.appendChild(rate);
+  head.appendChild(totalCard);
 
   var metrics = document.createElement("div");
   metrics.className = "presentation-metrics";
-  appendPresentationMetric(metrics, "월 누적", won(group.summary.total.amount), "목표 200만원 기준");
-  appendPresentationMetric(metrics, "신규", won(group.summary.new.amount), group.summary.new.count + "건");
-  appendPresentationMetric(metrics, "매출증대", won(group.summary.growth.amount), group.summary.growth.count + "건");
+  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규매출 " + won(group.summary.new.amount), "count-focus");
+  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "증대매출 " + won(group.summary.growth.amount), "count-sub");
+  appendPresentationMetric(metrics, "신규 매출", won(group.summary.new.amount), group.summary.new.count + "건");
+  appendPresentationMetric(metrics, "증대 매출", won(group.summary.growth.amount), group.summary.growth.count + "건");
 
   var body = document.createElement("div");
   body.className = "presentation-body";
@@ -2170,13 +2186,13 @@ function openMeetingPresentation(group) {
   });
 
   var cases = document.createElement("div");
-  cases.className = "presentation-section";
+  cases.className = "presentation-section presentation-cases";
   var caseTitle = document.createElement("h3");
   caseTitle.textContent = "성공사례";
   cases.appendChild(caseTitle);
   var caseItems = group.items.filter(function(item) { return item.successCase; });
   if (caseItems.length) {
-    caseItems.slice(0, 4).forEach(function(item) {
+    caseItems.forEach(function(item) {
       var line = document.createElement("div");
       line.className = "presentation-case";
       var client = document.createElement("strong");
@@ -2236,9 +2252,17 @@ function openMeetingPresentation(group) {
     allClients.slice(clientPage * pageSize, clientPage * pageSize + pageSize).forEach(function(item) {
       var line = document.createElement("div");
       line.className = "presentation-line";
-      var left = document.createElement("span");
-      left.textContent = item.client + " · " + item.type + " · " + item.product;
+      var left = document.createElement("div");
+      left.className = "presentation-client-main";
+      var clientName = document.createElement("strong");
+      clientName.className = "presentation-client-name";
+      clientName.textContent = item.client;
+      var clientMeta = document.createElement("span");
+      clientMeta.textContent = item.type + " · " + item.product;
+      left.appendChild(clientName);
+      left.appendChild(clientMeta);
       var right = document.createElement("strong");
+      right.className = "presentation-client-amount";
       right.textContent = won(item.amount);
       line.appendChild(left);
       line.appendChild(right);

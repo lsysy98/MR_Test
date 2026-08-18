@@ -766,16 +766,16 @@
     .presentation-overlay.active { display: flex; }
     .presentation-stage {
       position: relative;
-      width: min(1120px, 100%);
-      min-height: min(680px, calc(100vh - 36px));
+      width: min(1240px, 100%);
+      min-height: min(720px, calc(100vh - 36px));
       max-height: calc(100vh - 36px);
       overflow: auto;
       display: grid;
       grid-template-rows: auto auto 1fr;
-      gap: 18px;
-      padding: 34px;
+      gap: 20px;
+      padding: 36px;
       border-radius: 10px;
-      background: #fffaf6;
+      background: linear-gradient(135deg, #fffaf6 0%, #ffffff 52%, #fff4ea 100%);
       border: 1px solid #efc7ad;
       box-shadow: 0 28px 80px rgba(0,0,0,.34);
     }
@@ -793,28 +793,42 @@
       cursor: pointer;
     }
     .presentation-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: end;
-      padding-right: 64px;
+      display: grid;
+      grid-template-columns: minmax(260px, .75fr) minmax(360px, 1.25fr);
+      gap: 20px;
+      align-items: stretch;
+      padding-right: 58px;
       border-bottom: 2px solid #f2d7c4;
-      padding-bottom: 18px;
+      padding-bottom: 20px;
     }
     .presentation-head span { color: var(--green); font-size: 15px; font-weight: 900; letter-spacing: .08em; }
     .presentation-head h2 { margin: 6px 0 0; font-size: clamp(44px, 7vw, 86px); line-height: .95; }
-    .presentation-rate {
-      min-width: 128px;
-      min-height: 78px;
+    .presentation-total-card {
       display: grid;
-      place-items: center;
-      border-radius: 999px;
-      background: var(--green);
-      color: #fff;
-      font-size: clamp(30px, 4vw, 48px);
-      font-weight: 900;
+      gap: 9px;
+      align-content: center;
+      padding: 22px;
+      border: 1px solid #efc7ad;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 14px 34px rgba(95, 58, 27, .12);
     }
-    .presentation-metrics { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 12px; }
+    .presentation-total-card span { color: var(--muted); font-size: 17px; letter-spacing: 0; }
+    .presentation-total-card strong { font-size: clamp(44px, 7.2vw, 82px); line-height: .95; color: #201a16; }
+    .presentation-total-card small { color: #c64e13; font-size: 16px; font-weight: 900; }
+    .presentation-progress {
+      height: 15px;
+      border-radius: 999px;
+      background: #f3dfd0;
+      overflow: hidden;
+    }
+    .presentation-progress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #f06418 0%, #d9410f 100%);
+    }
+    .presentation-metrics { display: grid; grid-template-columns: 1.25fr .9fr .9fr .9fr; gap: 12px; }
     .presentation-metric {
       display: grid;
       gap: 7px;
@@ -825,7 +839,15 @@
     }
     .presentation-metric span, .presentation-metric small { color: var(--muted); font-size: 15px; font-weight: 900; }
     .presentation-metric strong { font-size: clamp(26px, 4vw, 42px); line-height: 1; }
-    .presentation-body { display: grid; grid-template-columns: .9fr 1.1fr; gap: 12px; align-items: start; }
+    .presentation-metric.count-focus {
+      border-color: #f06418;
+      background: #fff4ea;
+      box-shadow: inset 0 0 0 2px rgba(240, 100, 24, .16);
+    }
+    .presentation-metric.count-focus span { color: #c64e13; font-size: 18px; }
+    .presentation-metric.count-focus strong { font-size: clamp(48px, 7vw, 78px); color: #201a16; }
+    .presentation-metric.count-sub strong { font-size: clamp(34px, 5vw, 52px); }
+    .presentation-body { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; align-items: start; }
     .presentation-section {
       display: grid;
       gap: 8px;
@@ -835,6 +857,11 @@
       background: #fff;
     }
     .presentation-section h3 { margin: 0 0 4px; font-size: 18px; }
+    .presentation-cases {
+      min-height: 300px;
+      align-content: start;
+    }
+    .presentation-cases h3 { font-size: 22px; }
     .presentation-section-head {
       display: flex;
       align-items: center;
@@ -879,9 +906,18 @@
       border-radius: 8px;
       background: #fff7f0;
     }
-    .presentation-case strong { font-size: 16px; }
-    .presentation-case span { color: var(--muted); font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+    .presentation-case strong { font-size: 18px; color: #c64e13; }
+    .presentation-case span { color: var(--text); font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
     .presentation-clients { grid-column: 1 / -1; }
+    .presentation-client-main { display: grid; gap: 3px; min-width: 0; }
+    .presentation-client-name {
+      color: #c64e13;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .presentation-client-amount { color: #201a16; font-size: 22px !important; }
     .presentation-empty { color: var(--muted); font-size: 14px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
     @media (max-width: 900px) {
       .mobile-tabs { grid-template-columns: repeat(4, 1fr); }
@@ -902,11 +938,15 @@
       .presentation-overlay { padding: 8px; align-items: stretch; }
       .presentation-stage { min-height: calc(100vh - 16px); max-height: calc(100vh - 16px); padding: 22px 14px 14px; gap: 12px; border-radius: 8px; }
       .presentation-head { display: grid; padding-right: 58px; gap: 10px; }
-      .presentation-rate { min-width: 96px; min-height: 56px; justify-self: start; }
+      .presentation-total-card { padding: 16px; }
+      .presentation-total-card strong { font-size: 42px; }
       .presentation-metrics, .presentation-body { grid-template-columns: 1fr; }
+      .presentation-metric.count-focus strong { font-size: 54px; }
+      .presentation-cases { min-height: 220px; }
       .presentation-section-head { align-items: start; flex-direction: column; }
       .presentation-line { grid-template-columns: 1fr; gap: 4px; }
       .presentation-line strong { font-size: 20px; }
+      .presentation-client-name { font-size: 19px; }
     }
 
   </style>

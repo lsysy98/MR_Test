@@ -43,6 +43,10 @@ var ownerCards = document.getElementById("ownerCards");
 var todayOwnerCards = document.getElementById("todayOwnerCards");
 var meetingCards = document.getElementById("meetingCards");
 var meetingMonthLabel = document.getElementById("meetingMonthLabel");
+var meetingMonthPicker = document.getElementById("meetingMonthPicker");
+var meetingPrevMonthBtn = document.getElementById("meetingPrevMonthBtn");
+var meetingCurrentMonthBtn = document.getElementById("meetingCurrentMonthBtn");
+var meetingNextMonthBtn = document.getElementById("meetingNextMonthBtn");
 var todayEmpty = document.getElementById("todayEmpty");
 var statusBox = document.getElementById("statusBox");
 var monthPicker = document.getElementById("monthPicker");
@@ -338,6 +342,14 @@ function nextCollectionMonth(d) {
 function monthValue() {
   return selectedYear + "-" + String(selectedMonth).padStart(2, "0");
 }
+function setSelectedMonthFromValue(value) {
+  if (!value) return;
+  var parts = value.split("-");
+  selectedYear = Number(parts[0]);
+  selectedMonth = Number(parts[1]);
+  syncMonthPicker();
+  render();
+}
 function makeId() {
   return Date.now() + "-" + Math.random().toString(16).slice(2);
 }
@@ -589,6 +601,7 @@ function updateTypeButtons() {
 }
 function syncMonthPicker() {
   if (monthPicker) monthPicker.value = monthValue();
+  if (meetingMonthPicker) meetingMonthPicker.value = monthValue();
 }
 function syncCollectionButtons() {
   if (collectionLabel) {
@@ -1588,12 +1601,6 @@ function reportCard(item, index) {
   info.className = "report-info";
   info.textContent = item.date + " · 수거 " + collectionMonthOf(item) + "월 · " + item.product;
 
-  if (item.successCase) {
-    var casePreview = document.createElement("div");
-    casePreview.className = "success-case-preview";
-    casePreview.textContent = item.successCase;
-  }
-
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
   var bottomLeft = document.createElement("div");
@@ -1610,15 +1617,6 @@ function reportCard(item, index) {
   var actions = document.createElement("div");
   actions.className = "report-actions";
   actions.appendChild(prescriptionButton(item));
-
-  var caseBtn = document.createElement("button");
-  caseBtn.className = "btn";
-  caseBtn.type = "button";
-  caseBtn.textContent = item.successCase ? "사례수정" : "성공사례";
-  caseBtn.addEventListener("click", function(e) {
-    e.stopPropagation();
-    openSuccessCaseModal(item);
-  });
 
   var edit = document.createElement("button");
   edit.className = "btn";
@@ -1641,7 +1639,6 @@ function reportCard(item, index) {
     });
   });
 
-  actions.appendChild(caseBtn);
   actions.appendChild(edit);
   actions.appendChild(del);
   bottom.appendChild(bottomLeft);
@@ -1650,7 +1647,6 @@ function reportCard(item, index) {
   card.appendChild(number);
   card.appendChild(top);
   card.appendChild(info);
-  if (casePreview) card.appendChild(casePreview);
   card.appendChild(bottom);
   return card;
 }
@@ -1898,7 +1894,7 @@ function productSummary(items) {
 function renderMeetingCards(items) {
   if (!meetingCards) return;
   meetingCards.textContent = "";
-  if (meetingMonthLabel) meetingMonthLabel.textContent = selectedYear + "년 " + String(selectedMonth).padStart(2, "0") + "월 실적";
+  if (meetingMonthLabel) meetingMonthLabel.textContent = "회의자료 기준 월";
 
   var groups = groupByOwner(items).sort(function(a, b) {
     var amountDiff = b.summary.total.amount - a.summary.total.amount;
@@ -2074,14 +2070,31 @@ function renderMeetingCards(items) {
       var left = document.createElement("div");
       var client = document.createElement("strong");
       client.textContent = item.client;
+      if (item.successCase) {
+        var mark = document.createElement("span");
+        mark.className = "success-case-mark";
+        mark.textContent = "★ 성공사례";
+        client.appendChild(mark);
+      }
       var info = document.createElement("small");
       info.textContent = item.type + " · " + item.product + " · " + item.date;
       left.appendChild(client);
       left.appendChild(info);
+      var side = document.createElement("div");
+      side.className = "meeting-client-side";
       var amount = document.createElement("b");
       amount.textContent = won(item.amount);
+      var caseBtn = document.createElement("button");
+      caseBtn.type = "button";
+      caseBtn.className = "btn meeting-case-btn";
+      caseBtn.textContent = item.successCase ? "사례수정" : "성공사례 작성";
+      caseBtn.addEventListener("click", function() {
+        openSuccessCaseModal(item);
+      });
+      side.appendChild(amount);
+      side.appendChild(caseBtn);
       row.appendChild(left);
-      row.appendChild(amount);
+      row.appendChild(side);
       clientList.appendChild(row);
     });
   if (!clientList.children.length) {
@@ -2709,6 +2722,15 @@ document.getElementById("nextCollectionBtn").addEventListener("click", function(
 document.getElementById("prevMonthBtn").addEventListener("click", function() { moveMonth(-1); });
 document.getElementById("nextMonthBtn").addEventListener("click", function() { moveMonth(1); });
 document.getElementById("currentMonthBtn").addEventListener("click", resetToCurrentMonth);
+if (meetingPrevMonthBtn) {
+  meetingPrevMonthBtn.addEventListener("click", function() { moveMonth(-1); });
+}
+if (meetingNextMonthBtn) {
+  meetingNextMonthBtn.addEventListener("click", function() { moveMonth(1); });
+}
+if (meetingCurrentMonthBtn) {
+  meetingCurrentMonthBtn.addEventListener("click", resetToCurrentMonth);
+}
 document.getElementById("cancelEditBtn").addEventListener("click", resetFormAll);
 document.querySelectorAll("[data-view]").forEach(function(button) {
   button.addEventListener("click", function() {
@@ -2811,12 +2833,13 @@ document.getElementById("nextWeekBtn").addEventListener("click", function() {
   moveSelectedWeek(1);
 });
 monthPicker.addEventListener("change", function() {
-  if (!monthPicker.value) return;
-  var parts = monthPicker.value.split("-");
-  selectedYear = Number(parts[0]);
-  selectedMonth = Number(parts[1]);
-  render();
+  setSelectedMonthFromValue(monthPicker.value);
 });
+if (meetingMonthPicker) {
+  meetingMonthPicker.addEventListener("change", function() {
+    setSelectedMonthFromValue(meetingMonthPicker.value);
+  });
+}
 
 form.addEventListener("submit", async function(e) {
   e.preventDefault();

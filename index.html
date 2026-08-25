@@ -51,6 +51,19 @@
       box-shadow: 0 10px 24px rgba(95, 58, 27, .08);
     }
     .head { padding: 16px 16px 6px; }
+    .head.with-search {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 260px);
+      align-items: center;
+      gap: 10px;
+    }
+    .head.with-search h2 { margin: 0; }
+    .owner-search {
+      width: 100%;
+      min-height: 36px;
+      padding: 0 11px;
+      font-size: 13px;
+    }
     .form, .body { padding: 12px 16px 16px; display: grid; gap: 12px; }
     label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
     .label-muted { color: #8a9691; font-size: 12px; font-weight: 400; }
@@ -595,6 +608,7 @@
       .input-panel, .dashboard, .today-panel { scroll-margin-top: 108px; }
       .dashboard, .today-panel { margin-top: 0; }
       .summary { grid-template-columns: 1fr 1fr; }
+      .head.with-search { grid-template-columns: 1fr; }
       .row, .month-nav, .month-main { grid-template-columns: 1fr; }
       .collection-nav { grid-template-columns: 1fr 1.15fr 1fr; }
       .month-actions { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -1014,7 +1028,7 @@
     .presentation-metric.count-sub strong { font-size: clamp(26px, 4vw, 42px); }
     .presentation-metric.client-focus strong {
       color: var(--text);
-      font-size: clamp(21px, 2.2vw, 26px);
+      font-size: 21px;
       font-weight: 900;
     }
     .presentation-body { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; align-items: start; }
@@ -1396,7 +1410,10 @@
 
     <section class="dashboard" id="dashboard">
       <section>
-        <div class="head"><h2>담당자별 현황</h2></div>
+        <div class="head with-search">
+          <h2>담당자별 현황</h2>
+          <input class="owner-search" id="ownerSearchInput" type="search" placeholder="치과명/지점명 검색" autocomplete="off" aria-label="담당자별 치과명 또는 지점명 검색">
+        </div>
         <div class="body">
           <div class="status" id="statusBox">보고 데이터를 불러오는 중입니다.</div>
           <div class="month-nav">

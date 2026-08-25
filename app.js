@@ -59,6 +59,7 @@ var productDoneBtn = document.getElementById("productDoneBtn");
 var amountInput = document.getElementById("amount");
 var amountPreview = document.getElementById("amountPreview");
 var ownerCards = document.getElementById("ownerCards");
+var ownerSearchInput = document.getElementById("ownerSearchInput");
 var todayOwnerCards = document.getElementById("todayOwnerCards");
 var meetingCards = document.getElementById("meetingCards");
 var meetingMonthLabel = document.getElementById("meetingMonthLabel");
@@ -406,6 +407,17 @@ function collectionText(item) {
 }
 function normalizeClientName(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
+}
+function normalizeSearchText(value) {
+  return normalizeClientName(value).toLowerCase();
+}
+function currentOwnerSearchTerm() {
+  return normalizeSearchText(ownerSearchInput ? ownerSearchInput.value : "");
+}
+function matchesOwnerSearch(item, term) {
+  if (!term) return true;
+  return normalizeSearchText(item.client).indexOf(term) >= 0 ||
+    normalizeSearchText(item.branchName).indexOf(term) >= 0;
 }
 function findDuplicateReport(item) {
   var clientName = normalizeClientName(item.client);
@@ -1837,6 +1849,7 @@ function addDetailMetric(parent, owner, filterType, value, sub) {
 }
 function renderOwnerCards(items) {
   ownerCards.textContent = "";
+  var searchTerm = currentOwnerSearchTerm();
 
   groupByOwner(items).sort(function(a, b) {
     var rateDiff = ownerAchievementRate(b.summary.total.amount) - ownerAchievementRate(a.summary.total.amount);
@@ -1893,6 +1906,7 @@ function renderOwnerCards(items) {
     var filterType = ownerFilters[group.owner];
     group.items
       .filter(function(item) { return !filterType || item.type === filterType; })
+      .filter(function(item) { return matchesOwnerSearch(item, searchTerm); })
       .slice()
       .sort(function(a, b) { return Number(b.createdAt || 0) - Number(a.createdAt || 0); })
       .forEach(function(item, index) {
@@ -1902,7 +1916,7 @@ function renderOwnerCards(items) {
     if (!detail.children.length) {
       var empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "해당 구분의 거래처가 없습니다.";
+      empty.textContent = searchTerm ? "검색 결과가 없습니다." : "해당 구분의 거래처가 없습니다.";
       detail.appendChild(empty);
     }
 
@@ -2359,7 +2373,7 @@ function openMeetingPresentation(group) {
   appendPresentationMetric(metrics, "신규", group.summary.new.count + "건", wonMan(group.summary.new.amount), "count-focus");
   appendPresentationMetric(metrics, "증대", group.summary.growth.count + "건", wonMan(group.summary.growth.amount), "count-sub");
   appendPresentationMetric(metrics, "최대 거래처", topClient ? topClient.client : "-", topClient ? wonMan(topClient.amount) : "0원", "client-focus");
-  appendPresentationMetric(metrics, "성공사례", firstCase ? firstCase.client : "-", firstCase ? "작성 완료" : "미작성");
+  appendPresentationMetric(metrics, "성공사례", firstCase ? firstCase.client : "-", firstCase ? "작성 완료" : "미작성", "client-focus");
 
   var body = document.createElement("div");
   body.className = "presentation-body";
@@ -2948,6 +2962,11 @@ document.querySelectorAll("[data-view]").forEach(function(button) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
+if (ownerSearchInput) {
+  ownerSearchInput.addEventListener("input", function() {
+    render();
+  });
+}
 document.querySelectorAll("[data-period]").forEach(function(button) {
   button.addEventListener("click", function() {
     selectedTeamPeriod = button.dataset.period;

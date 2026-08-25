@@ -792,10 +792,19 @@
       border-radius: 8px;
       background: #fff;
     }
-    .meeting-product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .meeting-product-item { display: grid; gap: 3px; padding: 9px; border-radius: 8px; background: #fff7f0; }
-    .meeting-product-item span, .meeting-product-item small { color: var(--muted); font-size: 12px; font-weight: 800; }
-    .meeting-product-item strong { font-size: 16px; }
+    .meeting-product-grid { display: grid; grid-template-columns: 1fr; gap: 7px; }
+    .meeting-product-item {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr) 46px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #fff7f0;
+    }
+    .meeting-product-item span { color: var(--ink); font-size: 13px; font-weight: 900; }
+    .meeting-product-item small { color: var(--muted); font-size: 12px; font-weight: 800; line-height: 1.35; }
+    .meeting-product-item strong { font-size: 15px; text-align: right; white-space: nowrap; }
     .meeting-case-list, .meeting-client-list { display: grid; gap: 7px; }
     .meeting-case-item {
       display: grid;

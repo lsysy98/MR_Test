@@ -639,11 +639,6 @@ function productGroupsFromList(list) {
   });
   return result;
 }
-function compactProductName(names) {
-  if (!names.length) return "";
-  if (names.length === 1) return names[0];
-  return names[0] + " 외 " + (names.length - 1) + "개";
-}
 function productShortLabel(value) {
   var list = productListFromValue(value);
   if (!list.length) return "";
@@ -651,22 +646,19 @@ function productShortLabel(value) {
   if (!known.length) return productDisplayText(list);
 
   var grouped = productGroupsFromList(known);
-  var baseCount = ["항생제", "진통제", "소화기제"].reduce(function(count, groupName) {
-    return count + (grouped[groupName] && grouped[groupName].length ? 1 : 0);
-  }, 0);
-  var hasChlor = Boolean(grouped["구강소독제"] && grouped["구강소독제"].length);
-  var label = baseCount ? baseCount + "제" : (hasChlor ? "클로르" : productDisplayText(list));
-  if (baseCount && hasChlor) label += "+클로르";
-
   var representative = "";
   productRepresentativeOrder.some(function(groupName) {
     if (grouped[groupName] && grouped[groupName].length) {
-      representative = compactProductName(grouped[groupName]);
+      representative = grouped[groupName][0];
       return true;
     }
     return false;
   });
-  return representative ? label + " · " + representative : label;
+  if (!representative) representative = known[0];
+  if (representative && known.length > 1) {
+    representative += " 외 " + (known.length - 1) + "건";
+  }
+  return representative || productDisplayText(list);
 }
 function selectedProductList() {
   return productListFromValue(productInput ? productInput.value : "");
@@ -674,7 +666,7 @@ function selectedProductList() {
 function productDisplayText(list) {
   if (!list.length) return "품목 선택";
   if (list.length <= 2) return list.join(", ");
-  return list[0] + " 외 " + (list.length - 1) + "개";
+  return list[0] + " 외 " + (list.length - 1) + "건";
 }
 function setProductList(list) {
   var seen = {};
@@ -689,10 +681,10 @@ function setProductList(list) {
 }
 function updateProductSelectionSummary() {
   var list = selectedProductList();
-  var display = productDisplayText(list);
+  var display = list.length ? productShortLabel(list.join(", ")) : productDisplayText(list);
   if (productChooseText) productChooseText.textContent = display;
   if (productSummaryText) {
-    productSummaryText.textContent = list.length ? list.join(", ") : "등록 품목을 선택해주세요.";
+    productSummaryText.textContent = list.length ? display : "등록 품목을 선택해주세요.";
   }
   if (productChooseBtn) productChooseBtn.classList.toggle("empty", !list.length);
 }
@@ -2035,16 +2027,27 @@ async function saveSuccessCase() {
 function productSummary(items) {
   var map = {};
   productCategoryOrder.forEach(function(groupName) {
-    map[groupName] = { product: groupName, count: 0 };
+    var group = productGroups.find(function(row) { return row.group === groupName; });
+    var itemCounts = {};
+    if (group) {
+      group.items.forEach(function(product) {
+        itemCounts[product] = 0;
+      });
+    }
+    map[groupName] = { product: groupName, count: 0, itemCounts: itemCounts, legacyCount: 0 };
   });
   items.forEach(function(item) {
     var list = productListFromValue(item.product);
     var counted = {};
     list.forEach(function(product) {
       var group = productGroupByName(product);
-      if (group) counted[group.group] = true;
+      if (group) {
+        counted[group.group] = true;
+        map[group.group].itemCounts[product] += 1;
+      }
       legacyProductGroups(product).forEach(function(groupName) {
         counted[groupName] = true;
+        map[groupName].legacyCount += 1;
       });
     });
     Object.keys(counted).forEach(function(groupName) {
@@ -2052,7 +2055,14 @@ function productSummary(items) {
     });
   });
   return productCategoryOrder.map(function(groupName) {
-    return map[groupName];
+    var row = map[groupName];
+    var group = productGroups.find(function(item) { return item.group === groupName; });
+    var parts = group ? group.items.map(function(product) {
+      return product + " " + row.itemCounts[product] + "건";
+    }) : [];
+    if (row.legacyCount) parts.push("기존 조합 " + row.legacyCount + "건");
+    row.detail = parts.join(" · ");
+    return row;
   });
 }
 function renderMeetingCards(items) {
@@ -2185,7 +2195,7 @@ function renderMeetingCards(items) {
     item.innerHTML = "<span></span><strong></strong><small></small>";
     item.querySelector("span").textContent = row.product;
     item.querySelector("strong").textContent = row.count + "건";
-    item.querySelector("small").textContent = "거래처 기준";
+    item.querySelector("small").textContent = row.detail || "거래처 기준";
     productGrid.appendChild(item);
   });
   productBox.appendChild(productTitle);
@@ -2363,6 +2373,9 @@ function openMeetingPresentation(group) {
     left.textContent = row.product;
     var right = document.createElement("strong");
     right.textContent = row.count + "건";
+    if (row.detail) {
+      left.textContent = row.product + " · " + row.detail;
+    }
     line.appendChild(left);
     line.appendChild(right);
     products.appendChild(line);

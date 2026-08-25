@@ -641,23 +641,24 @@ function productGroupsFromList(list) {
 }
 function productComboInfo(value) {
   var list = productListFromValue(value);
-  var hasOral = false;
+  var oralGroups = {};
   var hasChlor = false;
   list.forEach(function(product) {
     var group = productGroupByName(product);
     if (group) {
       if (group.group === "구강소독제") hasChlor = true;
-      else hasOral = true;
+      else oralGroups[group.group] = true;
     }
     legacyProductGroups(product).forEach(function(groupName) {
       if (groupName === "구강소독제") hasChlor = true;
-      else hasOral = true;
+      else oralGroups[groupName] = true;
     });
   });
-  if (hasOral && hasChlor) return { label: "경구제+클로르", key: "oralChlor" };
-  if (hasOral) return { label: "경구제", key: "oral" };
-  if (hasChlor) return { label: "클로르", key: "chlor" };
-  return { label: productDisplayText(list), key: "other" };
+  var oralCount = Object.keys(oralGroups).length;
+  if (oralCount && hasChlor) return { label: oralCount + "제+클로르", key: "oralChlor", oralCount: oralCount, hasChlor: true };
+  if (oralCount) return { label: oralCount + "제", key: "oral", oralCount: oralCount, hasChlor: false };
+  if (hasChlor) return { label: "클로르", key: "chlor", oralCount: 0, hasChlor: true };
+  return { label: productDisplayText(list), key: "other", oralCount: 0, hasChlor: false };
 }
 function productShortLabel(value) {
   var list = productListFromValue(value);
@@ -667,6 +668,12 @@ function productShortLabel(value) {
   if (!known.length) return combo.label || productDisplayText(list);
 
   var grouped = productGroupsFromList(known);
+  if (combo.key === "chlor") {
+    var chlorItems = (grouped["구강소독제"] || []).map(function(item) {
+      return item.replace(/^클로르\s*/, "");
+    });
+    return combo.label + (chlorItems.length ? " · " + chlorItems.join(" / ") : "");
+  }
   var representative = "";
   productRepresentativeOrder.some(function(groupName) {
     if (grouped[groupName] && grouped[groupName].length) {
@@ -1741,12 +1748,6 @@ function reportCard(item, index) {
   client.className = "client";
   client.textContent = item.client;
   clientWrap.appendChild(client);
-  if (item.successCase) {
-    var mark = document.createElement("span");
-    mark.className = "success-case-mark";
-    mark.textContent = "★ 성공사례";
-    clientWrap.appendChild(mark);
-  }
   if (item.branchName) {
     var branch = document.createElement("span");
     branch.className = "branch-name";
@@ -1761,7 +1762,7 @@ function reportCard(item, index) {
 
   var info = document.createElement("div");
   info.className = "report-info";
-  info.textContent = item.date + " · 수거 " + collectionMonthOf(item) + "월 · " + productShortLabel(item.product);
+  info.textContent = item.date + " · " + productShortLabel(item.product);
 
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
@@ -2241,12 +2242,6 @@ function renderMeetingCards(items) {
       var left = document.createElement("div");
       var client = document.createElement("strong");
       client.textContent = item.client;
-      if (item.successCase) {
-        var mark = document.createElement("span");
-        mark.className = "success-case-mark";
-        mark.textContent = "★ 성공사례";
-        client.appendChild(mark);
-      }
       var info = document.createElement("small");
       info.className = "client-meta";
       var typeLabel = document.createElement("span");
@@ -2395,7 +2390,7 @@ function openMeetingPresentation(group) {
       var line = document.createElement("div");
       line.className = "presentation-case";
       var client = document.createElement("strong");
-      client.textContent = "★ " + item.client;
+      client.textContent = item.client;
       var text = document.createElement("span");
       text.textContent = item.successCase;
       line.appendChild(client);

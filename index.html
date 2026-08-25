@@ -1012,7 +1012,11 @@
     .presentation-metric.count-focus strong { font-size: clamp(26px, 4vw, 42px); color: #201a16; }
     .presentation-metric.count-focus small { color: #c64e13; font-size: 18px; }
     .presentation-metric.count-sub strong { font-size: clamp(26px, 4vw, 42px); }
-    .presentation-metric.client-focus strong { color: #c64e13; font-size: clamp(22px, 3vw, 34px); }
+    .presentation-metric.client-focus strong {
+      color: var(--text);
+      font-size: clamp(21px, 2.2vw, 26px);
+      font-weight: 900;
+    }
     .presentation-body { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; align-items: start; }
     .presentation-section {
       display: grid;
@@ -1240,12 +1244,12 @@
       border-radius: 8px;
       background: #fff7f0;
     }
-    .presentation-case strong { font-size: 18px; color: #c64e13; }
+    .presentation-case strong { font-size: 21px; color: var(--text); font-weight: 900; }
     .presentation-case span { color: var(--text); font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
     .presentation-clients { grid-column: 1 / -1; }
     .presentation-client-main { display: grid; gap: 3px; min-width: 0; }
     .presentation-client-name {
-      color: #c64e13;
+      color: var(--text);
       font-size: 20px;
       font-weight: 900;
       line-height: 1.2;
@@ -1314,15 +1318,15 @@
 
   </style>
 </head>
-<body class="view-dashboard">
+<body class="view-form">
   <header>
     <div class="header-top">
       <h1 id="appTitle">테스트</h1>
       <button class="header-settings" type="button" id="holidayQuickBtn">휴일 설정</button>
     </div>
     <div class="mobile-tabs" aria-label="화면 선택">
-      <button class="mobile-tab" type="button" data-view="form">작성하기</button>
-      <button class="mobile-tab active" type="button" data-view="dashboard">월간현황</button>
+      <button class="mobile-tab active" type="button" data-view="form">작성하기</button>
+      <button class="mobile-tab" type="button" data-view="dashboard">월간현황</button>
       <button class="mobile-tab" type="button" data-view="today">일일현황</button>
       <button class="mobile-tab" type="button" data-view="meeting">회의자료</button>
     </div>

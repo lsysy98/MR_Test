@@ -2348,38 +2348,44 @@ function openMeetingPresentation(group) {
 
   var metrics = document.createElement("div");
   metrics.className = "presentation-metrics";
-  var sortedByAmount = group.items
-    .slice()
-    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); });
-  var topClient = sortedByAmount[0] || null;
   var caseItems = group.items.filter(function(item) { return item.successCase; });
-  var firstCase = caseItems[0] || null;
-  appendPresentationMetric(metrics, "신규", group.summary.new.count + "건", wonMan(group.summary.new.amount), "count-focus");
-  appendPresentationMetric(metrics, "증대", group.summary.growth.count + "건", wonMan(group.summary.growth.amount), "count-sub");
-  appendPresentationMetric(metrics, "최대 거래처", topClient ? topClient.client : "-", topClient ? wonMan(topClient.amount) : "0원", "client-focus");
-  appendPresentationMetric(metrics, "성공사례", firstCase ? firstCase.client : "-", firstCase ? "작성 완료" : "미작성");
+  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규 등록", "count-focus");
+  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "매출증대", "count-sub");
+  appendPresentationMetric(metrics, "신규매출", wonMan(group.summary.new.amount), group.summary.new.count + "건 기준", "amount-focus");
+  appendPresentationMetric(metrics, "증대매출", wonMan(group.summary.growth.amount), group.summary.growth.count + "건 기준", "amount-sub");
 
   var body = document.createElement("div");
   body.className = "presentation-body";
   var products = document.createElement("div");
-  products.className = "presentation-section";
+  products.className = "presentation-section presentation-products";
   var productTitle = document.createElement("h3");
   productTitle.textContent = "품목군 요약";
   products.appendChild(productTitle);
+  var productTable = document.createElement("div");
+  productTable.className = "presentation-product-table";
+  var productHead = document.createElement("div");
+  productHead.className = "presentation-product-row presentation-product-head";
+  ["품목군", "세부 품목", "합계"].forEach(function(text) {
+    var cell = document.createElement("span");
+    cell.textContent = text;
+    productHead.appendChild(cell);
+  });
+  productTable.appendChild(productHead);
   productSummary(group.items).forEach(function(row) {
     var line = document.createElement("div");
-    line.className = "presentation-line";
-    var left = document.createElement("span");
-    left.textContent = row.product;
-    var right = document.createElement("strong");
-    right.textContent = row.count + "건";
-    if (row.detail) {
-      left.textContent = row.product + " · " + row.detail;
-    }
-    line.appendChild(left);
-    line.appendChild(right);
-    products.appendChild(line);
+    line.className = "presentation-product-row";
+    var groupCell = document.createElement("strong");
+    groupCell.textContent = row.product;
+    var detailCell = document.createElement("span");
+    detailCell.textContent = row.detail || "-";
+    var totalCell = document.createElement("b");
+    totalCell.textContent = row.count + "건";
+    line.appendChild(groupCell);
+    line.appendChild(detailCell);
+    line.appendChild(totalCell);
+    productTable.appendChild(line);
   });
+  products.appendChild(productTable);
 
   var cases = document.createElement("div");
   cases.className = "presentation-section presentation-cases";

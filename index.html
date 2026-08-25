@@ -909,7 +909,7 @@
       border-radius: inherit;
       background: linear-gradient(90deg, #f06418 0%, #d9410f 100%);
     }
-    .presentation-metrics { display: grid; grid-template-columns: 1.05fr .85fr 1fr 1fr; gap: 12px; }
+    .presentation-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .presentation-metric {
       display: grid;
       gap: 7px;
@@ -929,6 +929,8 @@
     .presentation-metric.count-focus strong { font-size: clamp(26px, 4vw, 42px); color: #201a16; }
     .presentation-metric.count-focus small { color: #c64e13; font-size: 18px; }
     .presentation-metric.count-sub strong { font-size: clamp(26px, 4vw, 42px); }
+    .presentation-metric.amount-focus strong, .presentation-metric.amount-sub strong { font-size: clamp(24px, 3.2vw, 36px); }
+    .presentation-metric.amount-focus { background: #fffaf6; }
     .presentation-metric.client-focus strong { color: #c64e13; font-size: clamp(22px, 3vw, 34px); }
     .presentation-body { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; align-items: start; }
     .presentation-section {
@@ -940,8 +942,54 @@
       background: #fff;
     }
     .presentation-section h3 { margin: 0 0 4px; font-size: 18px; }
+    .presentation-products { grid-column: 1 / -1; }
+    .presentation-product-table {
+      display: grid;
+      overflow: hidden;
+      border: 1px solid #f2e2d7;
+      border-radius: 9px;
+      background: #fff;
+    }
+    .presentation-product-row {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr) 70px;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 13px;
+      border-top: 1px solid #f2e2d7;
+    }
+    .presentation-product-row:first-child { border-top: 0; }
+    .presentation-product-head {
+      background: #fff4ea;
+      color: #8b5c43;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .presentation-product-row strong {
+      color: #c64e13;
+      font-size: 17px;
+      white-space: nowrap;
+    }
+    .presentation-product-row span {
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .presentation-product-row b {
+      color: #201a16;
+      font-size: 18px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .presentation-product-head span {
+      color: #8b5c43;
+      font-size: 13px;
+    }
     .presentation-cases {
-      min-height: 300px;
+      grid-column: 1 / -1;
+      min-height: 0;
       align-content: start;
     }
     .presentation-cases h3 { font-size: 22px; }
@@ -1025,6 +1073,14 @@
       .presentation-total-card strong { font-size: 38px; }
       .presentation-metrics, .presentation-body { grid-template-columns: 1fr; }
       .presentation-metric.count-focus strong { font-size: 42px; }
+      .presentation-product-row {
+        grid-template-columns: 72px minmax(0, 1fr) 54px;
+        gap: 7px;
+        padding: 9px 10px;
+      }
+      .presentation-product-row strong { font-size: 15px; }
+      .presentation-product-row span { font-size: 13px; }
+      .presentation-product-row b { font-size: 16px; }
       .presentation-cases { min-height: 220px; }
       .presentation-section-head { align-items: start; flex-direction: column; }
       .presentation-line { grid-template-columns: 1fr; gap: 4px; }

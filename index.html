@@ -300,6 +300,44 @@
     .month-main { display: grid; grid-template-columns: minmax(180px, 240px); gap: 8px; align-items: center; }
     .month-actions { display: flex; gap: 8px; align-items: center; }
     #monthPicker { font-weight: 800; text-align: center; }
+    .owner-search-results {
+      display: none;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid #efc7ad;
+      border-radius: 8px;
+      background: #fffaf6;
+    }
+    .owner-search-results.active { display: grid; }
+    .owner-search-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .owner-search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #f2e2d7;
+      border-radius: 8px;
+      background: #fff;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .owner-search-row:hover { border-color: #efc7ad; background: #fff4ea; }
+    .owner-search-main { display: grid; gap: 4px; min-width: 0; }
+    .owner-search-client { font-size: 14px; font-weight: 900; color: var(--text); overflow-wrap: anywhere; }
+    .owner-search-branch { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .owner-search-meta { display: flex; gap: 5px; flex-wrap: wrap; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .owner-search-amount { font-size: 15px; font-weight: 900; color: var(--text); white-space: nowrap; }
     .owner-grid { display: grid; gap: 1px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--line); }
     .owner-card { box-shadow: none; border: 0; border-radius: 0; overflow: hidden; }
     .owner-button {
@@ -1028,7 +1066,7 @@
     .presentation-metric.count-sub strong { font-size: clamp(26px, 4vw, 42px); }
     .presentation-metric.client-focus strong {
       color: var(--text);
-      font-size: 21px;
+      font-size: clamp(28px, 3.6vw, 40px);
       font-weight: 900;
     }
     .presentation-body { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; align-items: start; }
@@ -1426,6 +1464,7 @@
               <button class="btn" type="button" id="nextMonthBtn">다음 달</button>
             </div>
           </div>
+          <div class="owner-search-results" id="ownerSearchResults" aria-live="polite"></div>
           <div class="owner-grid" id="ownerCards"></div>
           <div class="empty" id="empty">아직 입력된 보고가 없습니다.</div>
         </div>

@@ -2162,35 +2162,29 @@ function renderMeetingCards(items) {
   slideHead.appendChild(title);
   slideHead.appendChild(controls);
 
-  var overview = document.createElement("div");
-  overview.className = "meeting-overview";
-  var summaryBox = document.createElement("div");
-  summaryBox.className = "meeting-mini-summary";
+  var kpis = document.createElement("div");
+  kpis.className = "meeting-slide-kpis";
   [
-    { label: "월 총 매출", value: won(group.summary.total.amount), note: "목표대비 " + ownerAchievementRate(group.summary.total.amount) + "%" },
-    { label: "신규 총", value: group.summary.new.count + "건 " + wonMan(group.summary.new.amount) },
-    { label: "증대 총", value: group.summary.growth.count + "건 " + wonMan(group.summary.growth.amount) }
+    { label: "월 누적", value: won(group.summary.total.amount), note: ownerAchievementRate(group.summary.total.amount) + "%" },
+    { label: "신규", value: won(group.summary.new.amount), note: group.summary.new.count + "건" },
+    { label: "매출증대", value: won(group.summary.growth.amount), note: group.summary.growth.count + "건" }
   ].forEach(function(row) {
-    var line = document.createElement("div");
-    line.className = "meeting-mini-summary-row";
+    var kpi = document.createElement("div");
+    kpi.className = "meeting-kpi";
     var label = document.createElement("span");
     label.textContent = row.label;
-    var valueWrap = document.createElement("div");
     var value = document.createElement("strong");
     value.textContent = row.value;
-    valueWrap.appendChild(value);
-    if (row.note) {
-      var note = document.createElement("small");
-      note.textContent = row.note;
-      valueWrap.appendChild(note);
-    }
-    line.appendChild(label);
-    line.appendChild(valueWrap);
-    summaryBox.appendChild(line);
+    var note = document.createElement("small");
+    note.textContent = row.note;
+    kpi.appendChild(label);
+    kpi.appendChild(value);
+    kpi.appendChild(note);
+    kpis.appendChild(kpi);
   });
 
   var productBox = document.createElement("div");
-  productBox.className = "meeting-mini-products";
+  productBox.className = "meeting-section";
   var productTitle = document.createElement("h4");
   productTitle.textContent = "품목군 요약";
   var productGrid = document.createElement("div");
@@ -2198,7 +2192,7 @@ function renderMeetingCards(items) {
   productSummary(group.items).forEach(function(row) {
     var item = document.createElement("div");
     item.className = "meeting-product-item";
-    item.innerHTML = "<span></span><strong></strong><small></small>";
+    item.innerHTML = "<span></span><small></small><strong></strong>";
     item.querySelector("span").textContent = row.product;
     item.querySelector("strong").textContent = row.count + "건";
     item.querySelector("small").textContent = row.detail || "거래처 기준";
@@ -2206,8 +2200,6 @@ function renderMeetingCards(items) {
   });
   productBox.appendChild(productTitle);
   productBox.appendChild(productGrid);
-  overview.appendChild(summaryBox);
-  overview.appendChild(productBox);
 
   var caseBox = document.createElement("div");
   caseBox.className = "meeting-section";
@@ -2289,7 +2281,8 @@ function renderMeetingCards(items) {
   clientBox.appendChild(clientList);
 
   slide.appendChild(slideHead);
-  slide.appendChild(overview);
+  slide.appendChild(kpis);
+  slide.appendChild(productBox);
   slide.appendChild(caseBox);
   slide.appendChild(clientBox);
   meetingCards.appendChild(slide);

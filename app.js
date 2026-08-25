@@ -29,11 +29,13 @@ var ownerFilters = {};
 var editingId = "";
 var ownerNames = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
 var productGroups = [
-  { group: "항생제", items: ["세파클리", "아목시클라", "아목시스"] },
+  { group: "항생제", items: ["아목시스", "아목시클라", "세파클리"] },
   { group: "진통제", items: ["록소리펜", "나프록소", "아세클로페낙"] },
   { group: "소화기제", items: ["알마펜", "모사프리", "에스오메프라졸"] },
   { group: "구강소독제", items: ["클로르 100ml", "클로르 15ml"] }
 ];
+var productCategoryOrder = ["항생제", "진통제", "소화기제", "구강소독제"];
+var productRepresentativeOrder = ["항생제", "진통제", "소화기제"];
 var productOptionSet = productGroups.reduce(function(map, group) {
   group.items.forEach(function(item) { map[item] = true; });
   return map;
@@ -616,6 +618,55 @@ function productListFromValue(value) {
     .split(",")
     .map(function(item) { return item.trim(); })
     .filter(Boolean);
+}
+function productGroupByName(name) {
+  return productGroups.find(function(group) {
+    return group.items.indexOf(name) >= 0;
+  }) || null;
+}
+function legacyProductGroups(name) {
+  if (name === "3제+클로르") return ["항생제", "진통제", "소화기제", "구강소독제"];
+  if (name === "3제") return ["항생제", "진통제", "소화기제"];
+  if (name === "클로르") return ["구강소독제"];
+  return [];
+}
+function productGroupsFromList(list) {
+  var result = {};
+  productGroups.forEach(function(group) {
+    result[group.group] = group.items.filter(function(item) {
+      return list.indexOf(item) >= 0;
+    });
+  });
+  return result;
+}
+function compactProductName(names) {
+  if (!names.length) return "";
+  if (names.length === 1) return names[0];
+  return names[0] + " 외 " + (names.length - 1) + "개";
+}
+function productShortLabel(value) {
+  var list = productListFromValue(value);
+  if (!list.length) return "";
+  var known = list.filter(function(item) { return productOptionSet[item]; });
+  if (!known.length) return productDisplayText(list);
+
+  var grouped = productGroupsFromList(known);
+  var baseCount = ["항생제", "진통제", "소화기제"].reduce(function(count, groupName) {
+    return count + (grouped[groupName] && grouped[groupName].length ? 1 : 0);
+  }, 0);
+  var hasChlor = Boolean(grouped["구강소독제"] && grouped["구강소독제"].length);
+  var label = baseCount ? baseCount + "제" : (hasChlor ? "클로르" : productDisplayText(list));
+  if (baseCount && hasChlor) label += "+클로르";
+
+  var representative = "";
+  productRepresentativeOrder.some(function(groupName) {
+    if (grouped[groupName] && grouped[groupName].length) {
+      representative = compactProductName(grouped[groupName]);
+      return true;
+    }
+    return false;
+  });
+  return representative ? label + " · " + representative : label;
 }
 function selectedProductList() {
   return productListFromValue(productInput ? productInput.value : "");
@@ -1697,7 +1748,7 @@ function reportCard(item, index) {
 
   var info = document.createElement("div");
   info.className = "report-info";
-  info.textContent = item.date + " · 수거 " + collectionMonthOf(item) + "월 · " + item.product;
+  info.textContent = item.date + " · 수거 " + collectionMonthOf(item) + "월 · " + productShortLabel(item.product);
 
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
@@ -1983,18 +2034,26 @@ async function saveSuccessCase() {
 }
 function productSummary(items) {
   var map = {};
+  productCategoryOrder.forEach(function(groupName) {
+    map[groupName] = { product: groupName, count: 0 };
+  });
   items.forEach(function(item) {
-    productListFromValue(item.product).forEach(function(product) {
-      if (!map[product]) map[product] = { product: product, count: 0 };
-      map[product].count += 1;
+    var list = productListFromValue(item.product);
+    var counted = {};
+    list.forEach(function(product) {
+      var group = productGroupByName(product);
+      if (group) counted[group.group] = true;
+      legacyProductGroups(product).forEach(function(groupName) {
+        counted[groupName] = true;
+      });
+    });
+    Object.keys(counted).forEach(function(groupName) {
+      map[groupName].count += 1;
     });
   });
-  return Object.keys(map)
-    .map(function(product) { return map[product]; })
-    .sort(function(a, b) {
-      if (b.count !== a.count) return b.count - a.count;
-      return a.product.localeCompare(b.product, "ko");
-    });
+  return productCategoryOrder.map(function(groupName) {
+    return map[groupName];
+  });
 }
 function renderMeetingCards(items) {
   if (!meetingCards) return;
@@ -2117,7 +2176,7 @@ function renderMeetingCards(items) {
   var productBox = document.createElement("div");
   productBox.className = "meeting-section";
   var productTitle = document.createElement("h4");
-  productTitle.textContent = "품목별 요약";
+  productTitle.textContent = "품목군 요약";
   var productGrid = document.createElement("div");
   productGrid.className = "meeting-product-grid";
   productSummary(group.items).forEach(function(row) {
@@ -2126,7 +2185,7 @@ function renderMeetingCards(items) {
     item.innerHTML = "<span></span><strong></strong><small></small>";
     item.querySelector("span").textContent = row.product;
     item.querySelector("strong").textContent = row.count + "건";
-    item.querySelector("small").textContent = "건수 기준";
+    item.querySelector("small").textContent = "거래처 기준";
     productGrid.appendChild(item);
   });
   productBox.appendChild(productTitle);
@@ -2182,7 +2241,7 @@ function renderMeetingCards(items) {
         client.appendChild(mark);
       }
       var info = document.createElement("small");
-      info.textContent = item.type + " · " + item.product + " · " + item.date;
+      info.textContent = item.type + " · " + productShortLabel(item.product) + " · " + item.date;
       left.appendChild(client);
       left.appendChild(info);
       var side = document.createElement("div");
@@ -2295,13 +2354,13 @@ function openMeetingPresentation(group) {
   var products = document.createElement("div");
   products.className = "presentation-section";
   var productTitle = document.createElement("h3");
-  productTitle.textContent = "품목별 요약";
+  productTitle.textContent = "품목군 요약";
   products.appendChild(productTitle);
   productSummary(group.items).forEach(function(row) {
     var line = document.createElement("div");
     line.className = "presentation-line";
     var left = document.createElement("span");
-    left.textContent = row.product + " · " + row.count + "건";
+    left.textContent = row.product;
     var right = document.createElement("strong");
     right.textContent = row.count + "건";
     line.appendChild(left);
@@ -2381,7 +2440,7 @@ function openMeetingPresentation(group) {
       clientName.className = "presentation-client-name";
       clientName.textContent = item.client;
       var clientMeta = document.createElement("span");
-      clientMeta.textContent = item.type + " · " + item.product;
+      clientMeta.textContent = item.type + " · " + productShortLabel(item.product);
       left.appendChild(clientName);
       left.appendChild(clientMeta);
       var right = document.createElement("strong");

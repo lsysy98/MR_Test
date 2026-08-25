@@ -639,11 +639,32 @@ function productGroupsFromList(list) {
   });
   return result;
 }
+function productComboInfo(value) {
+  var list = productListFromValue(value);
+  var hasOral = false;
+  var hasChlor = false;
+  list.forEach(function(product) {
+    var group = productGroupByName(product);
+    if (group) {
+      if (group.group === "구강소독제") hasChlor = true;
+      else hasOral = true;
+    }
+    legacyProductGroups(product).forEach(function(groupName) {
+      if (groupName === "구강소독제") hasChlor = true;
+      else hasOral = true;
+    });
+  });
+  if (hasOral && hasChlor) return { label: "경구제+클로르", key: "oralChlor" };
+  if (hasOral) return { label: "경구제", key: "oral" };
+  if (hasChlor) return { label: "클로르", key: "chlor" };
+  return { label: productDisplayText(list), key: "other" };
+}
 function productShortLabel(value) {
   var list = productListFromValue(value);
   if (!list.length) return "";
   var known = list.filter(function(item) { return productOptionSet[item]; });
-  if (!known.length) return productDisplayText(list);
+  var combo = productComboInfo(value);
+  if (!known.length) return combo.label || productDisplayText(list);
 
   var grouped = productGroupsFromList(known);
   var representative = "";
@@ -658,7 +679,7 @@ function productShortLabel(value) {
   if (representative && known.length > 1) {
     representative += " 외 " + (known.length - 1) + "건";
   }
-  return representative || productDisplayText(list);
+  return combo.label ? combo.label + " · " + representative : representative || productDisplayText(list);
 }
 function selectedProductList() {
   return productListFromValue(productInput ? productInput.value : "");
@@ -2025,45 +2046,22 @@ async function saveSuccessCase() {
   showNotice("성공사례를 저장했습니다.");
 }
 function productSummary(items) {
-  var map = {};
-  productCategoryOrder.forEach(function(groupName) {
-    var group = productGroups.find(function(row) { return row.group === groupName; });
-    var itemCounts = {};
-    if (group) {
-      group.items.forEach(function(product) {
-        itemCounts[product] = 0;
-      });
-    }
-    map[groupName] = { product: groupName, count: 0, itemCounts: itemCounts, legacyCount: 0 };
-  });
+  var rows = [
+    { key: "oralChlor", product: "경구제+클로르", count: 0, amount: 0 },
+    { key: "oral", product: "경구제", count: 0, amount: 0 },
+    { key: "chlor", product: "클로르", count: 0, amount: 0 }
+  ];
+  var map = rows.reduce(function(result, row) {
+    result[row.key] = row;
+    return result;
+  }, {});
   items.forEach(function(item) {
-    var list = productListFromValue(item.product);
-    var counted = {};
-    list.forEach(function(product) {
-      var group = productGroupByName(product);
-      if (group) {
-        counted[group.group] = true;
-        map[group.group].itemCounts[product] += 1;
-      }
-      legacyProductGroups(product).forEach(function(groupName) {
-        counted[groupName] = true;
-        map[groupName].legacyCount += 1;
-      });
-    });
-    Object.keys(counted).forEach(function(groupName) {
-      map[groupName].count += 1;
-    });
+    var info = productComboInfo(item.product);
+    if (!map[info.key]) return;
+    map[info.key].count += 1;
+    map[info.key].amount += Number(item.amount || 0);
   });
-  return productCategoryOrder.map(function(groupName) {
-    var row = map[groupName];
-    var group = productGroups.find(function(item) { return item.group === groupName; });
-    var parts = group ? group.items.map(function(product) {
-      return product + " " + row.itemCounts[product] + "건";
-    }) : [];
-    if (row.legacyCount) parts.push("기존 조합 " + row.legacyCount + "건");
-    row.detail = parts.join(" · ");
-    return row;
-  });
+  return rows;
 }
 function renderMeetingCards(items) {
   if (!meetingCards) return;
@@ -2192,10 +2190,9 @@ function renderMeetingCards(items) {
   productSummary(group.items).forEach(function(row) {
     var item = document.createElement("div");
     item.className = "meeting-product-item";
-    item.innerHTML = "<span></span><small></small><strong></strong>";
-    item.querySelector("span").textContent = row.product;
-    item.querySelector("strong").textContent = row.count + "건";
-    item.querySelector("small").textContent = row.detail || "거래처 기준";
+    item.innerHTML = "<span></span><strong></strong>";
+    item.querySelector("span").textContent = row.product + " · " + row.count + "건";
+    item.querySelector("strong").textContent = won(row.amount);
     productGrid.appendChild(item);
   });
   productBox.appendChild(productTitle);
@@ -2251,7 +2248,17 @@ function renderMeetingCards(items) {
         client.appendChild(mark);
       }
       var info = document.createElement("small");
-      info.textContent = item.type + " · " + productShortLabel(item.product) + " · " + item.date;
+      info.className = "client-meta";
+      var typeLabel = document.createElement("span");
+      typeLabel.className = "client-type-label " + typeClass(item.type);
+      typeLabel.textContent = item.type;
+      var productLabel = document.createElement("span");
+      productLabel.textContent = productShortLabel(item.product);
+      var dateLabel = document.createElement("span");
+      dateLabel.textContent = item.date;
+      info.appendChild(typeLabel);
+      info.appendChild(productLabel);
+      info.appendChild(dateLabel);
       left.appendChild(client);
       left.appendChild(info);
       var side = document.createElement("div");
@@ -2316,83 +2323,67 @@ function openMeetingPresentation(group) {
     overlay.remove();
   });
 
+  var head = document.createElement("div");
+  head.className = "presentation-head";
+  var title = document.createElement("div");
+  var eyebrow = document.createElement("span");
+  eyebrow.textContent = selectedYear + "년 " + selectedMonth + "월";
+  var name = document.createElement("h2");
+  name.textContent = group.owner;
+  title.appendChild(eyebrow);
+  title.appendChild(name);
   var rateValue = ownerAchievementRate(group.summary.total.amount);
+  var totalCard = document.createElement("div");
+  totalCard.className = "presentation-total-card";
+  var totalLabel = document.createElement("span");
+  totalLabel.textContent = "월 총 매출";
+  var totalValue = document.createElement("strong");
+  totalValue.textContent = wonMan(group.summary.total.amount);
+  var goalLine = document.createElement("small");
+  goalLine.textContent = "목표 200만원 · 목표대비 " + rateValue + "%";
+  var progress = document.createElement("div");
+  progress.className = "presentation-progress";
+  var progressBar = document.createElement("i");
+  progressBar.style.width = Math.min(100, Math.max(0, rateValue)) + "%";
+  progress.appendChild(progressBar);
+  totalCard.appendChild(totalLabel);
+  totalCard.appendChild(totalValue);
+  totalCard.appendChild(goalLine);
+  totalCard.appendChild(progress);
+  head.appendChild(title);
+  head.appendChild(totalCard);
+
+  var sortedByAmount = group.items
+    .slice()
+    .sort(function(a, b) { return Number(b.amount || 0) - Number(a.amount || 0); });
+  var topClient = sortedByAmount[0] || null;
   var caseItems = group.items.filter(function(item) { return item.successCase; });
-
-  var overview = document.createElement("div");
-  overview.className = "presentation-overview";
-  var ownerSummary = document.createElement("div");
-  ownerSummary.className = "presentation-owner-summary";
-  var ownerHead = document.createElement("div");
-  ownerHead.className = "presentation-summary-row presentation-summary-head";
-  var ownerName = document.createElement("strong");
-  ownerName.textContent = group.owner;
-  var ownerMonth = document.createElement("span");
-  ownerMonth.textContent = selectedYear + "년 " + selectedMonth + "월";
-  ownerHead.appendChild(ownerName);
-  ownerHead.appendChild(ownerMonth);
-  ownerSummary.appendChild(ownerHead);
-  [
-    { label: "월 총 매출", value: wonMan(group.summary.total.amount), note: "목표대비 " + rateValue + "%" },
-    { label: "신규 총", value: group.summary.new.count + "건 " + wonMan(group.summary.new.amount) },
-    { label: "증대 총", value: group.summary.growth.count + "건 " + wonMan(group.summary.growth.amount) }
-  ].forEach(function(row) {
-    var line = document.createElement("div");
-    line.className = "presentation-summary-row";
-    var label = document.createElement("span");
-    label.textContent = row.label;
-    var valueWrap = document.createElement("div");
-    var value = document.createElement("strong");
-    value.textContent = row.value;
-    valueWrap.appendChild(value);
-    if (row.note) {
-      var note = document.createElement("small");
-      note.textContent = row.note;
-      valueWrap.appendChild(note);
-    }
-    line.appendChild(label);
-    line.appendChild(valueWrap);
-    ownerSummary.appendChild(line);
-  });
-
-  var productSummaryBox = document.createElement("div");
-  productSummaryBox.className = "presentation-product-summary";
-  var productHead = document.createElement("div");
-  productHead.className = "presentation-product-summary-head";
-  productHead.textContent = "품목군 요약";
-  productSummaryBox.appendChild(productHead);
-  productSummary(group.items).forEach(function(row) {
-    var line = document.createElement("div");
-    line.className = "presentation-product-summary-row";
-    var groupCell = document.createElement("strong");
-    groupCell.textContent = row.product;
-    var detailList = document.createElement("div");
-    detailList.className = "presentation-product-inline-list";
-    var productGroup = productGroups.find(function(item) { return item.group === row.product; });
-    if (productGroup) {
-      productGroup.items.forEach(function(product) {
-        var detail = document.createElement("span");
-        detail.textContent = product + " " + (row.itemCounts[product] || 0) + "건";
-        detailList.appendChild(detail);
-      });
-    }
-    if (row.legacyCount) {
-      var legacy = document.createElement("span");
-      legacy.textContent = "기존 조합 " + row.legacyCount + "건";
-      detailList.appendChild(legacy);
-    }
-    var total = document.createElement("b");
-    total.textContent = row.count + "건";
-    line.appendChild(groupCell);
-    line.appendChild(detailList);
-    line.appendChild(total);
-    productSummaryBox.appendChild(line);
-  });
-  overview.appendChild(ownerSummary);
-  overview.appendChild(productSummaryBox);
+  var firstCase = caseItems[0] || null;
+  var metrics = document.createElement("div");
+  metrics.className = "presentation-metrics";
+  appendPresentationMetric(metrics, "신규", group.summary.new.count + "건", wonMan(group.summary.new.amount), "count-focus");
+  appendPresentationMetric(metrics, "증대", group.summary.growth.count + "건", wonMan(group.summary.growth.amount), "count-sub");
+  appendPresentationMetric(metrics, "최대 거래처", topClient ? topClient.client : "-", topClient ? wonMan(topClient.amount) : "0원", "client-focus");
+  appendPresentationMetric(metrics, "성공사례", firstCase ? firstCase.client : "-", firstCase ? "작성 완료" : "미작성");
 
   var body = document.createElement("div");
   body.className = "presentation-body";
+  var products = document.createElement("div");
+  products.className = "presentation-section presentation-products";
+  var productTitle = document.createElement("h3");
+  productTitle.textContent = "품목별 요약";
+  products.appendChild(productTitle);
+  productSummary(group.items).forEach(function(row) {
+    var line = document.createElement("div");
+    line.className = "presentation-line presentation-product-line";
+    var left = document.createElement("span");
+    left.textContent = row.product + " · " + row.count + "건";
+    var right = document.createElement("strong");
+    right.textContent = won(row.amount);
+    line.appendChild(left);
+    line.appendChild(right);
+    products.appendChild(line);
+  });
 
   var cases = document.createElement("div");
   cases.className = "presentation-section presentation-cases";
@@ -2466,7 +2457,14 @@ function openMeetingPresentation(group) {
       clientName.className = "presentation-client-name";
       clientName.textContent = item.client;
       var clientMeta = document.createElement("span");
-      clientMeta.textContent = item.type + " · " + productShortLabel(item.product);
+      clientMeta.className = "client-meta presentation-client-meta";
+      var typeLabel = document.createElement("span");
+      typeLabel.className = "client-type-label " + typeClass(item.type);
+      typeLabel.textContent = item.type;
+      var productLabel = document.createElement("span");
+      productLabel.textContent = productShortLabel(item.product);
+      clientMeta.appendChild(typeLabel);
+      clientMeta.appendChild(productLabel);
       left.appendChild(clientName);
       left.appendChild(clientMeta);
       var right = document.createElement("strong");
@@ -2496,10 +2494,12 @@ function openMeetingPresentation(group) {
   });
   renderClientPage();
 
+  body.appendChild(products);
   body.appendChild(cases);
   body.appendChild(clients);
   stage.appendChild(close);
-  stage.appendChild(overview);
+  stage.appendChild(head);
+  stage.appendChild(metrics);
   stage.appendChild(body);
   overlay.appendChild(stage);
   overlay.addEventListener("click", function(e) {

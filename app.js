@@ -2162,29 +2162,35 @@ function renderMeetingCards(items) {
   slideHead.appendChild(title);
   slideHead.appendChild(controls);
 
-  var kpis = document.createElement("div");
-  kpis.className = "meeting-slide-kpis";
+  var overview = document.createElement("div");
+  overview.className = "meeting-overview";
+  var summaryBox = document.createElement("div");
+  summaryBox.className = "meeting-mini-summary";
   [
-    { label: "월 누적", value: won(group.summary.total.amount), note: ownerAchievementRate(group.summary.total.amount) + "%" },
-    { label: "신규", value: won(group.summary.new.amount), note: group.summary.new.count + "건" },
-    { label: "매출증대", value: won(group.summary.growth.amount), note: group.summary.growth.count + "건" }
+    { label: "월 총 매출", value: won(group.summary.total.amount), note: "목표대비 " + ownerAchievementRate(group.summary.total.amount) + "%" },
+    { label: "신규 총", value: group.summary.new.count + "건 " + wonMan(group.summary.new.amount) },
+    { label: "증대 총", value: group.summary.growth.count + "건 " + wonMan(group.summary.growth.amount) }
   ].forEach(function(row) {
-    var kpi = document.createElement("div");
-    kpi.className = "meeting-kpi";
+    var line = document.createElement("div");
+    line.className = "meeting-mini-summary-row";
     var label = document.createElement("span");
     label.textContent = row.label;
+    var valueWrap = document.createElement("div");
     var value = document.createElement("strong");
     value.textContent = row.value;
-    var note = document.createElement("small");
-    note.textContent = row.note;
-    kpi.appendChild(label);
-    kpi.appendChild(value);
-    kpi.appendChild(note);
-    kpis.appendChild(kpi);
+    valueWrap.appendChild(value);
+    if (row.note) {
+      var note = document.createElement("small");
+      note.textContent = row.note;
+      valueWrap.appendChild(note);
+    }
+    line.appendChild(label);
+    line.appendChild(valueWrap);
+    summaryBox.appendChild(line);
   });
 
   var productBox = document.createElement("div");
-  productBox.className = "meeting-section";
+  productBox.className = "meeting-mini-products";
   var productTitle = document.createElement("h4");
   productTitle.textContent = "품목군 요약";
   var productGrid = document.createElement("div");
@@ -2200,6 +2206,8 @@ function renderMeetingCards(items) {
   });
   productBox.appendChild(productTitle);
   productBox.appendChild(productGrid);
+  overview.appendChild(summaryBox);
+  overview.appendChild(productBox);
 
   var caseBox = document.createElement("div");
   caseBox.className = "meeting-section";
@@ -2281,8 +2289,7 @@ function renderMeetingCards(items) {
   clientBox.appendChild(clientList);
 
   slide.appendChild(slideHead);
-  slide.appendChild(kpis);
-  slide.appendChild(productBox);
+  slide.appendChild(overview);
   slide.appendChild(caseBox);
   slide.appendChild(clientBox);
   meetingCards.appendChild(slide);
@@ -2316,90 +2323,80 @@ function openMeetingPresentation(group) {
     overlay.remove();
   });
 
-  var head = document.createElement("div");
-  head.className = "presentation-head";
-  var title = document.createElement("div");
-  var eyebrow = document.createElement("span");
-  eyebrow.textContent = selectedYear + "년 " + selectedMonth + "월";
-  var name = document.createElement("h2");
-  name.textContent = group.owner;
-  title.appendChild(eyebrow);
-  title.appendChild(name);
   var rateValue = ownerAchievementRate(group.summary.total.amount);
-  var totalCard = document.createElement("div");
-  totalCard.className = "presentation-total-card";
-  var totalLabel = document.createElement("span");
-  totalLabel.textContent = "월 총 매출";
-  var totalValue = document.createElement("strong");
-  totalValue.textContent = wonMan(group.summary.total.amount);
-  var goalLine = document.createElement("small");
-  goalLine.textContent = "목표 200만원 · 목표대비 " + rateValue + "%";
-  var progress = document.createElement("div");
-  progress.className = "presentation-progress";
-  var progressBar = document.createElement("i");
-  progressBar.style.width = Math.min(100, Math.max(0, rateValue)) + "%";
-  progress.appendChild(progressBar);
-  totalCard.appendChild(totalLabel);
-  totalCard.appendChild(totalValue);
-  totalCard.appendChild(goalLine);
-  totalCard.appendChild(progress);
-  head.appendChild(title);
-  head.appendChild(totalCard);
-
-  var metrics = document.createElement("div");
-  metrics.className = "presentation-metrics";
   var caseItems = group.items.filter(function(item) { return item.successCase; });
-  appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규 등록", "count-focus");
-  appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "매출증대", "count-sub");
 
-  var products = document.createElement("div");
-  products.className = "presentation-section presentation-products";
-  var productTitle = document.createElement("h3");
-  productTitle.textContent = "품목군 요약";
-  products.appendChild(productTitle);
-  var productTable = document.createElement("div");
-  productTable.className = "presentation-product-table";
+  var overview = document.createElement("div");
+  overview.className = "presentation-overview";
+  var ownerSummary = document.createElement("div");
+  ownerSummary.className = "presentation-owner-summary";
+  var ownerHead = document.createElement("div");
+  ownerHead.className = "presentation-summary-row presentation-summary-head";
+  var ownerName = document.createElement("strong");
+  ownerName.textContent = group.owner;
+  var ownerMonth = document.createElement("span");
+  ownerMonth.textContent = selectedYear + "년 " + selectedMonth + "월";
+  ownerHead.appendChild(ownerName);
+  ownerHead.appendChild(ownerMonth);
+  ownerSummary.appendChild(ownerHead);
+  [
+    { label: "월 총 매출", value: wonMan(group.summary.total.amount), note: "목표대비 " + rateValue + "%" },
+    { label: "신규 총", value: group.summary.new.count + "건 " + wonMan(group.summary.new.amount) },
+    { label: "증대 총", value: group.summary.growth.count + "건 " + wonMan(group.summary.growth.amount) }
+  ].forEach(function(row) {
+    var line = document.createElement("div");
+    line.className = "presentation-summary-row";
+    var label = document.createElement("span");
+    label.textContent = row.label;
+    var valueWrap = document.createElement("div");
+    var value = document.createElement("strong");
+    value.textContent = row.value;
+    valueWrap.appendChild(value);
+    if (row.note) {
+      var note = document.createElement("small");
+      note.textContent = row.note;
+      valueWrap.appendChild(note);
+    }
+    line.appendChild(label);
+    line.appendChild(valueWrap);
+    ownerSummary.appendChild(line);
+  });
+
+  var productSummaryBox = document.createElement("div");
+  productSummaryBox.className = "presentation-product-summary";
+  var productHead = document.createElement("div");
+  productHead.className = "presentation-product-summary-head";
+  productHead.textContent = "품목군 요약";
+  productSummaryBox.appendChild(productHead);
   productSummary(group.items).forEach(function(row) {
     var line = document.createElement("div");
-    line.className = "presentation-product-group-row";
+    line.className = "presentation-product-summary-row";
     var groupCell = document.createElement("strong");
     groupCell.textContent = row.product;
-    var groupTotal = document.createElement("small");
-    groupTotal.textContent = "합계 " + row.count + "건";
-    groupCell.appendChild(groupTotal);
     var detailList = document.createElement("div");
-    detailList.className = "presentation-product-detail-list";
+    detailList.className = "presentation-product-inline-list";
     var productGroup = productGroups.find(function(item) { return item.group === row.product; });
     if (productGroup) {
       productGroup.items.forEach(function(product) {
-        var detail = document.createElement("div");
-        detail.className = "presentation-product-detail";
-        var nameCell = document.createElement("span");
-        nameCell.textContent = product;
-        var countCell = document.createElement("b");
-        countCell.textContent = (row.itemCounts[product] || 0) + "건";
-        detail.appendChild(nameCell);
-        detail.appendChild(countCell);
+        var detail = document.createElement("span");
+        detail.textContent = product + " " + (row.itemCounts[product] || 0) + "건";
         detailList.appendChild(detail);
       });
     }
     if (row.legacyCount) {
-      var legacy = document.createElement("div");
-      legacy.className = "presentation-product-detail legacy";
-      var legacyName = document.createElement("span");
-      legacyName.textContent = "기존 조합";
-      var legacyCount = document.createElement("b");
-      legacyCount.textContent = row.legacyCount + "건";
-      legacy.appendChild(legacyName);
-      legacy.appendChild(legacyCount);
+      var legacy = document.createElement("span");
+      legacy.textContent = "기존 조합 " + row.legacyCount + "건";
       detailList.appendChild(legacy);
     }
+    var total = document.createElement("b");
+    total.textContent = row.count + "건";
     line.appendChild(groupCell);
     line.appendChild(detailList);
-    productTable.appendChild(line);
+    line.appendChild(total);
+    productSummaryBox.appendChild(line);
   });
-  products.appendChild(productTable);
-  metrics.appendChild(products);
+  overview.appendChild(ownerSummary);
+  overview.appendChild(productSummaryBox);
 
   var body = document.createElement("div");
   body.className = "presentation-body";
@@ -2509,8 +2506,7 @@ function openMeetingPresentation(group) {
   body.appendChild(cases);
   body.appendChild(clients);
   stage.appendChild(close);
-  stage.appendChild(head);
-  stage.appendChild(metrics);
+  stage.appendChild(overview);
   stage.appendChild(body);
   overlay.appendChild(stage);
   overlay.addEventListener("click", function(e) {

@@ -28,6 +28,16 @@ var selectedMeetingOwner = "";
 var ownerFilters = {};
 var editingId = "";
 var ownerNames = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
+var productGroups = [
+  { group: "항생제", items: ["세파클리", "아목시클라", "아목시스"] },
+  { group: "진통제", items: ["록소리펜", "나프록소", "아세클로페낙"] },
+  { group: "소화기제", items: ["알마펜", "모사프리", "에스오메프라졸"] },
+  { group: "구강소독제", items: ["클로르 100ml", "클로르 15ml"] }
+];
+var productOptionSet = productGroups.reduce(function(map, group) {
+  group.items.forEach(function(item) { map[item] = true; });
+  return map;
+}, {});
 
 var form = document.getElementById("reportForm");
 var appTitle = document.getElementById("appTitle");
@@ -37,6 +47,13 @@ var dateInput = document.getElementById("date");
 var clientInput = document.getElementById("client");
 var branchInput = document.getElementById("branchName");
 var productInput = document.getElementById("product");
+var productChooseBtn = document.getElementById("productChooseBtn");
+var productChooseText = document.getElementById("productChooseText");
+var productSummaryText = document.getElementById("productSummaryText");
+var productOverlay = document.getElementById("productOverlay");
+var productOptionGroups = document.getElementById("productOptionGroups");
+var productClearBtn = document.getElementById("productClearBtn");
+var productDoneBtn = document.getElementById("productDoneBtn");
 var amountInput = document.getElementById("amount");
 var amountPreview = document.getElementById("amountPreview");
 var ownerCards = document.getElementById("ownerCards");
@@ -121,7 +138,7 @@ if (teamDatePicker) teamDatePicker.value = selectedTeamDate;
 if (teamWeekPicker) teamWeekPicker.value = selectedWeekStart;
 var savedOwnerName = localStorage.getItem("ownerName") || "";
 ownerInput.value = ownerNames.indexOf(savedOwnerName) >= 0 ? savedOwnerName : "";
-productInput.value = "클로르";
+productInput.value = "";
 var koreaHolidays = {
   "2026-01-01": true,
   "2026-02-16": true,
@@ -593,6 +610,87 @@ function renderCalendar() {
 function updateAmountPreview() {
   var man = amountMan(amountInput.value);
   amountPreview.textContent = man ? money.format(man) + "만원" : "1 입력 = 1만원";
+}
+function productListFromValue(value) {
+  return String(value || "")
+    .split(",")
+    .map(function(item) { return item.trim(); })
+    .filter(Boolean);
+}
+function selectedProductList() {
+  return productListFromValue(productInput ? productInput.value : "");
+}
+function productDisplayText(list) {
+  if (!list.length) return "품목 선택";
+  if (list.length <= 2) return list.join(", ");
+  return list[0] + " 외 " + (list.length - 1) + "개";
+}
+function setProductList(list) {
+  var seen = {};
+  var next = list.filter(function(item) {
+    if (!item || seen[item]) return false;
+    seen[item] = true;
+    return true;
+  });
+  if (productInput) productInput.value = next.join(", ");
+  updateProductSelectionSummary();
+  renderProductOptions();
+}
+function updateProductSelectionSummary() {
+  var list = selectedProductList();
+  var display = productDisplayText(list);
+  if (productChooseText) productChooseText.textContent = display;
+  if (productSummaryText) {
+    productSummaryText.textContent = list.length ? list.join(", ") : "등록 품목을 선택해주세요.";
+  }
+  if (productChooseBtn) productChooseBtn.classList.toggle("empty", !list.length);
+}
+function renderProductOptions() {
+  if (!productOptionGroups) return;
+  var selected = selectedProductList();
+  productOptionGroups.textContent = "";
+  productGroups.forEach(function(group) {
+    var wrap = document.createElement("div");
+    wrap.className = "product-group";
+    var title = document.createElement("div");
+    title.className = "product-group-title";
+    title.textContent = group.group;
+    var grid = document.createElement("div");
+    grid.className = "product-option-grid";
+    group.items.forEach(function(product) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "product-option" + (selected.indexOf(product) >= 0 ? " active" : "");
+      btn.textContent = product;
+      btn.addEventListener("click", function() {
+        toggleProductOption(product);
+      });
+      grid.appendChild(btn);
+    });
+    wrap.appendChild(title);
+    wrap.appendChild(grid);
+    productOptionGroups.appendChild(wrap);
+  });
+}
+function toggleProductOption(product) {
+  var selected = selectedProductList().filter(function(item) {
+    return productOptionSet[item];
+  });
+  var index = selected.indexOf(product);
+  if (index >= 0) selected.splice(index, 1);
+  else selected.push(product);
+  setProductList(selected);
+}
+function openProductModal() {
+  renderProductOptions();
+  if (!productOverlay) return;
+  productOverlay.classList.add("active");
+  productOverlay.setAttribute("aria-hidden", "false");
+}
+function closeProductModal() {
+  if (!productOverlay) return;
+  productOverlay.classList.remove("active");
+  productOverlay.setAttribute("aria-hidden", "true");
 }
 function updateTypeButtons() {
   document.querySelectorAll("[data-type]").forEach(function(button) {
@@ -1884,12 +1982,19 @@ async function saveSuccessCase() {
   showNotice("성공사례를 저장했습니다.");
 }
 function productSummary(items) {
-  var products = ["3제+클로르", "3제", "클로르"];
-  return products.map(function(product) {
-    var productItems = items.filter(function(item) { return item.product === product; });
-    var summary = summarize(productItems);
-    return { product: product, count: summary.total.count, amount: summary.total.amount };
+  var map = {};
+  items.forEach(function(item) {
+    productListFromValue(item.product).forEach(function(product) {
+      if (!map[product]) map[product] = { product: product, count: 0 };
+      map[product].count += 1;
+    });
   });
+  return Object.keys(map)
+    .map(function(product) { return map[product]; })
+    .sort(function(a, b) {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.product.localeCompare(b.product, "ko");
+    });
 }
 function renderMeetingCards(items) {
   if (!meetingCards) return;
@@ -2021,7 +2126,7 @@ function renderMeetingCards(items) {
     item.innerHTML = "<span></span><strong></strong><small></small>";
     item.querySelector("span").textContent = row.product;
     item.querySelector("strong").textContent = row.count + "건";
-    item.querySelector("small").textContent = won(row.amount);
+    item.querySelector("small").textContent = "건수 기준";
     productGrid.appendChild(item);
   });
   productBox.appendChild(productTitle);
@@ -2198,7 +2303,7 @@ function openMeetingPresentation(group) {
     var left = document.createElement("span");
     left.textContent = row.product + " · " + row.count + "건";
     var right = document.createElement("strong");
-    right.textContent = won(row.amount);
+    right.textContent = row.count + "건";
     line.appendChild(left);
     line.appendChild(right);
     products.appendChild(line);
@@ -2482,7 +2587,7 @@ function resetAfterSave() {
   editingId = "";
   clientInput.value = "";
   if (branchInput) branchInput.value = "";
-  productInput.value = "클로르";
+  setProductList([]);
   amountInput.value = "";
   selectedType = "신규";
   setDefaultCollectionMonth();
@@ -2495,7 +2600,7 @@ function resetFormAll() {
   editingId = "";
   clientInput.value = "";
   if (branchInput) branchInput.value = "";
-  productInput.value = "클로르";
+  setProductList([]);
   amountInput.value = "";
   setLeaveDateInput(dateInput, todayText);
   selectedType = "신규";
@@ -2510,7 +2615,9 @@ function startEdit(item) {
   setLeaveDateInput(dateInput, item.date);
   clientInput.value = item.client;
   if (branchInput) branchInput.value = item.branchName || "";
-  productInput.value = item.product;
+  productInput.value = item.product || "";
+  updateProductSelectionSummary();
+  renderProductOptions();
   amountInput.value = String(Math.round(Number(item.amount || 0) / 10000));
   selectedType = item.type;
   collectionYear = collectionYearOf(item);
@@ -2531,6 +2638,8 @@ function startEdit(item) {
 
 syncCollectionButtons();
 syncTeamPeriodControls();
+updateProductSelectionSummary();
+renderProductOptions();
 
 if (noticeOkBtn) {
   noticeOkBtn.addEventListener("click", hideNotice);
@@ -2543,6 +2652,22 @@ if (noticeActionBtn) {
 if (noticeOverlay) {
   noticeOverlay.addEventListener("click", function(e) {
     if (e.target === noticeOverlay && !noticeLocked) hideNotice();
+  });
+}
+if (productChooseBtn) {
+  productChooseBtn.addEventListener("click", openProductModal);
+}
+if (productDoneBtn) {
+  productDoneBtn.addEventListener("click", closeProductModal);
+}
+if (productClearBtn) {
+  productClearBtn.addEventListener("click", function() {
+    setProductList([]);
+  });
+}
+if (productOverlay) {
+  productOverlay.addEventListener("click", function(e) {
+    if (e.target === productOverlay) closeProductModal();
   });
 }
 if (completeDayBtn) {
@@ -2856,7 +2981,7 @@ form.addEventListener("submit", async function(e) {
   }
   if (!productInput.value) {
     toast("품목을 선택해주세요.");
-    productInput.focus();
+    if (productChooseBtn) productChooseBtn.focus();
     return;
   }
   if (!amountWon(amountInput.value)) {
@@ -2887,7 +3012,7 @@ form.addEventListener("submit", async function(e) {
     client: clientInput.value.trim(),
     branchName: branchInput ? branchInput.value.trim() : "",
     type: selectedType,
-    product: productInput.value,
+    product: productInput.value.trim(),
     amount: amountWon(amountInput.value),
     collectionYear: collectionYear,
     collectionMonth: collectionMonth,

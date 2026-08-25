@@ -71,6 +71,74 @@
     .amount-wrap input { padding-right: 54px; }
     .amount-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
     .helper { color: var(--muted); font-size: 12px; margin-top: -4px; }
+    .product-select-btn {
+      width: 100%;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid #e5d4c6;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .product-select-btn::after {
+      content: "선택";
+      color: #c64e13;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .product-select-btn.empty { color: var(--muted); }
+    .product-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(23, 33, 28, .28);
+    }
+    .product-overlay.active { display: flex; }
+    .product-box {
+      width: min(420px, 100%);
+      max-height: calc(100vh - 36px);
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 44px rgba(27,45,37,.22);
+    }
+    .product-box h3 { margin: 0; font-size: 17px; }
+    .product-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .product-groups { display: grid; gap: 12px; }
+    .product-group { display: grid; gap: 8px; }
+    .product-group-title { color: var(--muted); font-size: 13px; font-weight: 900; }
+    .product-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .product-option {
+      min-height: 38px;
+      border: 1px solid #e5d4c6;
+      border-radius: 8px;
+      background: #fffaf6;
+      color: var(--text);
+      padding: 0 10px;
+      cursor: pointer;
+    }
+    .product-option.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+      font-weight: 900;
+    }
+    .product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .toast { min-height: 22px; color: #c64e13; font-size: 13px; }
     .notice-overlay {
       position: fixed;
@@ -1006,12 +1074,11 @@
         </label>
         <div class="row">
           <label>품목/제품군
-            <select id="product" required>
-              <option value="">선택</option>
-              <option value="3제+클로르">3제+클로르</option>
-              <option value="3제">3제</option>
-              <option value="클로르">클로르</option>
-            </select>
+            <input id="product" type="hidden" required>
+            <button class="product-select-btn empty" type="button" id="productChooseBtn">
+              <span id="productChooseText">품목 선택</span>
+            </button>
+            <div class="helper" id="productSummaryText">등록 품목을 선택해주세요.</div>
           </label>
           <label>예상 금액
             <div class="amount-wrap">
@@ -1142,6 +1209,18 @@
     <span>made by 이승엽</span>
     <span>문의 <a href="mailto:homerun@osstem.com">homerun@osstem.com</a></span>
   </footer>
+
+  <div class="product-overlay" id="productOverlay" aria-hidden="true">
+    <div class="product-box" role="dialog" aria-modal="true" aria-labelledby="productOverlayTitle">
+      <h3 id="productOverlayTitle">품목 선택</h3>
+      <p>등록한 품목을 모두 눌러주세요. 금액은 거래처 1건 기준으로 저장됩니다.</p>
+      <div class="product-groups" id="productOptionGroups"></div>
+      <div class="product-actions">
+        <button class="btn" type="button" id="productClearBtn">선택 초기화</button>
+        <button class="btn primary" type="button" id="productDoneBtn">선택 완료</button>
+      </div>
+    </div>
+  </div>
 
   <div class="success-case-overlay" id="successCaseOverlay" aria-hidden="true">
     <div class="success-case-box" role="dialog" aria-modal="true" aria-labelledby="successCaseTitle">

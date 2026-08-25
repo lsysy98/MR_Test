@@ -2351,11 +2351,7 @@ function openMeetingPresentation(group) {
   var caseItems = group.items.filter(function(item) { return item.successCase; });
   appendPresentationMetric(metrics, "신규 건수", group.summary.new.count + "건", "신규 등록", "count-focus");
   appendPresentationMetric(metrics, "증대 건수", group.summary.growth.count + "건", "매출증대", "count-sub");
-  appendPresentationMetric(metrics, "신규매출", wonMan(group.summary.new.amount), group.summary.new.count + "건 기준", "amount-focus");
-  appendPresentationMetric(metrics, "증대매출", wonMan(group.summary.growth.amount), group.summary.growth.count + "건 기준", "amount-sub");
 
-  var body = document.createElement("div");
-  body.className = "presentation-body";
   var products = document.createElement("div");
   products.className = "presentation-section presentation-products";
   var productTitle = document.createElement("h3");
@@ -2363,29 +2359,50 @@ function openMeetingPresentation(group) {
   products.appendChild(productTitle);
   var productTable = document.createElement("div");
   productTable.className = "presentation-product-table";
-  var productHead = document.createElement("div");
-  productHead.className = "presentation-product-row presentation-product-head";
-  ["품목군", "세부 품목", "합계"].forEach(function(text) {
-    var cell = document.createElement("span");
-    cell.textContent = text;
-    productHead.appendChild(cell);
-  });
-  productTable.appendChild(productHead);
   productSummary(group.items).forEach(function(row) {
     var line = document.createElement("div");
-    line.className = "presentation-product-row";
+    line.className = "presentation-product-group-row";
     var groupCell = document.createElement("strong");
     groupCell.textContent = row.product;
-    var detailCell = document.createElement("span");
-    detailCell.textContent = row.detail || "-";
-    var totalCell = document.createElement("b");
-    totalCell.textContent = row.count + "건";
+    var groupTotal = document.createElement("small");
+    groupTotal.textContent = "합계 " + row.count + "건";
+    groupCell.appendChild(groupTotal);
+    var detailList = document.createElement("div");
+    detailList.className = "presentation-product-detail-list";
+    var productGroup = productGroups.find(function(item) { return item.group === row.product; });
+    if (productGroup) {
+      productGroup.items.forEach(function(product) {
+        var detail = document.createElement("div");
+        detail.className = "presentation-product-detail";
+        var nameCell = document.createElement("span");
+        nameCell.textContent = product;
+        var countCell = document.createElement("b");
+        countCell.textContent = (row.itemCounts[product] || 0) + "건";
+        detail.appendChild(nameCell);
+        detail.appendChild(countCell);
+        detailList.appendChild(detail);
+      });
+    }
+    if (row.legacyCount) {
+      var legacy = document.createElement("div");
+      legacy.className = "presentation-product-detail legacy";
+      var legacyName = document.createElement("span");
+      legacyName.textContent = "기존 조합";
+      var legacyCount = document.createElement("b");
+      legacyCount.textContent = row.legacyCount + "건";
+      legacy.appendChild(legacyName);
+      legacy.appendChild(legacyCount);
+      detailList.appendChild(legacy);
+    }
     line.appendChild(groupCell);
-    line.appendChild(detailCell);
-    line.appendChild(totalCell);
+    line.appendChild(detailList);
     productTable.appendChild(line);
   });
   products.appendChild(productTable);
+  metrics.appendChild(products);
+
+  var body = document.createElement("div");
+  body.className = "presentation-body";
 
   var cases = document.createElement("div");
   cases.className = "presentation-section presentation-cases";
@@ -2489,7 +2506,6 @@ function openMeetingPresentation(group) {
   });
   renderClientPage();
 
-  body.appendChild(products);
   body.appendChild(cases);
   body.appendChild(clients);
   stage.appendChild(close);

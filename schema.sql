@@ -83,4 +83,30 @@ on public.team_calendar_days (calendar_date);
 create index if not exists team_calendar_days_status_idx
 on public.team_calendar_days (status);
 
+create table if not exists public.exhibition_events (
+  id text primary key,
+  event_date date not null,
+  title text not null,
+  needed_count integer not null default 2 check (needed_count between 1 and 7),
+  memo text,
+  created_at bigint not null,
+  updated_at bigint not null
+);
+
+create index if not exists exhibition_events_event_date_idx
+on public.exhibition_events (event_date desc);
+
+create table if not exists public.exhibition_attendees (
+  id text primary key,
+  event_id text not null references public.exhibition_events(id) on delete cascade,
+  owner text not null,
+  created_at bigint not null
+);
+
+create unique index if not exists exhibition_attendees_event_owner_uidx
+on public.exhibition_attendees (event_id, owner);
+
+create index if not exists exhibition_attendees_owner_idx
+on public.exhibition_attendees (owner);
+
 select pg_notify('pgrst', 'reload schema');

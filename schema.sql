@@ -96,15 +96,57 @@ create table if not exists public.exhibition_events (
 create index if not exists exhibition_events_event_date_idx
 on public.exhibition_events (event_date desc);
 
+create table if not exists public.exhibition_event_days (
+  id text primary key,
+  event_id text not null references public.exhibition_events(id) on delete cascade,
+  event_date date not null,
+  needed_count integer not null default 2 check (needed_count between 1 and 7),
+  created_at bigint not null,
+  updated_at bigint not null
+);
+
+insert into public.exhibition_event_days (
+  id, event_id, event_date, needed_count, created_at, updated_at
+)
+select
+  e.id || '-' || to_char(e.event_date, 'YYYYMMDD'),
+  e.id,
+  e.event_date,
+  e.needed_count,
+  e.created_at,
+  e.updated_at
+from public.exhibition_events e
+where not exists (
+  select 1 from public.exhibition_event_days d where d.event_id = e.id
+);
+
+create unique index if not exists exhibition_event_days_event_date_uidx
+on public.exhibition_event_days (event_id, event_date);
+
+create index if not exists exhibition_event_days_event_id_idx
+on public.exhibition_event_days (event_id);
+
 create table if not exists public.exhibition_attendees (
   id text primary key,
   event_id text not null references public.exhibition_events(id) on delete cascade,
+  event_day_id text,
   owner text not null,
   created_at bigint not null
 );
 
-create unique index if not exists exhibition_attendees_event_owner_uidx
-on public.exhibition_attendees (event_id, owner);
+alter table public.exhibition_attendees
+  add column if not exists event_day_id text;
+
+update public.exhibition_attendees a
+set event_day_id = d.id
+from public.exhibition_event_days d
+where a.event_id = d.event_id
+  and a.event_day_id is null;
+
+drop index if exists exhibition_attendees_event_owner_uidx;
+
+create unique index if not exists exhibition_attendees_day_owner_uidx
+on public.exhibition_attendees (event_day_id, owner);
 
 create index if not exists exhibition_attendees_owner_idx
 on public.exhibition_attendees (owner);

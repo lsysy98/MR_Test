@@ -1812,44 +1812,48 @@
   <div class="exhibition-overlay" id="exhibitionOverlay" aria-hidden="true">
     <div class="exhibition-box" role="dialog" aria-modal="true" aria-labelledby="exhibitionTitle">
       <h3 id="exhibitionTitle">전시회 참석</h3>
-      <p>전시회나 주말 참석 이력을 남겨두면, 다음 참석자는 가장 오래 참석하지 않은 사람부터 추천합니다.</p>
-      <div class="exhibition-grid">
-        <label>날짜<span class="date-input-wrap"><input id="exhibitionDate" type="text" readonly></span></label>
-        <label>필요 인원
-          <select id="exhibitionNeededCount">
-            <option value="1">1명</option>
-            <option value="2" selected>2명</option>
-            <option value="3">3명</option>
-            <option value="4">4명</option>
-            <option value="5">5명</option>
-            <option value="6">6명</option>
-            <option value="7">7명</option>
-          </select>
-        </label>
-      </div>
-      <div class="exhibition-grid single">
-        <label>행사명<input id="exhibitionName" type="text" placeholder="예: 수도권 치과 전시회"></label>
-      </div>
-      <div class="exhibition-recommendation">
-        <div class="exhibition-rec-head">
-          <strong>추천 참석자</strong>
-          <button class="btn" type="button" id="exhibitionApplyRecommendedBtn">추천 적용</button>
+      <p>전시회 하나에 여러 날짜를 넣고, 날짜별 참석자를 따로 지정합니다.</p>
+      <div class="exhibition-workspace">
+        <div class="exhibition-editor">
+          <div class="exhibition-grid single">
+            <label>행사명<input id="exhibitionName" type="text" placeholder="예: 가멕스"></label>
+          </div>
+          <div class="exhibition-grid">
+            <label>시작일<span class="date-input-wrap"><input id="exhibitionDate" type="text" readonly></span></label>
+            <label>종료일<span class="date-input-wrap"><input id="exhibitionEndDate" type="text" readonly></span></label>
+          </div>
+          <div class="exhibition-grid">
+            <label>날짜별 필요 인원
+              <select id="exhibitionNeededCount">
+                <option value="1">1명</option>
+                <option value="2" selected>2명</option>
+                <option value="3">3명</option>
+                <option value="4">4명</option>
+                <option value="5">5명</option>
+                <option value="6">6명</option>
+                <option value="7">7명</option>
+              </select>
+            </label>
+            <label>메모 <span class="label-muted">(선택)</span>
+              <textarea class="exhibition-memo" id="exhibitionMemo" placeholder="특이사항이나 참고할 내용을 적어주세요."></textarea>
+            </label>
+          </div>
+          <div>
+            <div class="leave-list-title">날짜별 참석자</div>
+            <div class="exhibition-day-list" id="exhibitionAttendees"></div>
+          </div>
         </div>
-        <div class="exhibition-rec-list" id="exhibitionRecommendation"></div>
-      </div>
-      <div>
-        <div class="leave-list-title">참석자 선택</div>
-        <div class="exhibition-attendee-grid" id="exhibitionAttendees"></div>
-      </div>
-      <div class="exhibition-grid single">
-        <label>메모 <span class="label-muted">(선택)</span>
-          <textarea class="exhibition-memo" id="exhibitionMemo" placeholder="특이사항이나 참고할 내용을 적어주세요."></textarea>
-        </label>
-      </div>
-      <div class="exhibition-list-wrap">
-        <div class="exhibition-list-title">저장된 전시회</div>
-        <div class="exhibition-list" id="exhibitionList">
-          <div class="exhibition-empty">저장된 전시회가 없습니다.</div>
+        <div class="exhibition-side">
+          <div class="exhibition-list-wrap">
+            <div class="exhibition-list-title">담당자 참석 현황</div>
+            <div class="exhibition-stats" id="exhibitionOwnerStats"></div>
+          </div>
+          <div class="exhibition-list-wrap">
+            <div class="exhibition-list-title">저장된 전시회</div>
+            <div class="exhibition-list" id="exhibitionList">
+              <div class="exhibition-empty">저장된 전시회가 없습니다.</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="exhibition-actions">
@@ -1885,7 +1889,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260827-0020"></script>
+  <script src="app.js?v=20260827-0030"></script>
 </body>
 </html>
 

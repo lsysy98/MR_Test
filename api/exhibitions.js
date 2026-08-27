@@ -75,14 +75,31 @@ function toEventDb(item) {
   };
 }
 
-function fromEventDb(row, attendees) {
+function toDayDb(day, eventId, now) {
+  return {
+    id: day.id || `${eventId}-${day.date.replace(/-/g, "")}`,
+    event_id: eventId,
+    event_date: day.date,
+    needed_count: Number(day.neededCount || 2),
+    created_at: Number(day.createdAt || now),
+    updated_at: Number(day.updatedAt || now)
+  };
+}
+
+function fromEventDb(row, days) {
+  const normalizedDays = (days || []).sort((a, b) => a.date.localeCompare(b.date));
+  const attendeeSet = new Set();
+  normalizedDays.forEach(day => {
+    (day.attendees || []).forEach(owner => attendeeSet.add(owner));
+  });
   return {
     id: row.id,
     date: row.event_date,
     title: row.title,
     neededCount: Number(row.needed_count || 2),
     memo: row.memo || "",
-    attendees: attendees || [],
+    attendees: Array.from(attendeeSet),
+    days: normalizedDays,
     createdAt: Number(row.created_at || 0),
     updatedAt: Number(row.updated_at || 0)
   };
@@ -118,15 +135,70 @@ function cleanAttendees(value) {
     });
 }
 
+function cleanDays(body) {
+  const rawDays = Array.isArray(body.days) && body.days.length
+    ? body.days
+    : [{ date: body.date, neededCount: body.neededCount, attendees: body.attendees }];
+  const seenDates = new Set();
+  return rawDays
+    .map(day => ({
+      date: String(day.date || ""),
+      neededCount: Math.max(1, Math.min(7, Number(day.neededCount || body.neededCount || 2))),
+      attendees: cleanAttendees(day.attendees)
+    }))
+    .filter(day => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date) || seenDates.has(day.date)) return false;
+      seenDates.add(day.date);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 async function loadEvents() {
   const events = await supabase("exhibition_events?select=*&order=event_date.desc,created_at.desc");
+  const dayRows = await supabase("exhibition_event_days?select=*&order=event_date.asc");
   const attendeeRows = await supabase("exhibition_attendees?select=*&order=created_at.asc");
-  const attendeeMap = {};
-  attendeeRows.forEach(row => {
-    if (!attendeeMap[row.event_id]) attendeeMap[row.event_id] = [];
-    attendeeMap[row.event_id].push(row.owner);
+
+  const daysByEvent = {};
+  dayRows.forEach(row => {
+    if (!daysByEvent[row.event_id]) daysByEvent[row.event_id] = [];
+    daysByEvent[row.event_id].push({
+      id: row.id,
+      date: row.event_date,
+      neededCount: Number(row.needed_count || 2),
+      attendees: []
+    });
   });
-  return events.map(row => fromEventDb(row, attendeeMap[row.id] || []));
+
+  const dayById = {};
+  Object.keys(daysByEvent).forEach(eventId => {
+    daysByEvent[eventId].forEach(day => {
+      dayById[day.id] = day;
+    });
+  });
+
+  const legacyAttendeeMap = {};
+  attendeeRows.forEach(row => {
+    if (row.event_day_id && dayById[row.event_day_id]) {
+      dayById[row.event_day_id].attendees.push(row.owner);
+      return;
+    }
+    if (!legacyAttendeeMap[row.event_id]) legacyAttendeeMap[row.event_id] = [];
+    legacyAttendeeMap[row.event_id].push(row.owner);
+  });
+
+  return events.map(row => {
+    let days = daysByEvent[row.id] || [];
+    if (!days.length) {
+      days = [{
+        id: `${row.id}-${String(row.event_date || "").replace(/-/g, "")}`,
+        date: row.event_date,
+        neededCount: Number(row.needed_count || 2),
+        attendees: legacyAttendeeMap[row.id] || []
+      }];
+    }
+    return fromEventDb(row, days);
+  });
 }
 
 module.exports = async function handler(req, res) {
@@ -143,18 +215,17 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST") {
       const body = await readBody(req);
       const now = Date.now();
-      const date = String(body.date || "");
       const title = String(body.title || "").trim();
-      const attendees = cleanAttendees(body.attendees);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(res, 400, { error: "date is required" });
+      const days = cleanDays(body);
+      if (!days.length) return json(res, 400, { error: "days are required" });
       if (!title) return json(res, 400, { error: "title is required" });
-      if (!attendees.length) return json(res, 400, { error: "attendees are required" });
+      if (!days.some(day => day.attendees.length)) return json(res, 400, { error: "attendees are required" });
 
       const event = {
         id: body.id || `${now}-${Math.random().toString(16).slice(2)}`,
-        date,
+        date: days[0].date,
         title,
-        neededCount: Math.max(1, Math.min(7, Number(body.neededCount || attendees.length || 2))),
+        neededCount: Math.max(1, Math.min(7, Number(body.neededCount || days[0].neededCount || 2))),
         memo: String(body.memo || "").trim(),
         createdAt: Number(body.createdAt || now),
         updatedAt: now
@@ -169,13 +240,29 @@ module.exports = async function handler(req, res) {
       await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(event.id)}`, {
         method: "DELETE"
       });
+      await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(event.id)}`, {
+        method: "DELETE"
+      });
 
-      const attendeePayload = attendees.map(owner => ({
-        id: `${event.id}-${owner}`,
-        event_id: event.id,
-        owner,
-        created_at: now
-      }));
+      const dayPayload = days.map(day => toDayDb(day, event.id, now));
+      await supabase("exhibition_event_days", {
+        method: "POST",
+        body: JSON.stringify(dayPayload)
+      });
+
+      const attendeePayload = [];
+      dayPayload.forEach(day => {
+        const sourceDay = days.find(item => item.date === day.event_date) || { attendees: [] };
+        sourceDay.attendees.forEach(owner => {
+          attendeePayload.push({
+            id: `${day.id}-${owner}`,
+            event_id: event.id,
+            event_day_id: day.id,
+            owner,
+            created_at: now
+          });
+        });
+      });
       if (attendeePayload.length) {
         await supabase("exhibition_attendees", {
           method: "POST",
@@ -183,13 +270,21 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      return json(res, 200, fromEventDb(rows[0], attendees));
+      return json(res, 200, fromEventDb(rows[0], dayPayload.map(day => ({
+        id: day.id,
+        date: day.event_date,
+        neededCount: day.needed_count,
+        attendees: (days.find(item => item.date === day.event_date) || { attendees: [] }).attendees
+      }))));
     }
 
     if (req.method === "DELETE") {
       const id = requestUrl.searchParams.get("id") || "";
       if (!id) return json(res, 400, { error: "id is required" });
       await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(id)}`, {
+        method: "DELETE"
+      });
+      await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(id)}`, {
         method: "DELETE"
       });
       await supabase(`exhibition_events?id=eq.${encodeURIComponent(id)}`, {

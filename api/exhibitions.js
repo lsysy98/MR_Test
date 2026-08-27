@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_KEY = process.env.ADMIN_KEY;
+const PACK_PREFIX = "\n\n__EXHIBITION_DAYS_JSON__";
 
 function cleanSupabaseUrl() {
   if (!SUPABASE_URL) return "";
@@ -86,8 +87,44 @@ function toDayDb(day, eventId, now) {
   };
 }
 
+function isMissingDayTableError(error) {
+  const message = String(error?.message || error || "");
+  return /exhibition_event_days|event_day_id|schema cache|relation|column/i.test(message)
+    && /not exist|could not find|schema cache|does not exist/i.test(message);
+}
+
+function packMemo(memo, days) {
+  return `${String(memo || "").trim()}${PACK_PREFIX}${JSON.stringify({ days })}`;
+}
+
+function unpackMemo(rawMemo) {
+  const raw = String(rawMemo || "");
+  const index = raw.indexOf(PACK_PREFIX);
+  if (index < 0) return { memo: raw, days: [] };
+  const memo = raw.slice(0, index).trim();
+  const packed = raw.slice(index + PACK_PREFIX.length).trim();
+  try {
+    const parsed = JSON.parse(packed);
+    const days = Array.isArray(parsed.days)
+      ? parsed.days.map(day => ({
+        id: String(day.id || ""),
+        date: String(day.date || ""),
+        neededCount: Math.max(1, Math.min(7, Number(day.neededCount || 2))),
+        attendees: cleanAttendees(day.attendees)
+      })).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day.date))
+      : [];
+    return { memo, days };
+  } catch (error) {
+    return { memo: raw, days: [] };
+  }
+}
+
 function fromEventDb(row, days) {
-  const normalizedDays = (days || []).sort((a, b) => a.date.localeCompare(b.date));
+  const unpacked = unpackMemo(row.memo);
+  let normalizedDays = (days || []).sort((a, b) => a.date.localeCompare(b.date));
+  if (unpacked.days.length && (!normalizedDays.length || normalizedDays.every(day => !(day.attendees || []).length))) {
+    normalizedDays = unpacked.days.sort((a, b) => a.date.localeCompare(b.date));
+  }
   const attendeeSet = new Set();
   normalizedDays.forEach(day => {
     (day.attendees || []).forEach(owner => attendeeSet.add(owner));
@@ -97,7 +134,7 @@ function fromEventDb(row, days) {
     date: row.event_date,
     title: row.title,
     neededCount: Number(row.needed_count || 2),
-    memo: row.memo || "",
+    memo: unpacked.memo || "",
     attendees: Array.from(attendeeSet),
     days: normalizedDays,
     createdAt: Number(row.created_at || 0),
@@ -156,7 +193,12 @@ function cleanDays(body) {
 
 async function loadEvents() {
   const events = await supabase("exhibition_events?select=*&order=event_date.desc,created_at.desc");
-  const dayRows = await supabase("exhibition_event_days?select=*&order=event_date.asc");
+  let dayRows = [];
+  try {
+    dayRows = await supabase("exhibition_event_days?select=*&order=event_date.asc");
+  } catch (error) {
+    if (!isMissingDayTableError(error)) throw error;
+  }
   const attendeeRows = await supabase("exhibition_attendees?select=*&order=created_at.asc");
 
   const daysByEvent = {};
@@ -201,6 +243,26 @@ async function loadEvents() {
   });
 }
 
+async function savePackedEvent(event, days) {
+  const packedEvent = {
+    ...event,
+    memo: packMemo(event.memo, days)
+  };
+  const rows = await supabase("exhibition_events?on_conflict=id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(toEventDb(packedEvent))
+  });
+  try {
+    await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(event.id)}`, {
+      method: "DELETE"
+    });
+  } catch (error) {
+    if (!isMissingDayTableError(error)) throw error;
+  }
+  return fromEventDb(rows[0], days);
+}
+
 module.exports = async function handler(req, res) {
   try {
     const requestUrl = new URL(req.url, "http://localhost");
@@ -237,45 +299,50 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify(toEventDb(event))
       });
 
-      await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(event.id)}`, {
-        method: "DELETE"
-      });
-      await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(event.id)}`, {
-        method: "DELETE"
-      });
+      try {
+        await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(event.id)}`, {
+          method: "DELETE"
+        });
+        await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(event.id)}`, {
+          method: "DELETE"
+        });
 
-      const dayPayload = days.map(day => toDayDb(day, event.id, now));
-      await supabase("exhibition_event_days", {
-        method: "POST",
-        body: JSON.stringify(dayPayload)
-      });
+        const dayPayload = days.map(day => toDayDb(day, event.id, now));
+        await supabase("exhibition_event_days", {
+          method: "POST",
+          body: JSON.stringify(dayPayload)
+        });
 
-      const attendeePayload = [];
-      dayPayload.forEach(day => {
-        const sourceDay = days.find(item => item.date === day.event_date) || { attendees: [] };
-        sourceDay.attendees.forEach(owner => {
-          attendeePayload.push({
-            id: `${day.id}-${owner}`,
-            event_id: event.id,
-            event_day_id: day.id,
-            owner,
-            created_at: now
+        const attendeePayload = [];
+        dayPayload.forEach(day => {
+          const sourceDay = days.find(item => item.date === day.event_date) || { attendees: [] };
+          sourceDay.attendees.forEach(owner => {
+            attendeePayload.push({
+              id: `${day.id}-${owner}`,
+              event_id: event.id,
+              event_day_id: day.id,
+              owner,
+              created_at: now
+            });
           });
         });
-      });
-      if (attendeePayload.length) {
-        await supabase("exhibition_attendees", {
-          method: "POST",
-          body: JSON.stringify(attendeePayload)
-        });
-      }
+        if (attendeePayload.length) {
+          await supabase("exhibition_attendees", {
+            method: "POST",
+            body: JSON.stringify(attendeePayload)
+          });
+        }
 
-      return json(res, 200, fromEventDb(rows[0], dayPayload.map(day => ({
-        id: day.id,
-        date: day.event_date,
-        neededCount: day.needed_count,
-        attendees: (days.find(item => item.date === day.event_date) || { attendees: [] }).attendees
-      }))));
+        return json(res, 200, fromEventDb(rows[0], dayPayload.map(day => ({
+          id: day.id,
+          date: day.event_date,
+          neededCount: day.needed_count,
+          attendees: (days.find(item => item.date === day.event_date) || { attendees: [] }).attendees
+        }))));
+      } catch (error) {
+        if (!isMissingDayTableError(error)) throw error;
+        return json(res, 200, await savePackedEvent(event, days));
+      }
     }
 
     if (req.method === "DELETE") {
@@ -284,9 +351,13 @@ module.exports = async function handler(req, res) {
       await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(id)}`, {
         method: "DELETE"
       });
-      await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(id)}`, {
-        method: "DELETE"
-      });
+      try {
+        await supabase(`exhibition_event_days?event_id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE"
+        });
+      } catch (error) {
+        if (!isMissingDayTableError(error)) throw error;
+      }
       await supabase(`exhibition_events?id=eq.${encodeURIComponent(id)}`, {
         method: "DELETE"
       });

@@ -135,10 +135,12 @@ var exhibitionCloseBtn = document.getElementById("exhibitionCloseBtn");
 var calendarOverlay = document.getElementById("calendarOverlay");
 var calendarTitle = document.getElementById("calendarTitle");
 var calendarHint = document.getElementById("calendarHint");
+var calendarActions = document.getElementById("calendarActions");
 var calendarDays = document.getElementById("calendarDays");
 var calendarPrevBtn = document.getElementById("calendarPrevBtn");
 var calendarNextBtn = document.getElementById("calendarNextBtn");
 var calendarTodayBtn = document.getElementById("calendarTodayBtn");
+var calendarConfirmBtn = document.getElementById("calendarConfirmBtn");
 var calendarCloseBtn = document.getElementById("calendarCloseBtn");
 var noticeOverlay = document.getElementById("noticeOverlay");
 var noticeText = document.getElementById("noticeText");
@@ -160,7 +162,8 @@ var exhibitionEditingId = "";
 var exhibitionTieOrder = [];
 var exhibitionDraftSelections = {};
 var exhibitionDraftNeededCounts = {};
-var exhibitionRangeDraftStart = "";
+var exhibitionDraftDateSet = {};
+var exhibitionCalendarDateSet = {};
 var calendarMode = "day";
 var calendarMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -549,44 +552,74 @@ function openDatePicker(input) {
     input.click();
   }
 }
+function normalizeDateList(dates) {
+  var seen = {};
+  return (dates || [])
+    .filter(function(date) { return /^\d{4}-\d{2}-\d{2}$/.test(date); })
+    .filter(function(date) {
+      if (seen[date]) return false;
+      seen[date] = true;
+      return true;
+    })
+    .sort();
+}
+function dateSetFromList(dates) {
+  var map = {};
+  normalizeDateList(dates).forEach(function(date) {
+    map[date] = true;
+  });
+  return map;
+}
+function dateListFromSet(dateSet) {
+  return normalizeDateList(Object.keys(dateSet || {}).filter(function(date) {
+    return dateSet[date];
+  }));
+}
+function setExhibitionDates(dates) {
+  var sorted = normalizeDateList(dates);
+  exhibitionDraftDateSet = dateSetFromList(sorted);
+  setLeaveDateInput(exhibitionDateInput, sorted[0] || "");
+  setLeaveDateInput(exhibitionEndDateInput, sorted[sorted.length - 1] || "");
+  syncExhibitionDraftDates();
+}
 function setExhibitionRangeDates(startText, endText) {
-  var start = startText || "";
-  var end = endText || start;
-  if (start && end && end < start) {
-    var temp = start;
-    start = end;
-    end = temp;
-  }
-  setLeaveDateInput(exhibitionDateInput, start);
-  setLeaveDateInput(exhibitionEndDateInput, end);
+  setExhibitionDates(datesBetween(startText, endText || startText));
 }
 function exhibitionRangeDisplayText() {
-  var start = leaveDateValue(exhibitionDateInput);
-  var end = leaveDateValue(exhibitionEndDateInput) || start;
-  if (!start) return "";
-  if (end && end < start) {
-    var temp = start;
-    start = end;
-    end = temp;
+  var dates = dateListFromSet(exhibitionDraftDateSet);
+  if (!dates.length) return "";
+  if (dates.length <= 4) {
+    return dates.map(koreanDateShort).join(", ");
   }
-  return start === end ? koreanDateShort(start) : koreanDateShort(start) + "~" + koreanDateShort(end);
+  return koreanDateShort(dates[0]) + "~" + koreanDateShort(dates[dates.length - 1]) + " · " + dates.length + "일";
 }
 function updateExhibitionRangeStatus() {
   var text = exhibitionRangeDisplayText();
-  if (exhibitionRangeStatus) exhibitionRangeStatus.textContent = text ? text : "기간을 선택해주세요.";
-  if (exhibitionRangeBtn) exhibitionRangeBtn.textContent = text ? "기간 다시 선택" : "기간 선택";
+  if (exhibitionRangeStatus) {
+    exhibitionRangeStatus.innerHTML = text
+      ? "<strong>" + text + "</strong>"
+      : "전시회 날짜를 선택해주세요.";
+  }
+  if (exhibitionRangeBtn) exhibitionRangeBtn.textContent = text ? "날짜 다시 선택" : "날짜 선택";
+}
+function updateCalendarActionState() {
+  var isExhibitionPicker = calendarMode === "exhibitionRange";
+  if (calendarActions) calendarActions.classList.toggle("range-mode", isExhibitionPicker);
+  if (calendarConfirmBtn) calendarConfirmBtn.style.display = isExhibitionPicker ? "block" : "none";
 }
 function closeCalendar() {
   if (!calendarOverlay) return;
   calendarOverlay.classList.remove("active");
   calendarOverlay.setAttribute("aria-hidden", "true");
-  exhibitionRangeDraftStart = "";
+  exhibitionCalendarDateSet = {};
+  updateCalendarActionState();
 }
 function openCalendar(mode, value) {
   calendarMode = mode;
-  if (mode === "exhibitionRange") exhibitionRangeDraftStart = "";
+  if (mode === "exhibitionRange") exhibitionCalendarDateSet = dateSetFromList(exhibitionSelectedDates());
   var base = parseDateText(value || todayText);
   calendarMonthDate = new Date(base.getFullYear(), base.getMonth(), 1);
+  updateCalendarActionState();
   renderCalendar();
   if (calendarOverlay) {
     calendarOverlay.classList.add("active");
@@ -602,8 +635,19 @@ function selectedCalendarDateText() {
   if (calendarMode === "holidayDate") return leaveDateValue(holidayDateInput) || todayText;
   if (calendarMode === "exhibitionDate") return leaveDateValue(exhibitionDateInput) || todayText;
   if (calendarMode === "exhibitionEndDate") return leaveDateValue(exhibitionEndDateInput) || leaveDateValue(exhibitionDateInput) || todayText;
-  if (calendarMode === "exhibitionRange") return exhibitionRangeDraftStart || leaveDateValue(exhibitionDateInput) || todayText;
+  if (calendarMode === "exhibitionRange") return dateListFromSet(exhibitionCalendarDateSet)[0] || todayText;
   return calendarMode === "week" ? selectedWeekAnchorText() : selectedTeamDate;
+}
+function confirmExhibitionDateSelection() {
+  var dates = dateListFromSet(exhibitionCalendarDateSet);
+  if (!dates.length) {
+    showNotice("전시회 날짜를 한 개 이상 선택해주세요.", "danger");
+    return;
+  }
+  setExhibitionDates(dates);
+  renderExhibitionForm();
+  closeCalendar();
+  showNotice("설정되었습니다.");
 }
 function applyCalendarDate(selectedKey) {
   if (["formDate", "day", "weeklyStart", "weeklyEnd"].indexOf(calendarMode) >= 0 && isNonWorkingDateText(selectedKey)) {
@@ -617,16 +661,8 @@ function applyCalendarDate(selectedKey) {
     setLeaveDateInput(holidayDateInput, selectedKey);
     closeCalendar();
   } else if (calendarMode === "exhibitionRange") {
-    if (!exhibitionRangeDraftStart) {
-      exhibitionRangeDraftStart = selectedKey;
-      renderCalendar();
-      return;
-    }
-    setExhibitionRangeDates(exhibitionRangeDraftStart, selectedKey);
-    exhibitionRangeDraftStart = "";
-    syncExhibitionDraftDates();
-    renderExhibitionForm();
-    closeCalendar();
+    exhibitionCalendarDateSet[selectedKey] = !exhibitionCalendarDateSet[selectedKey];
+    renderCalendar();
   } else if (calendarMode === "exhibitionDate") {
     setLeaveDateInput(exhibitionDateInput, selectedKey);
     if (exhibitionEndDateInput && (!leaveDateValue(exhibitionEndDateInput) || leaveDateValue(exhibitionEndDateInput) < selectedKey)) {
@@ -689,8 +725,9 @@ function renderCalendar() {
   var month = calendarMonthDate.getMonth();
   calendarTitle.textContent = year + "년 " + (month + 1) + "월";
   if (calendarHint) {
+    var pickedCount = dateListFromSet(exhibitionCalendarDateSet).length;
     calendarHint.textContent = calendarMode === "exhibitionRange"
-      ? (exhibitionRangeDraftStart ? "끝 날짜를 선택해주세요. 다시 누르면 그 날짜까지 잡힙니다." : "시작 날짜를 먼저 선택해주세요.")
+      ? "전시회 날짜를 하나씩 선택한 뒤 확인을 눌러주세요. 현재 " + pickedCount + "일 선택"
       : "";
   }
   calendarDays.textContent = "";
@@ -721,17 +758,7 @@ function renderCalendar() {
     }
     if (key === todayText) btn.classList.add("today");
     if (calendarMode === "exhibitionRange") {
-      var rangeStart = exhibitionRangeDraftStart || leaveDateValue(exhibitionDateInput);
-      var rangeEnd = exhibitionRangeDraftStart ? "" : (leaveDateValue(exhibitionEndDateInput) || rangeStart);
-      if (rangeStart && rangeEnd && rangeEnd < rangeStart) {
-        var rangeTemp = rangeStart;
-        rangeStart = rangeEnd;
-        rangeEnd = rangeTemp;
-      }
-      if (rangeStart && !rangeEnd && key === rangeStart) btn.classList.add("range-start");
-      if (rangeStart && rangeEnd && key >= rangeStart && key <= rangeEnd) btn.classList.add("in-range");
-      if (rangeStart && key === rangeStart) btn.classList.add("range-start");
-      if (rangeEnd && key === rangeEnd) btn.classList.add("range-end");
+      if (exhibitionCalendarDateSet[key]) btn.classList.add("selected");
     } else if (key === selectedCalendarDateText()) {
       btn.classList.add("selected");
     }
@@ -1000,6 +1027,13 @@ async function exhibitionApi(method, body, query) {
   var options = { method: method, headers: { "Content-Type": "application/json" } };
   if (body) options.body = JSON.stringify(body);
   return requestJson("/api/exhibitions" + (query || ""), options, 8000);
+}
+function exhibitionErrorMessage(error) {
+  var message = error && error.message ? error.message : String(error || "");
+  if (/exhibition_event_days|event_day_id|schema cache|relation/i.test(message)) {
+    return "전시회 날짜별 저장용 SQL이 아직 적용되지 않았습니다. 테스트 Supabase SQL을 한 번 실행해주세요.";
+  }
+  return message;
 }
 async function loadCalendarDays(skipRender) {
   try {
@@ -1864,15 +1898,30 @@ function exhibitionDatesText(days) {
   return koreanDateShort(days[0].date) + "~" + koreanDateShort(days[days.length - 1].date);
 }
 function exhibitionSelectedDates() {
+  var dates = dateListFromSet(exhibitionDraftDateSet);
+  if (dates.length) return dates;
   var start = leaveDateValue(exhibitionDateInput);
   if (!start) return [];
   var end = leaveDateValue(exhibitionEndDateInput) || start;
-  if (end < start) {
-    var temp = start;
-    start = end;
-    end = temp;
+  return datesBetween(start < end ? start : end, end < start ? start : end);
+}
+function removeExhibitionDate(date) {
+  delete exhibitionDraftDateSet[date];
+  delete exhibitionDraftSelections[date];
+  delete exhibitionDraftNeededCounts[date];
+  var dates = dateListFromSet(exhibitionDraftDateSet);
+  setLeaveDateInput(exhibitionDateInput, dates[0] || "");
+  setLeaveDateInput(exhibitionEndDateInput, dates[dates.length - 1] || "");
+  syncExhibitionDraftDates();
+  renderExhibitionForm();
+}
+function setExhibitionNeededCountForDate(date, count) {
+  exhibitionDraftNeededCounts[date] = Math.max(1, Math.min(ownerNames.length, Number(count) || 2));
+  var selected = (exhibitionDraftSelections[date] || []).slice();
+  var needed = exhibitionNeededCountForDate(date);
+  if (selected.length > needed) {
+    exhibitionDraftSelections[date] = selected.slice(0, needed);
   }
-  return datesBetween(start, end);
 }
 function syncExhibitionDraftDates() {
   var dates = exhibitionSelectedDates();
@@ -1990,9 +2039,16 @@ function renderExhibitionOwnerCheckboxes(parent, date, selectedOwners) {
     input.value = owner;
     input.checked = Boolean(selected[owner]);
     input.addEventListener("change", function() {
-      exhibitionDraftSelections[date] = Array.prototype.slice.call(parent.querySelectorAll("input:checked")).map(function(checked) {
+      var selectedOwners = Array.prototype.slice.call(parent.querySelectorAll("input:checked")).map(function(checked) {
         return checked.value;
       });
+      var needed = exhibitionNeededCountForDate(date);
+      if (selectedOwners.length > needed) {
+        input.checked = false;
+        showNotice(koreanDateShort(date) + " 참석자는 " + needed + "명까지 선택할 수 있습니다.", "danger");
+        return;
+      }
+      exhibitionDraftSelections[date] = selectedOwners;
       renderExhibitionForm();
     });
 
@@ -2029,7 +2085,7 @@ function renderExhibitionAttendees() {
     var tools = document.createElement("div");
     tools.className = "exhibition-day-tools";
     var selectedCount = document.createElement("span");
-    selectedCount.textContent = "선택 " + (exhibitionDraftSelections[date] || []).length + "명";
+    selectedCount.textContent = "선택 " + (exhibitionDraftSelections[date] || []).length + "명 / 필요 " + exhibitionNeededCountForDate(date) + "명";
     var neededLabel = document.createElement("span");
     neededLabel.textContent = "필요";
     var neededSelect = document.createElement("select");
@@ -2043,7 +2099,7 @@ function renderExhibitionAttendees() {
     }
     neededSelect.addEventListener("change", function(selectedDate) {
       return function(e) {
-        exhibitionDraftNeededCounts[selectedDate] = Number(e.target.value) || 2;
+        setExhibitionNeededCountForDate(selectedDate, e.target.value);
         renderExhibitionForm();
       };
     }(date));
@@ -2099,17 +2155,32 @@ function renderExhibitionStats() {
   if (!exhibitionOwnerStats) return;
   exhibitionOwnerStats.textContent = "";
   var stats = exhibitionStatsByOwner("");
-  ownerNames.forEach(function(owner) {
+  ownerNames.slice().sort(function(a, b) {
+    var aStats = stats[a];
+    var bStats = stats[b];
+    if (aStats.count !== bStats.count) return aStats.count - bStats.count;
+    if (aStats.lastDate !== bStats.lastDate) {
+      if (!aStats.lastDate) return -1;
+      if (!bStats.lastDate) return 1;
+      return aStats.lastDate.localeCompare(bStats.lastDate);
+    }
+    return ownerNames.indexOf(a) - ownerNames.indexOf(b);
+  }).forEach(function(owner) {
     var row = document.createElement("div");
-    row.className = "exhibition-stat-row";
+    row.className = "exhibition-stat-card";
+    var top = document.createElement("div");
+    top.className = "exhibition-stat-top";
     var name = document.createElement("strong");
     name.textContent = owner;
     var count = document.createElement("b");
+    count.className = "exhibition-stat-count";
     count.textContent = stats[owner].count + "회";
     var recent = document.createElement("span");
+    recent.className = "exhibition-stat-recent";
     recent.textContent = stats[owner].lastDate ? "최근 " + koreanDateShort(stats[owner].lastDate) : "참석 없음";
-    row.appendChild(name);
-    row.appendChild(count);
+    top.appendChild(name);
+    top.appendChild(count);
+    row.appendChild(top);
     row.appendChild(recent);
     exhibitionOwnerStats.appendChild(row);
   });
@@ -2127,7 +2198,8 @@ function resetExhibitionForm() {
   setLeaveDateInput(exhibitionEndDateInput, "");
   exhibitionDraftSelections = {};
   exhibitionDraftNeededCounts = {};
-  exhibitionRangeDraftStart = "";
+  exhibitionDraftDateSet = {};
+  exhibitionCalendarDateSet = {};
   if (exhibitionNameInput) exhibitionNameInput.value = "";
   if (exhibitionNeededCountInput) exhibitionNeededCountInput.value = "2";
   if (exhibitionMemoInput) exhibitionMemoInput.value = "";
@@ -2222,9 +2294,7 @@ function renderExhibitionList(message) {
 function startEditExhibition(event) {
   exhibitionEditingId = event.id;
   var days = normalizeEventDays(event);
-  var firstDay = days[0] ? days[0].date : (event.date || todayText);
-  var lastDay = days.length ? days[days.length - 1].date : firstDay;
-  setExhibitionRangeDates(firstDay, lastDay);
+  setExhibitionDates(days.map(function(day) { return day.date; }));
   if (exhibitionNameInput) exhibitionNameInput.value = event.title || "";
   if (exhibitionNeededCountInput) exhibitionNeededCountInput.value = String(event.neededCount || Math.max(1, (event.attendees || []).length) || 2);
   if (exhibitionMemoInput) exhibitionMemoInput.value = event.memo || "";
@@ -3548,7 +3618,7 @@ if (exhibitionNeededCountInput) {
 if (exhibitionSaveBtn) {
   exhibitionSaveBtn.addEventListener("click", function() {
     saveExhibitionEvent().catch(function(error) {
-      showNotice("전시회 저장 실패: " + error.message, "danger");
+      showNotice("전시회 저장 실패: " + exhibitionErrorMessage(error), "danger");
     });
   });
 }
@@ -3809,6 +3879,13 @@ if (calendarNextBtn) {
 if (calendarTodayBtn) {
   calendarTodayBtn.addEventListener("click", function() {
     applyCalendarDate(todayText);
+  });
+}
+if (calendarConfirmBtn) {
+  calendarConfirmBtn.addEventListener("click", function() {
+    if (calendarMode === "exhibitionRange") {
+      confirmExhibitionDateSelection();
+    }
   });
 }
 if (calendarCloseBtn) {

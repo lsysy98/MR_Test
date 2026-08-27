@@ -50,8 +50,20 @@
     .header-menu-toggle {
       width: 42px;
       padding: 0;
-      font-size: 20px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 0;
       line-height: 1;
+    }
+    .menu-bar {
+      display: block;
+      width: 18px;
+      height: 2px;
+      border-radius: 999px;
+      background: #c64e13;
     }
     .admin-menu {
       position: absolute;
@@ -760,7 +772,7 @@
     @media (max-width: 900px) {
       header { padding: 12px 12px 10px; }
       .header-settings { min-height: 32px; padding: 0 9px; font-size: 12px; }
-      .header-menu-toggle { width: 38px; font-size: 19px; padding: 0; }
+      .header-menu-toggle { width: 38px; padding: 0; }
       .admin-menu { width: 142px; }
       .mobile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; padding: 4px; border: 1px solid #e5d4c6; border-radius: 8px; background: #fff7f0; }
       .mobile-tab { min-height: 38px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
@@ -1513,7 +1525,11 @@
     <div class="header-top">
       <h1 id="appTitle">테스트</h1>
       <div class="admin-menu-wrap">
-        <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="관리 메뉴" aria-expanded="false">三</button>
+        <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="메뉴" aria-expanded="false">
+          <span class="menu-bar" aria-hidden="true"></span>
+          <span class="menu-bar" aria-hidden="true"></span>
+          <span class="menu-bar" aria-hidden="true"></span>
+        </button>
         <div class="admin-menu" id="adminMenu" aria-hidden="true">
           <button type="button" id="menuHolidayBtn">휴일 설정</button>
           <button type="button" id="menuExhibitionBtn">전시회 참석</button>
@@ -1869,7 +1885,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260827-0010"></script>
+  <script src="app.js?v=20260827-0020"></script>
 </body>
 </html>
 

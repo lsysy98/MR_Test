@@ -154,6 +154,7 @@ var noticeActionRequired = false;
 var ownerLeaveRows = [];
 var editingLeaveRangeDates = [];
 var exhibitionEditingId = "";
+var exhibitionTieOrder = [];
 var calendarMode = "day";
 var calendarMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -1702,16 +1703,6 @@ function renderHolidayList(message) {
   });
 }
 async function openHolidayAdminModal() {
-  var key = adminKey || prompt("관리자 비밀번호를 입력해주세요.");
-  if (!key) return;
-  try {
-    await holidayApi("GET", null, "?check=1&key=" + encodeURIComponent(key));
-    adminKey = key;
-  } catch (error) {
-    showNotice("관리자 비밀번호가 올바르지 않습니다.", "danger");
-    return;
-  }
-
   setLeaveDateInput(holidayDateInput, selectedTeamDate || todayText);
   if (holidayStatusInput) holidayStatusInput.value = "holiday";
   if (holidayLabelInput) holidayLabelInput.value = "";
@@ -1729,10 +1720,6 @@ function closeHolidayAdminModal() {
   holidayOverlay.setAttribute("aria-hidden", "true");
 }
 async function saveCalendarDay() {
-  if (!adminKey) {
-    showNotice("관리자 비밀번호를 먼저 입력해주세요.", "danger");
-    return;
-  }
   var date = leaveDateValue(holidayDateInput);
   var statusValue = holidayStatusInput ? holidayStatusInput.value : "holiday";
   var label = holidayLabelInput ? holidayLabelInput.value.trim() : "";
@@ -1744,7 +1731,7 @@ async function saveCalendarDay() {
     date: date,
     status: statusValue,
     label: label || calendarStatusText(statusValue)
-  }, "?key=" + encodeURIComponent(adminKey));
+  });
   await loadCalendarDays(true);
   renderHolidayList();
   renderCalendar();
@@ -1752,11 +1739,7 @@ async function saveCalendarDay() {
   showNotice("날짜 설정을 저장했습니다.");
 }
 async function deleteCalendarDay(date) {
-  if (!adminKey) {
-    showNotice("관리자 비밀번호를 먼저 입력해주세요.", "danger");
-    return;
-  }
-  await holidayApi("DELETE", null, "?date=" + encodeURIComponent(date) + "&key=" + encodeURIComponent(adminKey));
+  await holidayApi("DELETE", null, "?date=" + encodeURIComponent(date));
   await loadCalendarDays(true);
   renderHolidayList();
   renderCalendar();
@@ -1799,9 +1782,26 @@ function exhibitionStatsByOwner(skipEventId) {
 
   return stats;
 }
+function randomOwnerOrder() {
+  return ownerNames.map(function(owner) {
+    return { owner: owner, sort: Math.random() };
+  }).sort(function(a, b) {
+    return a.sort - b.sort;
+  }).map(function(item) {
+    return item.owner;
+  });
+}
+function rerollExhibitionTieOrder() {
+  exhibitionTieOrder = randomOwnerOrder();
+}
+function exhibitionTieRank(owner) {
+  var index = exhibitionTieOrder.indexOf(owner);
+  return index >= 0 ? index : ownerNames.indexOf(owner);
+}
 function exhibitionRecommendedOwners() {
   var needed = Math.max(1, Math.min(ownerNames.length, Number(exhibitionNeededCountInput ? exhibitionNeededCountInput.value : 2) || 2));
   var stats = exhibitionStatsByOwner(exhibitionEditingId);
+  if (!exhibitionTieOrder.length) rerollExhibitionTieOrder();
   return ownerNames.slice().sort(function(a, b) {
     var aStats = stats[a];
     var bStats = stats[b];
@@ -1814,7 +1814,7 @@ function exhibitionRecommendedOwners() {
       return aStats.lastDate.localeCompare(bStats.lastDate);
     }
     if (aStats.count !== bStats.count) return aStats.count - bStats.count;
-    return ownerNames.indexOf(a) - ownerNames.indexOf(b);
+    return exhibitionTieRank(a) - exhibitionTieRank(b);
   }).slice(0, needed);
 }
 function renderExhibitionRecommendation() {
@@ -1865,6 +1865,7 @@ function renderExhibitionForm(selectedOwners) {
 }
 function resetExhibitionForm() {
   exhibitionEditingId = "";
+  rerollExhibitionTieOrder();
   setLeaveDateInput(exhibitionDateInput, todayText);
   if (exhibitionNameInput) exhibitionNameInput.value = "";
   if (exhibitionNeededCountInput) exhibitionNeededCountInput.value = "2";
@@ -1957,24 +1958,12 @@ function startEditExhibition(event) {
   renderExhibitionForm(event.attendees || []);
   renderExhibitionList();
 }
-async function verifyExhibitionAdmin() {
-  var key = adminKey || prompt("관리자 비밀번호를 입력해주세요.");
-  if (!key) return false;
-  try {
-    await exhibitionApi("GET", null, "?check=1&key=" + encodeURIComponent(key));
-    adminKey = key;
-    return true;
-  } catch (error) {
-    showNotice("관리자 비밀번호가 올바르지 않습니다.", "danger");
-    return false;
-  }
-}
 async function openExhibitionModal() {
-  if (!await verifyExhibitionAdmin()) return;
   if (exhibitionOverlay) {
     exhibitionOverlay.classList.add("active");
     exhibitionOverlay.setAttribute("aria-hidden", "false");
   }
+  rerollExhibitionTieOrder();
   if (!leaveDateValue(exhibitionDateInput)) setLeaveDateInput(exhibitionDateInput, todayText);
   renderExhibitionForm(currentExhibitionAttendees());
   renderExhibitionList("목록을 불러오는 중입니다.");
@@ -1986,10 +1975,6 @@ function closeExhibitionModal() {
   exhibitionOverlay.setAttribute("aria-hidden", "true");
 }
 async function saveExhibitionEvent() {
-  if (!adminKey) {
-    showNotice("관리자 비밀번호를 먼저 입력해주세요.", "danger");
-    return;
-  }
   var date = leaveDateValue(exhibitionDateInput);
   var title = exhibitionNameInput ? exhibitionNameInput.value.trim() : "";
   var neededCount = Number(exhibitionNeededCountInput ? exhibitionNeededCountInput.value : 2) || 2;
@@ -2015,7 +2000,7 @@ async function saveExhibitionEvent() {
     neededCount: neededCount,
     attendees: attendees,
     memo: exhibitionMemoInput ? exhibitionMemoInput.value.trim() : ""
-  }, "?key=" + encodeURIComponent(adminKey));
+  });
 
   var found = false;
   exhibitionEvents = exhibitionEvents.map(function(event) {
@@ -2030,11 +2015,7 @@ async function saveExhibitionEvent() {
   showNotice("전시회 참석 기록을 저장했습니다.");
 }
 async function deleteExhibitionEvent(id) {
-  if (!adminKey) {
-    showNotice("관리자 비밀번호를 먼저 입력해주세요.", "danger");
-    return;
-  }
-  await exhibitionApi("DELETE", null, "?id=" + encodeURIComponent(id) + "&key=" + encodeURIComponent(adminKey));
+  await exhibitionApi("DELETE", null, "?id=" + encodeURIComponent(id));
   exhibitionEvents = exhibitionEvents.filter(function(event) {
     return event.id !== id;
   });

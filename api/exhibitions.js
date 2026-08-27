@@ -135,14 +135,12 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET") {
       if (requestUrl.searchParams.get("check") === "1") {
-        if (!requireAdmin(req)) return json(res, 401, { error: "Unauthorized" });
         return json(res, 200, { ok: true });
       }
       return json(res, 200, await loadEvents());
     }
 
     if (req.method === "POST") {
-      if (!requireAdmin(req)) return json(res, 401, { error: "Unauthorized" });
       const body = await readBody(req);
       const now = Date.now();
       const date = String(body.date || "");
@@ -189,7 +187,6 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "DELETE") {
-      if (!requireAdmin(req)) return json(res, 401, { error: "Unauthorized" });
       const id = requestUrl.searchParams.get("id") || "";
       if (!id) return json(res, 400, { error: "id is required" });
       await supabase(`exhibition_attendees?event_id=eq.${encodeURIComponent(id)}`, {

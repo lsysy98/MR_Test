@@ -311,6 +311,58 @@
     .holiday-item small, .exhibition-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 700; }
     .leave-item .btn, .holiday-item .btn, .exhibition-item .btn { min-height: 34px; padding: 0 9px; font-size: 12px; }
     .leave-empty, .holiday-empty, .exhibition-empty { color: var(--muted); font-size: 13px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
+    .exhibition-range-panel {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid #f2d8c6;
+      border-radius: 8px;
+      background: #fffaf6;
+    }
+    .exhibition-range-panel .btn { width: 100%; justify-content: center; }
+    .exhibition-range-status {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+    .exhibition-day-list {
+      display: grid;
+      gap: 9px;
+    }
+    .exhibition-day-card {
+      display: grid;
+      gap: 9px;
+      padding: 10px;
+      border: 1px solid #eaded4;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .exhibition-day-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .exhibition-day-head strong { font-size: 14px; }
+    .exhibition-day-tools {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .exhibition-needed-select {
+      width: auto;
+      min-height: 34px;
+      padding: 0 28px 0 10px;
+      font-size: 13px;
+      font-weight: 900;
+    }
     .exhibition-attendee-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -403,6 +455,7 @@
     }
     .calendar-head { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
     .calendar-head strong { text-align: center; font-size: 16px; }
+    .calendar-hint { color: var(--muted); font-size: 13px; font-weight: 800; text-align: center; line-height: 1.45; }
     .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .calendar-weekdays span { color: var(--muted); font-size: 12px; font-weight: 900; text-align: center; }
     .calendar-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -420,6 +473,8 @@
     .calendar-day.holiday, .calendar-day.weekend { background: #fff1f1; border-color: #efc8c8; color: #c24141; }
     .calendar-day.workday { background: #ecf9f3; border-color: #98d8bf; color: #0f5b47; }
     .calendar-day.today { border-color: var(--green); }
+    .calendar-day.in-range { background: #fff0e6; border-color: #f3c5a4; color: #c64e13; }
+    .calendar-day.range-start, .calendar-day.range-end { background: var(--green); border-color: var(--green); color: #fff; }
     .calendar-day.selected { background: var(--green); border-color: var(--green); color: #fff; }
     .status { border: 1px solid #cbd8d1; border-radius: 8px; padding: 10px 12px; background: #fbfdfc; color: var(--muted); font-size: 13px; }
     .status.ok { border-color: #98d8bf; background: #ecf9f3; color: #0f5b47; }
@@ -805,6 +860,8 @@
       .completion-actions .btn { padding: 0 8px; }
       .exhibition-box { padding: 16px; }
       .exhibition-grid { grid-template-columns: 1fr; }
+      .exhibition-day-head { grid-template-columns: 1fr; align-items: start; }
+      .exhibition-day-tools { justify-content: space-between; }
       .exhibition-attendee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .exhibition-item { grid-template-columns: 1fr auto; }
       .exhibition-item .btn.danger { grid-column: 2; }
@@ -1818,22 +1875,14 @@
           <div class="exhibition-grid single">
             <label>행사명<input id="exhibitionName" type="text" placeholder="예: 가멕스"></label>
           </div>
-          <div class="exhibition-grid">
-            <label>시작일<span class="date-input-wrap"><input id="exhibitionDate" type="text" readonly></span></label>
-            <label>종료일<span class="date-input-wrap"><input id="exhibitionEndDate" type="text" readonly></span></label>
+          <div class="exhibition-range-panel">
+            <input id="exhibitionDate" type="hidden">
+            <input id="exhibitionEndDate" type="hidden">
+            <input id="exhibitionNeededCount" type="hidden" value="2">
+            <button class="btn" type="button" id="exhibitionRangeBtn">기간 선택</button>
+            <div class="exhibition-range-status" id="exhibitionRangeStatus">기간을 선택해주세요.</div>
           </div>
-          <div class="exhibition-grid">
-            <label>날짜별 필요 인원
-              <select id="exhibitionNeededCount">
-                <option value="1">1명</option>
-                <option value="2" selected>2명</option>
-                <option value="3">3명</option>
-                <option value="4">4명</option>
-                <option value="5">5명</option>
-                <option value="6">6명</option>
-                <option value="7">7명</option>
-              </select>
-            </label>
+          <div class="exhibition-grid single">
             <label>메모 <span class="label-muted">(선택)</span>
               <textarea class="exhibition-memo" id="exhibitionMemo" placeholder="특이사항이나 참고할 내용을 적어주세요."></textarea>
             </label>
@@ -1870,6 +1919,7 @@
         <strong id="calendarTitle">2026년 7월</strong>
         <button class="btn" type="button" id="calendarNextBtn">다음 달</button>
       </div>
+      <div class="calendar-hint" id="calendarHint"></div>
       <div class="calendar-weekdays">
         <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
       </div>
@@ -1889,7 +1939,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260827-0031"></script>
+  <script src="app.js?v=20260827-0032"></script>
 </body>
 </html>
 

@@ -2086,12 +2086,19 @@ function renderExhibitionAttendees() {
     head.className = "exhibition-day-head";
     var title = document.createElement("strong");
     title.textContent = koreanDateShort(date);
+    var removeDateBtn = document.createElement("button");
+    removeDateBtn.type = "button";
+    removeDateBtn.className = "btn";
+    removeDateBtn.textContent = "날짜 삭제";
+    removeDateBtn.addEventListener("click", function(selectedDate) {
+      return function() {
+        removeExhibitionDate(selectedDate);
+      };
+    }(date));
     var tools = document.createElement("div");
     tools.className = "exhibition-day-tools";
     var selectedCount = document.createElement("span");
     selectedCount.textContent = "선택 " + (exhibitionDraftSelections[date] || []).length + "명 / 필요 " + exhibitionNeededCountForDate(date) + "명";
-    var neededLabel = document.createElement("span");
-    neededLabel.textContent = "필요";
     var neededSelect = document.createElement("select");
     neededSelect.className = "exhibition-needed-select";
     for (var countIndex = 1; countIndex <= ownerNames.length; countIndex += 1) {
@@ -2107,21 +2114,10 @@ function renderExhibitionAttendees() {
         renderExhibitionForm();
       };
     }(date));
-    var removeDateBtn = document.createElement("button");
-    removeDateBtn.type = "button";
-    removeDateBtn.className = "btn";
-    removeDateBtn.textContent = "날짜 삭제";
-    removeDateBtn.addEventListener("click", function(selectedDate) {
-      return function() {
-        removeExhibitionDate(selectedDate);
-      };
-    }(date));
     tools.appendChild(selectedCount);
-    tools.appendChild(neededLabel);
     tools.appendChild(neededSelect);
-    tools.appendChild(removeDateBtn);
     head.appendChild(title);
-    head.appendChild(tools);
+    head.appendChild(removeDateBtn);
 
     var rec = document.createElement("div");
     rec.className = "exhibition-recommendation";
@@ -2160,6 +2156,7 @@ function renderExhibitionAttendees() {
     renderExhibitionOwnerCheckboxes(grid, date, exhibitionDraftSelections[date] || []);
 
     dayCard.appendChild(head);
+    dayCard.appendChild(tools);
     dayCard.appendChild(rec);
     dayCard.appendChild(grid);
     exhibitionAttendees.appendChild(dayCard);

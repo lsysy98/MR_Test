@@ -272,6 +272,29 @@
     .exhibition-box { width: min(620px, 100%); max-height: calc(100vh - 36px); overflow: auto; }
     .leave-box h3, .holiday-box h3, .exhibition-box h3 { margin: 0; font-size: 17px; }
     .leave-box p, .holiday-box p, .exhibition-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .exhibition-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(250px, .85fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .exhibition-editor, .exhibition-side {
+      display: grid;
+      gap: 10px;
+    }
+    .exhibition-form-block {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid #f0d7c4;
+      border-radius: 8px;
+      background: #fffdfb;
+    }
+    .exhibition-form-block-title {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 900;
+    }
     .leave-grid, .holiday-grid, .exhibition-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .holiday-grid.single, .exhibition-grid.single { grid-template-columns: 1fr; }
     .leave-actions, .holiday-actions, .exhibition-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -289,6 +312,48 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfdfc;
+    }
+    .exhibition-item {
+      cursor: pointer;
+      align-items: start;
+      background: #fff;
+    }
+    .exhibition-item.open {
+      border-color: #f0b485;
+      background: #fffaf6;
+    }
+    .exhibition-item .exhibition-item-title {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+    .exhibition-item-detail {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #f0e0d3;
+    }
+    .exhibition-detail-day {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #f1dfd0;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .exhibition-detail-day strong {
+      color: #c64e13;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .exhibition-detail-day span {
+      color: var(--text);
+      font-weight: 800;
     }
     .exhibition-item.editing {
       border-color: var(--green);
@@ -360,6 +425,11 @@
       font-weight: 900;
       white-space: nowrap;
     }
+    .exhibition-day-tools .btn {
+      min-height: 34px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
     .exhibition-needed-select {
       width: auto;
       min-height: 34px;
@@ -406,6 +476,10 @@
       font-size: 11px;
       font-weight: 800;
       line-height: 1.35;
+    }
+    .exhibition-stat-card:first-child {
+      border-color: #f0b485;
+      background: #fff3e8;
     }
     .exhibition-attendee-grid {
       display: grid;
@@ -905,6 +979,7 @@
       .completion-actions { display: grid; grid-template-columns: 1fr 1fr; }
       .completion-actions .btn { padding: 0 8px; }
       .exhibition-box { padding: 16px; }
+      .exhibition-workspace { grid-template-columns: 1fr; }
       .exhibition-grid { grid-template-columns: 1fr; }
       .exhibition-day-head { grid-template-columns: 1fr; align-items: start; }
       .exhibition-day-tools { justify-content: space-between; }
@@ -912,6 +987,7 @@
       .exhibition-stats { grid-template-columns: 1fr; }
       .exhibition-item { grid-template-columns: 1fr auto; }
       .exhibition-item .btn.danger { grid-column: 2; }
+      .exhibition-detail-day { grid-template-columns: 68px 1fr; }
       .owner-detail-summary { grid-template-columns: 1fr 1fr; }
       .detail-reset { grid-column: 1 / -1; }
       .report-card { padding: 8px 8px 8px 40px; }
@@ -1919,23 +1995,24 @@
       <p>전시회 하나에 여러 날짜를 넣고, 날짜별 참석자를 따로 지정합니다.</p>
       <div class="exhibition-workspace">
         <div class="exhibition-editor">
-          <div class="exhibition-grid single">
-            <label>행사명<input id="exhibitionName" type="text" placeholder="예: 가멕스"></label>
+          <div class="exhibition-form-block">
+            <div class="exhibition-form-block-title">행사 정보</div>
+            <div class="exhibition-grid single">
+              <label>행사명<input id="exhibitionName" type="text" placeholder="예: 가멕스"></label>
+            </div>
           </div>
-          <div class="exhibition-range-panel">
-            <input id="exhibitionDate" type="hidden">
-            <input id="exhibitionEndDate" type="hidden">
-            <input id="exhibitionNeededCount" type="hidden" value="2">
-            <button class="btn" type="button" id="exhibitionRangeBtn">날짜 선택</button>
-            <div class="exhibition-range-status" id="exhibitionRangeStatus">전시회 날짜를 선택해주세요.</div>
+          <div class="exhibition-form-block">
+            <div class="exhibition-form-block-title">날짜 선택</div>
+            <div class="exhibition-range-panel">
+              <input id="exhibitionDate" type="hidden">
+              <input id="exhibitionEndDate" type="hidden">
+              <input id="exhibitionNeededCount" type="hidden" value="2">
+              <button class="btn" type="button" id="exhibitionRangeBtn">날짜 선택</button>
+              <div class="exhibition-range-status" id="exhibitionRangeStatus">전시회 날짜를 선택해주세요.</div>
+            </div>
           </div>
-          <div class="exhibition-grid single">
-            <label>메모 <span class="label-muted">(선택)</span>
-              <textarea class="exhibition-memo" id="exhibitionMemo" placeholder="특이사항이나 참고할 내용을 적어주세요."></textarea>
-            </label>
-          </div>
-          <div>
-            <div class="leave-list-title">날짜별 참석자</div>
+          <div class="exhibition-form-block">
+            <div class="exhibition-form-block-title">날짜별 참석자</div>
             <div class="exhibition-day-list" id="exhibitionAttendees"></div>
           </div>
         </div>
@@ -1987,7 +2064,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260827-0033"></script>
+  <script src="app.js?v=20260828-0001"></script>
 </body>
 </html>
 

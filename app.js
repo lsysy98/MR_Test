@@ -2308,14 +2308,16 @@ function renderExhibitionDetail() {
     days.forEach(function(day) {
       var row = document.createElement("div");
       row.className = "exhibition-detail-day-row";
+      var dateCell = document.createElement("div");
+      dateCell.className = "exhibition-detail-date";
       var date = document.createElement("strong");
       date.textContent = koreanDateShort(day.date);
+      var needed = document.createElement("small");
+      needed.textContent = "필요 " + day.neededCount + "명";
+      dateCell.appendChild(date);
+      dateCell.appendChild(needed);
       var owners = document.createElement("div");
       owners.className = "exhibition-detail-attendees";
-      var needed = document.createElement("span");
-      needed.className = "exhibition-detail-needed";
-      needed.textContent = "필요 " + day.neededCount + "명";
-      owners.appendChild(needed);
       if (day.attendees.length) {
         day.attendees.forEach(function(owner) {
           var chip = document.createElement("button");
@@ -2334,7 +2336,7 @@ function renderExhibitionDetail() {
         empty.textContent = "미지정";
         owners.appendChild(empty);
       }
-      row.appendChild(date);
+      row.appendChild(dateCell);
       row.appendChild(owners);
       exhibitionDetailDays.appendChild(row);
     });

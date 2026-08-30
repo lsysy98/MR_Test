@@ -411,17 +411,38 @@
     }
     .exhibition-detail-day-row {
       display: grid;
-      grid-template-columns: 92px minmax(0, 1fr);
-      gap: 10px;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 12px;
       align-items: start;
-      padding: 10px;
-      border: 1px solid #f1dfd0;
+      padding: 12px;
+      border: 1px solid #f2d3bc;
       border-radius: 8px;
-      background: #fff;
+      background: linear-gradient(90deg, #fff8f2 0%, #fff 46%);
+      box-shadow: 0 5px 14px rgba(95, 58, 27, .05);
     }
-    .exhibition-detail-day-row strong {
+    .exhibition-detail-date {
+      display: grid;
+      gap: 5px;
+      align-content: start;
+      min-width: 0;
+    }
+    .exhibition-detail-date strong {
       color: #c64e13;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .exhibition-detail-date small {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #fff0e6;
+      color: #c64e13;
+      font-size: 12px;
       font-weight: 900;
       white-space: nowrap;
     }
@@ -436,38 +457,29 @@
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 7px;
       min-width: 0;
-    }
-    .exhibition-detail-needed {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 0 8px;
-      border-radius: 999px;
-      background: #fff0e6;
-      color: #c64e13;
-      font-size: 12px;
-      font-weight: 900;
-      white-space: nowrap;
+      padding-top: 1px;
     }
     .exhibition-detail-owner-chip {
-      min-height: 28px;
-      border: 1px solid #f0d7c4;
+      min-height: 30px;
+      border: 1px solid #efc7ad;
       border-radius: 999px;
       background: #fff;
-      color: var(--text);
-      padding: 0 10px;
-      font-size: 12px;
+      color: #382f28;
+      padding: 0 12px;
+      font-size: 13px;
       font-weight: 900;
       cursor: pointer;
       white-space: nowrap;
       word-break: keep-all;
+      box-shadow: 0 2px 6px rgba(95, 58, 27, .05);
     }
     .exhibition-detail-owner-chip.active {
       border-color: var(--green);
       background: var(--green);
       color: #fff;
+      box-shadow: 0 5px 12px rgba(240, 100, 24, .24);
     }
     .exhibition-detail-empty-name {
       color: var(--muted);
@@ -2288,7 +2300,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260831-0002"></script>
+  <script src="app.js?v=20260831-0003"></script>
 </body>
 </html>
 

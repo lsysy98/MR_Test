@@ -269,15 +269,32 @@
       border-radius: 8px;
       box-shadow: 0 18px 44px rgba(27,45,37,.22);
     }
-    .exhibition-box { width: min(860px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; }
+    .exhibition-box {
+      width: min(940px, calc(100vw - 36px));
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      background: #fffaf6;
+      border-color: #efc7ad;
+    }
     .exhibition-detail-overlay { z-index: 70; }
-    .exhibition-detail-box { width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; }
+    .exhibition-detail-box {
+      width: min(780px, calc(100vw - 36px));
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      background: #fffaf6;
+      border-color: #efc7ad;
+    }
     .leave-box h3, .holiday-box h3, .exhibition-box h3, .exhibition-detail-box h3 { margin: 0; font-size: 17px; }
+    #exhibitionTitle {
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+    #exhibitionTitle + p { padding-bottom: 2px; }
     .leave-box p, .holiday-box p, .exhibition-box p, .exhibition-detail-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
     .exhibition-workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 14px;
       align-items: start;
     }
     .exhibition-editor, .exhibition-side, .exhibition-form-block, .exhibition-day-card, .exhibition-item {
@@ -289,11 +306,12 @@
     }
     .exhibition-form-block {
       display: grid;
-      gap: 8px;
-      padding: 12px;
+      gap: 10px;
+      padding: 14px;
       border: 1px solid #f0d7c4;
       border-radius: 8px;
-      background: #fffdfb;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(95, 58, 27, .05);
     }
     .exhibition-form-block-title {
       color: var(--text);
@@ -305,6 +323,13 @@
     .leave-actions, .holiday-actions, .exhibition-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .leave-actions .wide, .holiday-actions .wide, .exhibition-actions .wide { grid-column: 1 / -1; }
     .leave-list-wrap, .holiday-list-wrap, .exhibition-list-wrap { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .exhibition-list-wrap {
+      border: 1px solid #f0d7c4;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(95, 58, 27, .05);
+    }
     .leave-list-title, .holiday-list-title, .exhibition-list-title { font-size: 13px; font-weight: 900; color: var(--muted); }
     .leave-list, .holiday-list, .exhibition-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; }
     .exhibition-list { max-height: 240px; }
@@ -395,7 +420,8 @@
       padding: 12px;
       border: 1px solid #f0d7c4;
       border-radius: 8px;
-      background: #fffdfb;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(95, 58, 27, .05);
       min-width: 0;
     }
     .exhibition-detail-section h4 {
@@ -552,6 +578,11 @@
       font-weight: 900;
       white-space: nowrap;
     }
+    .exhibition-owner-history {
+      display: grid;
+      gap: 5px;
+      padding-top: 4px;
+    }
     .exhibition-item.editing {
       border-color: var(--green);
       background: var(--green-soft);
@@ -576,7 +607,7 @@
     .exhibition-range-panel {
       display: grid;
       gap: 8px;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #f2d8c6;
       border-radius: 8px;
       background: #fffaf6;
@@ -600,10 +631,10 @@
     .exhibition-day-card {
       display: grid;
       gap: 9px;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #eaded4;
       border-radius: 8px;
-      background: #fff;
+      background: linear-gradient(180deg, #fff 0%, #fffaf6 100%);
     }
     .exhibition-day-head {
       display: grid;
@@ -636,16 +667,28 @@
     }
     .exhibition-stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      grid-template-columns: 1fr;
+      gap: 7px;
     }
     .exhibition-stat-card {
       display: grid;
-      gap: 5px;
-      padding: 10px;
-      border: 1px solid #f0d7c4;
+      gap: 7px;
+      padding: 10px 11px;
+      border: 1px solid #efd2bd;
       border-radius: 8px;
-      background: linear-gradient(180deg, #fffdfb 0%, #fff7f0 100%);
+      background: #fff;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .exhibition-stat-card:hover {
+      border-color: #f0b485;
+      box-shadow: 0 8px 18px rgba(95, 58, 27, .08);
+      transform: translateY(-1px);
+    }
+    .exhibition-stat-card.active {
+      border-color: #f06418;
+      background: #fff4ea;
+      box-shadow: inset 4px 0 0 #f06418, 0 10px 20px rgba(95, 58, 27, .08);
     }
     .exhibition-stat-top {
       display: flex;
@@ -655,7 +698,7 @@
     }
     .exhibition-stat-top strong {
       min-width: 0;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 900;
       white-space: nowrap;
       word-break: keep-all;
@@ -677,8 +720,49 @@
       line-height: 1.35;
     }
     .exhibition-stat-card:first-child {
-      border-color: #f0b485;
-      background: #fff3e8;
+      border-color: #efd2bd;
+      background: #fff;
+    }
+    .exhibition-stat-card:first-child.active {
+      border-color: #f06418;
+      background: #fff4ea;
+    }
+    .exhibition-stat-history {
+      display: grid;
+      gap: 5px;
+      padding-top: 7px;
+      border-top: 1px solid #f2d8c6;
+    }
+    .exhibition-history-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 7px;
+      border-radius: 7px;
+      background: rgba(255,255,255,.82);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .exhibition-history-row b {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 900;
+    }
+    .exhibition-history-row span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .exhibition-stat-history-empty {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 0;
     }
     .exhibition-attendee-grid {
       display: grid;
@@ -2300,7 +2384,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260831-0003"></script>
+  <script src="app.js?v=20260831-0004"></script>
 </body>
 </html>
 

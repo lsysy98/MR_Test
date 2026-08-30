@@ -169,6 +169,7 @@ var exhibitionEditingId = "";
 var openedExhibitionId = "";
 var currentExhibitionDetailId = "";
 var selectedExhibitionDetailOwner = "";
+var selectedExhibitionStatsOwner = "";
 var exhibitionTieOrder = [];
 var exhibitionDraftSelections = {};
 var exhibitionDraftNeededCounts = {};
@@ -2188,7 +2189,11 @@ function renderExhibitionStats() {
     return ownerNames.indexOf(a) - ownerNames.indexOf(b);
   }).forEach(function(owner) {
     var row = document.createElement("div");
-    row.className = "exhibition-stat-card";
+    var active = selectedExhibitionStatsOwner === owner;
+    row.className = "exhibition-stat-card" + (active ? " active" : "");
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-pressed", active ? "true" : "false");
     var top = document.createElement("div");
     top.className = "exhibition-stat-top";
     var name = document.createElement("strong");
@@ -2203,6 +2208,20 @@ function renderExhibitionStats() {
     top.appendChild(count);
     row.appendChild(top);
     row.appendChild(recent);
+    row.addEventListener("click", function() {
+      selectedExhibitionStatsOwner = selectedExhibitionStatsOwner === owner ? "" : owner;
+      renderExhibitionStats();
+    });
+    row.addEventListener("keydown", function(e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      selectedExhibitionStatsOwner = selectedExhibitionStatsOwner === owner ? "" : owner;
+      renderExhibitionStats();
+    });
+    if (active) {
+      var eventHistory = exhibitionOwnerEventHistory(owner);
+      appendExhibitionEventHistory(row, eventHistory);
+    }
     exhibitionOwnerStats.appendChild(row);
   });
 }
@@ -2249,6 +2268,36 @@ function exhibitionOwnerHistory(owner) {
     return b.date.localeCompare(a.date) || b.title.localeCompare(a.title);
   });
 }
+function exhibitionDateSpanTextFromList(dates) {
+  var list = (dates || []).slice().sort();
+  if (!list.length) return "";
+  if (list.length === 1) return koreanDateShort(list[0]);
+  return koreanDateShort(list[0]) + "~" + koreanDateShort(list[list.length - 1]);
+}
+function exhibitionOwnerEventHistory(owner) {
+  var map = {};
+  exhibitionEvents.forEach(function(event) {
+    normalizeEventDays(event).forEach(function(day) {
+      if (day.attendees.indexOf(owner) < 0) return;
+      if (!map[event.id]) {
+        map[event.id] = {
+          id: event.id,
+          title: event.title || "전시회",
+          dates: []
+        };
+      }
+      map[event.id].dates.push(day.date);
+    });
+  });
+  return Object.keys(map).map(function(id) {
+    var item = map[id];
+    item.dates = item.dates.slice().sort();
+    item.lastDate = item.dates[item.dates.length - 1] || "";
+    return item;
+  }).sort(function(a, b) {
+    return b.lastDate.localeCompare(a.lastDate) || a.title.localeCompare(b.title);
+  });
+}
 function exhibitionOwnerDaysInEvent(event, owner) {
   return normalizeEventDays(event).filter(function(day) {
     return day.attendees.indexOf(owner) >= 0;
@@ -2267,6 +2316,32 @@ function appendOwnerInfoRow(parent, label, value) {
   row.appendChild(val);
   parent.appendChild(row);
 }
+function appendExhibitionEventHistory(parent, eventHistory, emptyText) {
+  var history = document.createElement("div");
+  history.className = "exhibition-stat-history";
+  history.addEventListener("click", function(e) {
+    e.stopPropagation();
+  });
+  if (!eventHistory.length) {
+    var empty = document.createElement("span");
+    empty.className = "exhibition-stat-history-empty";
+    empty.textContent = emptyText || "참석 기록이 없습니다.";
+    history.appendChild(empty);
+  } else {
+    eventHistory.forEach(function(item) {
+      var historyRow = document.createElement("div");
+      historyRow.className = "exhibition-history-row";
+      var eventTitle = document.createElement("b");
+      eventTitle.textContent = item.title;
+      var eventDates = document.createElement("span");
+      eventDates.textContent = exhibitionDateSpanTextFromList(item.dates);
+      historyRow.appendChild(eventTitle);
+      historyRow.appendChild(eventDates);
+      history.appendChild(historyRow);
+    });
+  }
+  parent.appendChild(history);
+}
 function renderExhibitionDetailOwnerInfo(event, owner) {
   if (!exhibitionDetailOwnerInfo) return;
   exhibitionDetailOwnerInfo.textContent = "";
@@ -2282,6 +2357,7 @@ function renderExhibitionDetailOwnerInfo(event, owner) {
   var history = exhibitionOwnerHistory(owner);
   appendOwnerInfoRow(exhibitionDetailOwnerInfo, "최근", history.length ? koreanDateShort(history[0].date) + " · " + history[0].title : "참석 없음");
   appendOwnerInfoRow(exhibitionDetailOwnerInfo, "누적", history.length + "회");
+  appendExhibitionEventHistory(exhibitionDetailOwnerInfo, exhibitionOwnerEventHistory(owner));
 }
 function renderExhibitionDetail() {
   var event = exhibitionEventById(currentExhibitionDetailId);

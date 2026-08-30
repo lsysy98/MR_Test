@@ -432,6 +432,48 @@
       line-height: 1.45;
       word-break: keep-all;
     }
+    .exhibition-detail-attendees {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }
+    .exhibition-detail-needed {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #fff0e6;
+      color: #c64e13;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .exhibition-detail-owner-chip {
+      min-height: 28px;
+      border: 1px solid #f0d7c4;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+      word-break: keep-all;
+    }
+    .exhibition-detail-owner-chip.active {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+    .exhibition-detail-empty-name {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
     .exhibition-detail-owner-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2246,7 +2288,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260831-0001"></script>
+  <script src="app.js?v=20260831-0002"></script>
 </body>
 </html>
 

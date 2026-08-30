@@ -2279,25 +2279,9 @@ function renderExhibitionDetailOwnerInfo(event, owner) {
   title.textContent = owner + " 참석 기록";
   exhibitionDetailOwnerInfo.appendChild(title);
 
-  var daysInEvent = exhibitionOwnerDaysInEvent(event, owner);
   var history = exhibitionOwnerHistory(owner);
-  appendOwnerInfoRow(exhibitionDetailOwnerInfo, "이 행사", daysInEvent.length ? daysInEvent.map(koreanDateShort).join(", ") : "참석 없음");
   appendOwnerInfoRow(exhibitionDetailOwnerInfo, "최근", history.length ? koreanDateShort(history[0].date) + " · " + history[0].title : "참석 없음");
   appendOwnerInfoRow(exhibitionDetailOwnerInfo, "누적", history.length + "회");
-
-  var otherTitle = document.createElement("strong");
-  otherTitle.textContent = "다른 담당자 최근 기록";
-  exhibitionDetailOwnerInfo.appendChild(otherTitle);
-  ownerNames.filter(function(name) {
-    return name !== owner;
-  }).forEach(function(name) {
-    var otherHistory = exhibitionOwnerHistory(name);
-    appendOwnerInfoRow(
-      exhibitionDetailOwnerInfo,
-      name,
-      otherHistory.length ? koreanDateShort(otherHistory[0].date) + " · " + otherHistory.length + "회" : "참석 없음"
-    );
-  });
 }
 function renderExhibitionDetail() {
   var event = exhibitionEventById(currentExhibitionDetailId);
@@ -2326,8 +2310,30 @@ function renderExhibitionDetail() {
       row.className = "exhibition-detail-day-row";
       var date = document.createElement("strong");
       date.textContent = koreanDateShort(day.date);
-      var owners = document.createElement("span");
-      owners.textContent = "필요 " + day.neededCount + "명 · " + exhibitionOwnersText(day.attendees);
+      var owners = document.createElement("div");
+      owners.className = "exhibition-detail-attendees";
+      var needed = document.createElement("span");
+      needed.className = "exhibition-detail-needed";
+      needed.textContent = "필요 " + day.neededCount + "명";
+      owners.appendChild(needed);
+      if (day.attendees.length) {
+        day.attendees.forEach(function(owner) {
+          var chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "exhibition-detail-owner-chip" + (selectedExhibitionDetailOwner === owner ? " active" : "");
+          chip.textContent = owner;
+          chip.addEventListener("click", function() {
+            selectedExhibitionDetailOwner = selectedExhibitionDetailOwner === owner ? "" : owner;
+            renderExhibitionDetail();
+          });
+          owners.appendChild(chip);
+        });
+      } else {
+        var empty = document.createElement("span");
+        empty.className = "exhibition-detail-empty-name";
+        empty.textContent = "미지정";
+        owners.appendChild(empty);
+      }
       row.appendChild(date);
       row.appendChild(owners);
       exhibitionDetailDays.appendChild(row);
@@ -2345,7 +2351,7 @@ function renderExhibitionDetail() {
       name.textContent = owner;
       var eventDays = exhibitionOwnerDaysInEvent(event, owner);
       var current = document.createElement("small");
-      current.textContent = eventDays.length ? "이 행사 " + eventDays.map(koreanDateShort).join(", ") : "이 행사 미참석";
+      current.textContent = eventDays.length ? "참석 " + eventDays.map(koreanDateShort).join(", ") : "미참석";
       var history = exhibitionOwnerHistory(owner);
       var recent = document.createElement("small");
       recent.textContent = history.length ? "최근 " + koreanDateShort(history[0].date) + " · " + history.length + "회" : "참석 없음";
@@ -2354,7 +2360,7 @@ function renderExhibitionDetail() {
       button.appendChild(current);
       button.appendChild(recent);
       button.addEventListener("click", function() {
-        selectedExhibitionDetailOwner = owner;
+        selectedExhibitionDetailOwner = selectedExhibitionDetailOwner === owner ? "" : owner;
         renderExhibitionDetail();
       });
       exhibitionDetailOwners.appendChild(button);

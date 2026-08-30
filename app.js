@@ -1048,7 +1048,7 @@ async function exhibitionApi(method, body, query) {
 function exhibitionErrorMessage(error) {
   var message = error && error.message ? error.message : String(error || "");
   if (/exhibition_event_days|event_day_id|schema cache|relation/i.test(message)) {
-    return "전시회 날짜별 저장용 SQL이 아직 적용되지 않았습니다. 테스트 Supabase SQL을 한 번 실행해주세요.";
+    return "전시회 날짜별 저장용 SQL이 아직 적용되지 않았습니다. 원본 Supabase SQL을 한 번 실행해주세요.";
   }
   return message;
 }

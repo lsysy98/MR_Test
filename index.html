@@ -297,12 +297,33 @@
       gap: 14px;
       align-items: start;
     }
+    .exhibition-workspace.form-closed {
+      grid-template-columns: 1fr;
+    }
+    .exhibition-workspace.form-closed .exhibition-side {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
     .exhibition-editor, .exhibition-side, .exhibition-form-block, .exhibition-day-card, .exhibition-item {
       min-width: 0;
     }
     .exhibition-editor, .exhibition-side {
       display: grid;
       gap: 10px;
+    }
+    .exhibition-editor.collapsed, .exhibition-actions.collapsed {
+      display: none;
+    }
+    .exhibition-top-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .exhibition-top-actions .btn {
+      min-height: 38px;
+      padding: 0 14px;
+      font-weight: 900;
     }
     .exhibition-form-block {
       display: grid;
@@ -738,13 +759,19 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
+      width: 100%;
       padding: 6px 7px;
+      border: 0;
       border-radius: 7px;
       background: rgba(255,255,255,.82);
       color: var(--text);
       font-size: 12px;
       line-height: 1.35;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
     }
+    .exhibition-history-row:hover { background: #fff0e6; }
     .exhibition-history-row b {
       min-width: 0;
       overflow: hidden;
@@ -1279,6 +1306,7 @@
       .exhibition-detail-day-row { grid-template-columns: 1fr; gap: 5px; }
       .exhibition-detail-owner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .exhibition-workspace { grid-template-columns: 1fr; }
+      .exhibition-workspace.form-closed .exhibition-side { grid-template-columns: 1fr; }
       .exhibition-grid { grid-template-columns: 1fr; }
       .exhibition-day-head { grid-template-columns: 1fr auto; align-items: center; }
       .exhibition-attendee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2291,8 +2319,11 @@
     <div class="exhibition-box" role="dialog" aria-modal="true" aria-labelledby="exhibitionTitle">
       <h3 id="exhibitionTitle">전시회 참석</h3>
       <p>전시회 하나에 여러 날짜를 넣고, 날짜별 참석자를 따로 지정합니다.</p>
-      <div class="exhibition-workspace">
-        <div class="exhibition-editor">
+      <div class="exhibition-top-actions">
+        <button class="btn primary" type="button" id="exhibitionFormToggleBtn">행사 입력</button>
+      </div>
+      <div class="exhibition-workspace" id="exhibitionWorkspace">
+        <div class="exhibition-editor" id="exhibitionEditor">
           <div class="exhibition-form-block">
             <div class="exhibition-form-block-title">행사 정보</div>
             <div class="exhibition-grid single">
@@ -2327,7 +2358,7 @@
           </div>
         </div>
       </div>
-      <div class="exhibition-actions">
+      <div class="exhibition-actions" id="exhibitionActions">
         <button class="btn primary" type="button" id="exhibitionSaveBtn">저장</button>
         <button class="btn" type="button" id="exhibitionResetBtn">입력 초기화</button>
         <button class="btn wide" type="button" id="exhibitionCloseBtn">닫기</button>
@@ -2384,7 +2415,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260831-0004"></script>
+  <script src="app.js?v=20260831-0005"></script>
 </body>
 </html>
 

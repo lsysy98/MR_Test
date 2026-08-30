@@ -248,7 +248,7 @@
       background: #c24141;
       border-color: #c24141;
     }
-    .leave-overlay, .holiday-overlay, .exhibition-overlay {
+    .leave-overlay, .holiday-overlay, .exhibition-overlay, .exhibition-detail-overlay {
       position: fixed;
       inset: 0;
       z-index: 50;
@@ -258,8 +258,8 @@
       padding: 18px;
       background: rgba(23, 33, 28, .28);
     }
-    .leave-overlay.active, .holiday-overlay.active, .exhibition-overlay.active { display: flex; }
-    .leave-box, .holiday-box, .exhibition-box {
+    .leave-overlay.active, .holiday-overlay.active, .exhibition-overlay.active, .exhibition-detail-overlay.active { display: flex; }
+    .leave-box, .holiday-box, .exhibition-box, .exhibition-detail-box {
       width: min(360px, 100%);
       display: grid;
       gap: 12px;
@@ -270,8 +270,10 @@
       box-shadow: 0 18px 44px rgba(27,45,37,.22);
     }
     .exhibition-box { width: min(860px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; }
-    .leave-box h3, .holiday-box h3, .exhibition-box h3 { margin: 0; font-size: 17px; }
-    .leave-box p, .holiday-box p, .exhibition-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .exhibition-detail-overlay { z-index: 70; }
+    .exhibition-detail-box { width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; }
+    .leave-box h3, .holiday-box h3, .exhibition-box h3, .exhibition-detail-box h3 { margin: 0; font-size: 17px; }
+    .leave-box p, .holiday-box p, .exhibition-box p, .exhibition-detail-box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
     .exhibition-workspace {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 280px;
@@ -330,7 +332,11 @@
       font-size: 14px;
       font-weight: 900;
       line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .exhibition-item > span { min-width: 0; }
     .exhibition-item-detail {
       grid-column: 1 / -1;
       display: grid;
@@ -358,6 +364,140 @@
       color: var(--text);
       font-weight: 800;
     }
+    .exhibition-detail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid #f0ded1;
+      padding-bottom: 10px;
+    }
+    .exhibition-detail-head .btn {
+      min-height: 34px;
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+    .exhibition-detail-meta {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+    .exhibition-detail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(260px, .95fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .exhibition-detail-section {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid #f0d7c4;
+      border-radius: 8px;
+      background: #fffdfb;
+      min-width: 0;
+    }
+    .exhibition-detail-section h4 {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .exhibition-detail-days, .exhibition-detail-owners {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+    .exhibition-detail-day-row {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid #f1dfd0;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .exhibition-detail-day-row strong {
+      color: #c64e13;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .exhibition-detail-day-row span {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+      word-break: keep-all;
+    }
+    .exhibition-detail-owner-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .exhibition-detail-owner {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border: 1px solid #f0d7c4;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .exhibition-detail-owner.active {
+      border-color: #f0b485;
+      background: #fff3e8;
+      box-shadow: inset 4px 0 0 var(--green);
+    }
+    .exhibition-detail-owner strong {
+      font-size: 14px;
+      font-weight: 900;
+      white-space: nowrap;
+      word-break: keep-all;
+    }
+    .exhibition-detail-owner small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .exhibition-owner-info {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px dashed #efc7ad;
+      border-radius: 8px;
+      background: #fff8f2;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+      min-height: 74px;
+    }
+    .exhibition-owner-info strong {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .exhibition-owner-info-row {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 8px;
+      color: var(--text);
+    }
+    .exhibition-owner-info-row b {
+      color: #c64e13;
+      font-weight: 900;
+      white-space: nowrap;
+    }
     .exhibition-item.editing {
       border-color: var(--green);
       background: var(--green-soft);
@@ -376,7 +516,7 @@
       font-weight: 900;
     }
     .leave-item span, .holiday-item span, .exhibition-item span { font-size: 13px; font-weight: 800; }
-    .holiday-item small, .exhibition-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .holiday-item small, .exhibition-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .leave-item .btn, .holiday-item .btn, .exhibition-item .btn { min-height: 34px; padding: 0 9px; font-size: 12px; }
     .leave-empty, .holiday-empty, .exhibition-empty { color: var(--muted); font-size: 13px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
     .exhibition-range-panel {
@@ -426,7 +566,7 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 900;
-      white-space: normal;
+      white-space: nowrap;
     }
     .exhibition-day-tools .btn {
       min-height: 34px;
@@ -463,6 +603,8 @@
       min-width: 0;
       font-size: 13px;
       font-weight: 900;
+      white-space: nowrap;
+      word-break: keep-all;
     }
     .exhibition-stat-count {
       min-width: 38px;
@@ -502,6 +644,16 @@
       font-size: 13px;
       font-weight: 900;
       cursor: pointer;
+      min-width: 0;
+      white-space: nowrap;
+      word-break: keep-all;
+    }
+    .exhibition-check span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      word-break: keep-all;
     }
     .exhibition-check input {
       width: auto;
@@ -538,8 +690,10 @@
       border: 1px solid #efc7ad;
       font-size: 12px;
       font-weight: 900;
+      white-space: nowrap;
+      word-break: keep-all;
     }
-    .exhibition-rec-chip small { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .exhibition-rec-chip small { color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
     .exhibition-memo {
       width: 100%;
       min-height: 74px;
@@ -580,7 +734,7 @@
     .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .calendar-weekdays span { color: var(--muted); font-size: 12px; font-weight: 900; text-align: center; }
     .calendar-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .calendar-actions.range-mode { grid-template-columns: 1fr 1fr 1fr; }
+    .calendar-actions.range-mode { grid-template-columns: 1fr 1fr; }
     #calendarConfirmBtn { display: none; }
     .calendar-day {
       min-height: 38px;
@@ -982,6 +1136,10 @@
       .completion-actions { display: grid; grid-template-columns: 1fr 1fr; }
       .completion-actions .btn { padding: 0 8px; }
       .exhibition-box { padding: 16px; }
+      .exhibition-detail-box { width: min(720px, calc(100vw - 24px)); padding: 16px; }
+      .exhibition-detail-layout { grid-template-columns: 1fr; }
+      .exhibition-detail-day-row { grid-template-columns: 1fr; gap: 5px; }
+      .exhibition-detail-owner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .exhibition-workspace { grid-template-columns: 1fr; }
       .exhibition-grid { grid-template-columns: 1fr; }
       .exhibition-day-head { grid-template-columns: 1fr auto; align-items: center; }
@@ -2038,6 +2196,28 @@
       </div>
     </div>
   </div>
+  <div class="exhibition-detail-overlay" id="exhibitionDetailOverlay" aria-hidden="true">
+    <div class="exhibition-detail-box" role="dialog" aria-modal="true" aria-labelledby="exhibitionDetailTitle">
+      <div class="exhibition-detail-head">
+        <div>
+          <h3 id="exhibitionDetailTitle">전시회 상세</h3>
+          <p id="exhibitionDetailMeta">날짜별 참석자를 확인합니다.</p>
+        </div>
+        <button class="btn" type="button" id="exhibitionDetailCloseBtn">닫기</button>
+      </div>
+      <div class="exhibition-detail-layout">
+        <div class="exhibition-detail-section">
+          <h4>날짜별 참석자</h4>
+          <div class="exhibition-detail-days" id="exhibitionDetailDays"></div>
+        </div>
+        <div class="exhibition-detail-section">
+          <h4>담당자별 기록</h4>
+          <div class="exhibition-detail-owner-grid" id="exhibitionDetailOwners"></div>
+          <div class="exhibition-owner-info" id="exhibitionDetailOwnerInfo">이름을 누르면 최근 참석 기록을 볼 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="calendar-overlay" id="calendarOverlay" aria-hidden="true">
     <div class="calendar-box" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
       <div class="calendar-head">
@@ -2066,7 +2246,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260828-0002"></script>
+  <script src="app.js?v=20260831-0001"></script>
 </body>
 </html>
 

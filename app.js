@@ -31,6 +31,9 @@ var ownerFilters = {};
 var committedOwnerSearchTerm = "";
 var editingId = "";
 var ownerNames = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
+var ownerBranchScopes = {
+  "이승엽": ["서초지점", "관악지점", "반포", "동작", "광명", "시흥", "안산지점"]
+};
 var productGroups = [
   { group: "항생제", items: ["아목시스", "아목시클라", "세파클리"] },
   { group: "진통제", items: ["록소리펜", "나프록소", "아세클로페낙"] },
@@ -474,6 +477,14 @@ function lookupKey(value) {
 function clientLookupTerm(value) {
   return normalizeClientName(value);
 }
+function currentOwnerBranchScope() {
+  var owner = ownerInput ? ownerInput.value.trim() : "";
+  return ownerBranchScopes[owner] || [];
+}
+function applyClientLookupParams(params) {
+  var branches = currentOwnerBranchScope();
+  if (branches.length) params.set("branches", branches.join(","));
+}
 function hideClientSuggestions(box) {
   if (!box) return;
   box.classList.remove("active");
@@ -569,6 +580,7 @@ async function loadClientSuggestions(mode) {
     var params = new URLSearchParams();
     params.set("q", term);
     params.set("limit", "12");
+    applyClientLookupParams(params);
     var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
     if (seq !== clientLookupSeq) return;
     renderClientSuggestions(box, result.items || [], mode);
@@ -598,6 +610,7 @@ async function autoApplyExactClientMatch() {
     var params = new URLSearchParams();
     params.set("q", term);
     params.set("limit", "8");
+    applyClientLookupParams(params);
     var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
     var normalized = lookupKey(term);
     var exact = (result.items || []).find(function(item) {
@@ -4276,6 +4289,10 @@ ownerInput.addEventListener("change", function() {
   var owner = ownerInput.value.trim();
   if (ownerNames.indexOf(owner) >= 0) {
     localStorage.setItem("ownerName", owner);
+  }
+  hideAllClientSuggestions();
+  if (clientInput && clientLookupTerm(clientInput.value).length >= 2) {
+    scheduleClientLookup("name");
   }
   renderCompletionPanel();
   render();

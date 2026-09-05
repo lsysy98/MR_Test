@@ -15,6 +15,23 @@ function normalize(value) {
   return String(value || "").trim().replace(/\s+/g, "").toLowerCase();
 }
 
+function normalizeBranch(value) {
+  return normalize(value).replace(/지점$/g, "");
+}
+
+function branchScopeFromRequest(requestUrl) {
+  return String(requestUrl.searchParams.get("branches") || "")
+    .split(",")
+    .map(normalizeBranch)
+    .filter(Boolean);
+}
+
+function matchesBranchScope(item, branchScope) {
+  if (!branchScope.length) return true;
+  const branch = normalizeBranch(item.branch);
+  return Boolean(branch && branchScope.some((scope) => branch === scope || branch.includes(scope) || scope.includes(branch)));
+}
+
 function cleanCell(value) {
   return String(value || "").replace(/^\uFEFF/, "").trim();
 }
@@ -135,13 +152,14 @@ module.exports = async function handler(req, res) {
     const query = normalize(requestUrl.searchParams.get("q"));
     const codeQuery = normalize(requestUrl.searchParams.get("code"));
     const includeAll = requestUrl.searchParams.get("all") === "1";
+    const branchScope = branchScopeFromRequest(requestUrl);
     const limit = Math.max(1, Math.min(30, Number(requestUrl.searchParams.get("limit") || 12)));
 
     if (req.method !== "GET") {
       return json(res, 405, { error: "Method not allowed" });
     }
     const csv = await fetchSheetCsv();
-    const rows = rowsFromCsv(csv);
+    const rows = rowsFromCsv(csv).filter((item) => matchesBranchScope(item, branchScope));
 
     if (includeAll) {
       return json(res, 200, {

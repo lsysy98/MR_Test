@@ -23,7 +23,6 @@ const STATS_SHEET_GID =
   process.env.CLIENT_STATS_SHEET_GID ||
   process.env.PRESCRIPTION_STATS_SHEET_GID ||
   DEFAULT_STATS_SHEET_GID;
-const TEAM_OWNERS = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
 
 function json(res, status, data) {
   res.statusCode = status;
@@ -106,62 +105,29 @@ function parseCsv(text) {
   return rows;
 }
 
-function findColumn(header, names) {
-  const keys = names.map(normalize);
-  for (let i = 0; i < header.length; i += 1) {
-    const key = normalize(header[i]);
-    if (keys.some((name) => key === name || key.includes(name))) return i;
-  }
-  return -1;
-}
-
 function findCimsHeaderIndex(rows) {
   return rows.findIndex((row, index) => {
     if (index > 20) return false;
-    return /거래처|치과/.test(normalize(row[1])) || /거래처코드|코드/.test(normalize(row[0]));
+    return /거래처코드|고객코드|코드/.test(normalize(row[0])) ||
+      /거래처명|치과명|고객명/.test(normalize(row[1])) ||
+      /사업장명|지점명/.test(normalize(row[10]));
   });
-}
-
-function findCimsOwnerIndex(rows, headerIndex) {
-  if (headerIndex >= 0) {
-    const headerMatch = findColumn(rows[headerIndex], ["MR담당자명", "담당자명", "담당자", "MR"]);
-    if (headerMatch >= 0) return headerMatch;
-  }
-
-  const ownerSet = new Set(TEAM_OWNERS.map(normalizeOwner));
-  const maxColumns = rows.reduce((max, row) => Math.max(max, row.length), 0);
-  let bestIndex = -1;
-  let bestCount = 0;
-  for (let column = 0; column < maxColumns; column += 1) {
-    let count = 0;
-    rows.slice(0, 500).forEach((row) => {
-      if (ownerSet.has(normalizeOwner(row[column]))) count += 1;
-    });
-    if (count > bestCount) {
-      bestCount = count;
-      bestIndex = column;
-    }
-  }
-  return bestCount >= 2 ? bestIndex : -1;
 }
 
 function rowsFromCimsCsv(text) {
   const rawRows = parseCsv(text).map((row) => row.map(cleanCell));
   const headerIndex = findCimsHeaderIndex(rawRows);
-  const ownerIndex = findCimsOwnerIndex(rawRows, headerIndex);
   const seen = new Set();
   return rawRows
     .map((row, index) => ({
       index,
       code: cleanCell(row[0]),
       client: cleanCell(row[1]),
-      branch: cleanCell(row[10]),
-      owner: ownerIndex >= 0 ? cleanCell(row[ownerIndex]) : ""
+      branch: cleanCell(row[10])
     }))
     .filter((item) => {
       if (item.index === headerIndex) return false;
       if (!item.client) return false;
-      if (item.index === 0 && /코드|거래처|치과|사업장|지점/i.test(`${item.code} ${item.client} ${item.branch}`)) return false;
       const key = item.code ? `code:${normalize(item.code)}` : `client:${normalize(item.client)}:${normalize(item.branch)}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -255,20 +221,13 @@ function smallSample(rows, count = 5) {
   }));
 }
 
-function scopeCimsRows(cimsRows, owner, ownerBranches) {
-  const ownerKey = normalizeOwner(owner);
-  const hasCimsOwner = cimsRows.some((item) => Boolean(normalizeOwner(item.owner)));
-  const ownerRows = ownerKey && hasCimsOwner
-    ? cimsRows.filter((item) => normalizeOwner(item.owner) === ownerKey)
-    : cimsRows;
+function scopeCimsRows(cimsRows, ownerBranches) {
   const branchRows = ownerBranches.length
-    ? ownerRows.filter((item) => branchMatchesScope(item.branch, ownerBranches))
-    : ownerRows;
+    ? cimsRows.filter((item) => branchMatchesScope(item.branch, ownerBranches))
+    : cimsRows;
 
   return {
     rows: branchRows,
-    hasCimsOwner,
-    ownerMatchedCount: ownerRows.length,
     branchMatchedCount: branchRows.length
   };
 }
@@ -316,7 +275,7 @@ module.exports = async function handler(req, res) {
       .catch((error) => ({ ok: false, rows: [], error }));
     const cimsRows = rowsFromCimsCsv(cimsCsv);
     const ownerBranches = ownerBranchScope(owner, statsResult.rows);
-    const scoped = scopeCimsRows(cimsRows, owner, ownerBranches);
+    const scoped = scopeCimsRows(cimsRows, ownerBranches);
     const rows = annotateCimsRows(scoped.rows, statsResult.rows);
 
     if (requestUrl.searchParams.get("debug") === "1") {
@@ -324,8 +283,6 @@ module.exports = async function handler(req, res) {
         ok: true,
         cimsLoaded: true,
         cimsTotal: cimsRows.length,
-        cimsHasOwnerColumn: scoped.hasCimsOwner,
-        cimsOwnerMatchedCount: scoped.ownerMatchedCount,
         cimsAfterOwnerBranchFilter: scoped.branchMatchedCount,
         cimsVisibleCount: rows.length,
         cimsSheetIdStart: CIMS_SHEET_ID.slice(0, 10),
@@ -335,9 +292,8 @@ module.exports = async function handler(req, res) {
         owner: owner,
         ownerBranches: ownerBranches,
         cimsSample: smallSample(cimsRows),
-        cimsOwnerSample: smallSample(cimsRows.filter((item) => normalizeOwner(item.owner) === normalizeOwner(owner))),
         statsOwnerSample: smallSample(statsResult.rows.filter((item) => normalizeOwner(item.owner) === normalizeOwner(owner))),
-        message: "전체처방통계 G/J로 담당자 지점을 파악한 뒤, CIMS 담당자명과 K열 지점이 맞는 거래처만 입력 후보로 사용합니다."
+        message: "전체처방통계 G/J로 담당자별 지점을 파악한 뒤, CIMS K열 지점이 맞는 거래처를 입력 후보로 사용합니다. CIMS 담당자명은 보지 않습니다."
       });
     }
 

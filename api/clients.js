@@ -339,7 +339,6 @@ function existingKeySet(rows) {
     const client = normalizeClinicName(row.client_name || row.client);
     const branch = normalizeBranch(row.branch_name || row.branch);
     if (code) keys.add(`code:${code}`);
-    if (client) keys.add(`client:${client}`);
     if (client && branch) keys.add(`client-branch:${client}|${branch}`);
   });
   return keys;
@@ -355,8 +354,7 @@ function supabaseItemFromRow(row, existingKeys) {
     client,
     branch,
     existing: existingKeys.has(`code:${normalize(code)}`) ||
-      existingKeys.has(`client-branch:${normalizeClinicName(client)}|${normalizeBranch(branch)}`) ||
-      existingKeys.has(`client:${normalizeClinicName(client)}`)
+      existingKeys.has(`client-branch:${normalizeClinicName(client)}|${normalizeBranch(branch)}`)
   };
 }
 

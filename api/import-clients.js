@@ -277,9 +277,10 @@ function existingClientRows(statsRows, now) {
   const rows = [];
   statsRows.forEach((item) => {
     const codeKey = normalize(item.code);
-    const clientKey = normalize(item.client);
+    const clientKey = normalizeClinicName(item.client);
+    const branchKey = normalizeBranch(item.branch);
     if (!codeKey && !clientKey) return;
-    const key = codeKey ? `code:${codeKey}` : `client:${clientKey}:${normalizeBranch(item.branch)}`;
+    const key = codeKey ? `code:${codeKey}` : `client:${clientKey}:${branchKey}`;
     if (seen.has(key)) return;
     seen.add(key);
     rows.push({
@@ -287,7 +288,7 @@ function existingClientRows(statsRows, now) {
       client_code: item.code || "",
       client_name: item.client || "",
       branch_name: item.branch || "",
-      branch_key: normalizeBranch(item.branch),
+      branch_key: branchKey,
       owner: item.owner || "",
       updated_at: now
     });
@@ -324,6 +325,68 @@ function buildOwnerBranchMap(branchRows) {
   }, new Map());
 }
 
+function uniqueByCode(matches) {
+  const byCode = new Map();
+  matches.forEach((item) => {
+    const code = normalize(item.client_code);
+    if (code) byCode.set(code, item);
+  });
+  if (byCode.size === 1) return Array.from(byCode.values())[0];
+  if (!byCode.size && matches.length === 1) return matches[0];
+  return null;
+}
+
+function scoreReportMatch(report, item) {
+  const reportKey = normalizeClinicName(report.client);
+  const clientKey = normalizeClinicName(item && item.client_name);
+  const reportBranch = normalizeBranch(report.branch_name);
+  const itemBranch = normalizeBranch(item && item.branch_name);
+  if (!reportKey || !clientKey) return 99;
+  if (reportKey === clientKey && reportBranch && itemBranch && branchLooksSame(itemBranch, reportBranch)) return 0;
+  if (reportKey === clientKey) return 1;
+  if (reportClientLooksLikeDirectoryItem(report.client, item) && reportBranch && itemBranch && branchLooksSame(itemBranch, reportBranch)) return 2;
+  if (reportClientLooksLikeDirectoryItem(report.client, item)) return 3;
+  return 99;
+}
+
+function bestUniqueMatch(report, matches) {
+  if (!matches.length) return null;
+  const scored = matches
+    .map((item) => ({ item, score: scoreReportMatch(report, item) }))
+    .filter((row) => row.score < 99)
+    .sort((a, b) => a.score - b.score);
+  if (!scored.length) return null;
+  const bestScore = scored[0].score;
+  return uniqueByCode(scored.filter((row) => row.score === bestScore).map((row) => row.item));
+}
+
+function rowsForReportOwner(report, rows, ownerBranchMap) {
+  const ownerKey = normalize(report.owner);
+  const exactOwnerRows = ownerKey
+    ? rows.filter((item) => normalize(item.owner) === ownerKey)
+    : [];
+  if (exactOwnerRows.length) return exactOwnerRows;
+
+  const ownerBranches = ownerBranchMap.get(ownerKey) || new Set();
+  return ownerBranches.size
+    ? rows.filter((item) => ownerBranches.has(item.branch_key))
+    : rows;
+}
+
+function uniqueExistingReportMatch(report, existingRows, ownerBranchMap) {
+  if (!report || cleanCell(report.client_code)) return null;
+  let matches = rowsForReportOwner(report, existingRows, ownerBranchMap)
+    .filter((item) => reportClientLooksLikeDirectoryItem(report.client, item));
+  if (!matches.length) return null;
+
+  if (report.branch_name) {
+    const branchMatches = matches.filter((item) => branchLooksSame(item.branch_name, report.branch_name));
+    if (branchMatches.length) matches = branchMatches;
+  }
+
+  return bestUniqueMatch(report, matches);
+}
+
 function uniqueReportMatch(report, directoryRows, ownerBranchMap) {
   if (!report || cleanCell(report.client_code)) return null;
   const ownerBranches = ownerBranchMap.get(normalize(report.owner)) || new Set();
@@ -338,14 +401,7 @@ function uniqueReportMatch(report, directoryRows, ownerBranchMap) {
     if (branchMatches.length) matches = branchMatches;
   }
 
-  const byCode = new Map();
-  matches.forEach((item) => {
-    const code = normalize(item.client_code);
-    if (code) byCode.set(code, item);
-  });
-  if (byCode.size === 1) return Array.from(byCode.values())[0];
-  if (matches.length === 1) return matches[0];
-  return null;
+  return bestUniqueMatch(report, matches);
 }
 
 async function supabasePaged(pathBase, pageSize = 1000, maxPages = 30) {
@@ -360,21 +416,36 @@ async function supabasePaged(pathBase, pageSize = 1000, maxPages = 30) {
   return rows;
 }
 
-async function backfillReportClientCodes(directoryRows, branchRows) {
+async function backfillReportClientCodes(directoryRows, branchRows, existingRows) {
   const reportRows = await supabasePaged("reports?select=id,owner,client,branch_name,client_code&order=created_at.asc");
   const ownerBranchMap = buildOwnerBranchMap(branchRows);
   let updated = 0;
   let ambiguous = 0;
   let skipped = 0;
+  let existingMatched = 0;
+  let directoryMatched = 0;
+  const unresolvedSamples = [];
 
   for (const report of reportRows) {
     if (cleanCell(report.client_code)) {
       skipped += 1;
       continue;
     }
-    const match = uniqueReportMatch(report, directoryRows, ownerBranchMap);
+    let source = "existing";
+    let match = uniqueExistingReportMatch(report, existingRows, ownerBranchMap);
+    if (!match) {
+      source = "directory";
+      match = uniqueReportMatch(report, directoryRows, ownerBranchMap);
+    }
     if (!match) {
       ambiguous += 1;
+      if (unresolvedSamples.length < 20) {
+        unresolvedSamples.push({
+          owner: report.owner || "",
+          client: report.client || "",
+          branchName: report.branch_name || ""
+        });
+      }
       continue;
     }
     await supabase(`reports?id=eq.${encodeURIComponent(report.id)}`, {
@@ -386,9 +457,11 @@ async function backfillReportClientCodes(directoryRows, branchRows) {
       })
     });
     updated += 1;
+    if (source === "existing") existingMatched += 1;
+    else directoryMatched += 1;
   }
 
-  return { total: reportRows.length, updated, ambiguous, skipped };
+  return { total: reportRows.length, updated, existingMatched, directoryMatched, ambiguous, skipped, unresolvedSamples };
 }
 
 async function clearTable(table) {
@@ -446,7 +519,7 @@ module.exports = async function handler(req, res) {
     await upsertRows("client_directory", directoryRows);
     await upsertRows("owner_branch_map", branchRows);
     await upsertRows("existing_clients", existingRows);
-    const backfill = await backfillReportClientCodes(directoryRows, branchRows);
+    const backfill = await backfillReportClientCodes(directoryRows, branchRows, existingRows);
 
     return json(res, 200, {
       ok: true,

@@ -1,5 +1,7 @@
 const DEFAULT_CIMS_SHEET_ID = "1ciVrJFqZyrXQvgBxZtSLwn9MxvOculLugDERIpHeEkY";
 const DEFAULT_CIMS_SHEET_GID = "0";
+const DEFAULT_STATS_SHEET_ID = "18g8f_EtcBQ7bMTg8rwnkHUsMxmHFAxoAz7hcF9weFm8";
+const DEFAULT_STATS_SHEET_GID = "627148657";
 
 const CIMS_SHEET_ID =
   process.env.CIMS_SHEET_ID ||
@@ -13,6 +15,14 @@ const CIMS_SHEET_GID =
   process.env.CLIENT_SHEET_GID ||
   process.env.GOOGLE_SHEET_GID ||
   DEFAULT_CIMS_SHEET_GID;
+const STATS_SHEET_ID =
+  process.env.CLIENT_STATS_SHEET_ID ||
+  process.env.PRESCRIPTION_STATS_SHEET_ID ||
+  DEFAULT_STATS_SHEET_ID;
+const STATS_SHEET_GID =
+  process.env.CLIENT_STATS_SHEET_GID ||
+  process.env.PRESCRIPTION_STATS_SHEET_GID ||
+  DEFAULT_STATS_SHEET_GID;
 
 function json(res, status, data) {
   res.statusCode = status;
@@ -27,6 +37,23 @@ function cleanCell(value) {
 
 function normalize(value) {
   return cleanCell(value).replace(/\s+/g, "").toLowerCase();
+}
+
+function normalizeBranch(value) {
+  return normalize(value).replace(/지점$/g, "");
+}
+
+function uniqueValues(values) {
+  const seen = new Set();
+  const result = [];
+  values.forEach((value) => {
+    const clean = cleanCell(value);
+    const key = normalize(clean);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    result.push(clean);
+  });
+  return result;
 }
 
 function parseCsv(text) {
@@ -91,10 +118,26 @@ function rowsFromCimsCsv(text) {
     });
 }
 
-async function fetchCimsCsv() {
-  if (!CIMS_SHEET_ID) throw new Error("CIMS Google Sheet id is missing.");
+function rowsFromStatsCsv(text) {
+  return parseCsv(text)
+    .map((row, index) => ({
+      index,
+      code: cleanCell(row[2]),
+      client: cleanCell(row[3]),
+      branch: cleanCell(row[6]),
+      owner: cleanCell(row[9])
+    }))
+    .filter((item) => {
+      if (!item.code && !item.client && !item.branch && !item.owner) return false;
+      if (item.index === 0 && /코드|거래처|치과|사업장|지점|담당/i.test(`${item.code} ${item.client} ${item.branch} ${item.owner}`)) return false;
+      return Boolean(item.client || item.code || item.branch || item.owner);
+    });
+}
 
-  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(CIMS_SHEET_ID)}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(CIMS_SHEET_GID)}`;
+async function fetchSheetCsv(sheetId, sheetGid, label) {
+  if (!sheetId) throw new Error(`${label} Google Sheet id is missing.`);
+
+  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(sheetGid)}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
 
@@ -104,17 +147,52 @@ async function fetchCimsCsv() {
       headers: { "User-Agent": "sales-report-cims-lookup" }
     });
     const text = await response.text();
-    if (!response.ok) throw new Error(`CIMS request failed: ${response.status}`);
+    if (!response.ok) throw new Error(`${label} request failed: ${response.status}`);
     if (/<!doctype html|<html/i.test(text)) {
-      throw new Error("CIMS 시트 공유 권한을 확인해주세요.");
+      throw new Error(`${label} 시트 공유 권한을 확인해주세요.`);
     }
     return text;
   } catch (error) {
-    if (error.name === "AbortError") throw new Error("CIMS 응답이 너무 늦습니다.");
+    if (error.name === "AbortError") throw new Error(`${label} 응답이 너무 늦습니다.`);
     throw error;
   } finally {
     clearTimeout(timer);
   }
+}
+
+function branchMatchesScope(branch, branchScope) {
+  if (!branchScope.length) return true;
+  const branchKey = normalizeBranch(branch);
+  return Boolean(branchKey && branchScope.some((scope) => {
+    return branchKey === scope || branchKey.includes(scope) || scope.includes(branchKey);
+  }));
+}
+
+function ownerBranchScope(owner, statsRows) {
+  const ownerKey = normalize(owner);
+  if (!ownerKey) return [];
+  return uniqueValues(
+    statsRows
+      .filter((item) => normalize(item.owner) === ownerKey)
+      .map((item) => item.branch)
+  ).map(normalizeBranch).filter(Boolean);
+}
+
+function statsMatchClient(item, statsRows) {
+  const code = normalize(item.code);
+  const client = normalize(item.client);
+  return statsRows.some((stat) => {
+    const statCode = normalize(stat.code);
+    const statClient = normalize(stat.client);
+    return Boolean((code && statCode && code === statCode) || (client && statClient && client === statClient));
+  });
+}
+
+function annotateCimsRows(cimsRows, statsRows) {
+  return cimsRows.map((item) => ({
+    ...item,
+    existing: statsMatchClient(item, statsRows)
+  }));
 }
 
 function scoreItem(item, query) {
@@ -138,7 +216,7 @@ function formatItem(item) {
     code: item.code || "",
     client: item.client || "",
     branch: item.branch || "",
-    existing: false
+    existing: Boolean(item.existing)
   };
 }
 
@@ -147,13 +225,20 @@ module.exports = async function handler(req, res) {
     const requestUrl = new URL(req.url, "http://localhost");
     const query = normalize(requestUrl.searchParams.get("q"));
     const includeAll = requestUrl.searchParams.get("all") === "1";
+    const owner = cleanCell(requestUrl.searchParams.get("owner"));
     const limit = Math.max(1, Math.min(50, Number(requestUrl.searchParams.get("limit") || 20)));
 
     if (req.method !== "GET") {
       return json(res, 405, { error: "Method not allowed" });
     }
 
-    const rows = rowsFromCimsCsv(await fetchCimsCsv());
+    const cimsCsv = await fetchSheetCsv(CIMS_SHEET_ID, CIMS_SHEET_GID, "CIMS");
+    const statsResult = await fetchSheetCsv(STATS_SHEET_ID, STATS_SHEET_GID, "전체처방통계")
+      .then((csv) => ({ ok: true, rows: rowsFromStatsCsv(csv) }))
+      .catch((error) => ({ ok: false, rows: [], error }));
+    const ownerBranches = ownerBranchScope(owner, statsResult.rows);
+    const rows = annotateCimsRows(rowsFromCimsCsv(cimsCsv), statsResult.rows)
+      .filter((item) => branchMatchesScope(item.branch, ownerBranches));
 
     if (requestUrl.searchParams.get("debug") === "1") {
       return json(res, 200, {
@@ -161,7 +246,12 @@ module.exports = async function handler(req, res) {
         cimsLoaded: true,
         cimsCount: rows.length,
         cimsSheetIdStart: CIMS_SHEET_ID.slice(0, 10),
-        message: "거래처 입력 후보는 CIMS 시트 A열 코드, B열 거래처명, K열 사업장명만 사용합니다."
+        statsLoaded: statsResult.ok,
+        statsCount: statsResult.rows.length,
+        statsError: statsResult.ok ? "" : statsResult.error?.message || "전체처방통계 연결 실패",
+        owner: owner,
+        ownerBranches: ownerBranches,
+        message: "거래처 입력 후보는 CIMS A/B/K열만 사용하고, 전체처방통계 C/D/G/J열은 기존거래처 표시와 담당자 지점 파악에만 사용합니다."
       });
     }
 
@@ -169,12 +259,13 @@ module.exports = async function handler(req, res) {
       return json(res, 200, {
         items: rows.map(formatItem),
         count: rows.length,
-        cimsLoaded: true
+        cimsLoaded: true,
+        statsLoaded: statsResult.ok
       });
     }
 
     if (!query) {
-      return json(res, 200, { items: [], count: 0, cimsLoaded: true });
+      return json(res, 200, { items: [], count: 0, cimsLoaded: true, statsLoaded: statsResult.ok });
     }
 
     const filtered = rows
@@ -188,7 +279,8 @@ module.exports = async function handler(req, res) {
     return json(res, 200, {
       items: filtered.slice(0, limit).map(formatItem),
       count: filtered.length,
-      cimsLoaded: true
+      cimsLoaded: true,
+      statsLoaded: statsResult.ok
     });
   } catch (error) {
     return json(res, 500, { error: error.message });

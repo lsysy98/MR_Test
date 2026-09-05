@@ -481,6 +481,8 @@ function currentOwnerBranchScope() {
   return ownerBranchScopes[owner] || [];
 }
 function applyClientLookupParams(params) {
+  var owner = ownerInput ? ownerInput.value.trim() : "";
+  if (owner) params.set("owner", owner);
   return params;
 }
 function hideClientSuggestions(box) {
@@ -520,7 +522,8 @@ function setClientMatchStatus(item) {
     return;
   }
   var parts = [];
-  if (item.code) parts.push("거래처 코드 연결");
+  if (item.existing) parts.push("기존 거래처");
+  else if (item.code) parts.push("거래처 코드 연결");
   if (item.code) parts.push("코드 " + item.code);
   if (item.branch) parts.push(item.branch);
   clientMatchStatus.textContent = parts.join(" · ");

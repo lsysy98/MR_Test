@@ -52,7 +52,10 @@ var menuHolidayBtn = document.getElementById("menuHolidayBtn");
 var menuExhibitionBtn = document.getElementById("menuExhibitionBtn");
 var ownerInput = document.getElementById("owner");
 var dateInput = document.getElementById("date");
+var clientCodeInput = document.getElementById("clientCode");
 var clientInput = document.getElementById("client");
+var clientSuggestions = document.getElementById("clientSuggestions");
+var clientCodeSuggestions = document.getElementById("clientCodeSuggestions");
 var branchInput = document.getElementById("branchName");
 var productInput = document.getElementById("product");
 var productChooseBtn = document.getElementById("productChooseBtn");
@@ -168,6 +171,9 @@ var successCaseEditingId = "";
 var noticeLocked = false;
 var noticeActionRequired = false;
 var ownerLeaveRows = [];
+var clientLookupTimer = null;
+var clientLookupSeq = 0;
+var lastSelectedClientMatch = null;
 var editingLeaveRangeDates = [];
 var exhibitionEditingId = "";
 var openedExhibitionId = "";
@@ -459,6 +465,102 @@ function normalizeClientName(value) {
 }
 function normalizeSearchText(value) {
   return normalizeClientName(value).toLowerCase();
+}
+function clientLookupTerm(value) {
+  return normalizeClientName(value);
+}
+function hideClientSuggestions(box) {
+  if (!box) return;
+  box.classList.remove("active");
+  box.textContent = "";
+}
+function hideAllClientSuggestions() {
+  hideClientSuggestions(clientSuggestions);
+  hideClientSuggestions(clientCodeSuggestions);
+}
+function renderClientSuggestionMessage(box, message) {
+  if (!box) return;
+  box.textContent = "";
+  var row = document.createElement("div");
+  row.className = "client-suggestion empty";
+  row.textContent = message;
+  box.appendChild(row);
+  box.classList.add("active");
+}
+function clientSuggestionSubtitle(item) {
+  var parts = [];
+  if (item.code) parts.push("코드 " + item.code);
+  if (item.branch) parts.push(item.branch);
+  return parts.join(" · ") || "지점명 없음";
+}
+function applyClientMatch(item) {
+  if (!item) return;
+  lastSelectedClientMatch = item;
+  if (clientCodeInput) clientCodeInput.value = item.code || "";
+  if (clientInput) clientInput.value = item.client || "";
+  if (branchInput) branchInput.value = item.branch || "";
+  hideAllClientSuggestions();
+}
+function renderClientSuggestions(box, items, mode) {
+  if (!box) return;
+  box.textContent = "";
+  if (!items.length) {
+    renderClientSuggestionMessage(box, "검색 결과가 없습니다.");
+    return;
+  }
+  items.forEach(function(item) {
+    var button = document.createElement("button");
+    button.className = "client-suggestion";
+    button.type = "button";
+    var name = document.createElement("strong");
+    name.textContent = item.client || "-";
+    var code = document.createElement("code");
+    code.textContent = item.code || "";
+    var meta = document.createElement("small");
+    meta.textContent = clientSuggestionSubtitle(item);
+    button.appendChild(name);
+    button.appendChild(code);
+    button.appendChild(meta);
+    button.addEventListener("click", function() {
+      applyClientMatch(item);
+    });
+    box.appendChild(button);
+  });
+  box.classList.add("active");
+}
+async function loadClientSuggestions(mode) {
+  var isCode = mode === "code";
+  var input = isCode ? clientCodeInput : clientInput;
+  var box = isCode ? clientCodeSuggestions : clientSuggestions;
+  var term = clientLookupTerm(input ? input.value : "");
+  if (term.length < 2) {
+    hideClientSuggestions(box);
+    return;
+  }
+  var seq = ++clientLookupSeq;
+  renderClientSuggestionMessage(box, "검색 중입니다.");
+  try {
+    var params = new URLSearchParams();
+    params.set(isCode ? "code" : "q", term);
+    params.set("limit", "12");
+    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
+    if (seq !== clientLookupSeq) return;
+    renderClientSuggestions(box, result.items || [], mode);
+  } catch (error) {
+    if (seq !== clientLookupSeq) return;
+    renderClientSuggestionMessage(box, "거래처 목록을 불러오지 못했습니다.");
+  }
+}
+function scheduleClientLookup(mode) {
+  if (clientLookupTimer) clearTimeout(clientLookupTimer);
+  clientLookupTimer = setTimeout(function() {
+    loadClientSuggestions(mode);
+  }, 220);
+}
+function clearClientCode() {
+  lastSelectedClientMatch = null;
+  if (clientCodeInput) clientCodeInput.value = "";
+  hideAllClientSuggestions();
 }
 function currentOwnerSearchTerm() {
   return committedOwnerSearchTerm;
@@ -1048,7 +1150,7 @@ async function exhibitionApi(method, body, query) {
 function exhibitionErrorMessage(error) {
   var message = error && error.message ? error.message : String(error || "");
   if (/exhibition_event_days|event_day_id|schema cache|relation/i.test(message)) {
-    return "전시회 날짜별 저장용 SQL이 아직 적용되지 않았습니다. 원본 Supabase SQL을 한 번 실행해주세요.";
+    return "전시회 날짜별 저장용 SQL이 아직 적용되지 않았습니다. 테스트 Supabase SQL을 한 번 실행해주세요.";
   }
   return message;
 }
@@ -3736,6 +3838,7 @@ function render() {
 function resetAfterSave() {
   editingId = "";
   clientInput.value = "";
+  clearClientCode();
   if (branchInput) branchInput.value = "";
   setProductList([]);
   amountInput.value = "";
@@ -3749,6 +3852,7 @@ function resetAfterSave() {
 function resetFormAll() {
   editingId = "";
   clientInput.value = "";
+  clearClientCode();
   if (branchInput) branchInput.value = "";
   setProductList([]);
   amountInput.value = "";
@@ -3763,6 +3867,7 @@ function startEdit(item) {
   editingId = item.id;
   ownerInput.value = item.owner;
   setLeaveDateInput(dateInput, item.date);
+  clearClientCode();
   clientInput.value = item.client;
   if (branchInput) branchInput.value = item.branchName || "";
   productInput.value = item.product || "";
@@ -3984,6 +4089,10 @@ document.addEventListener("click", function(e) {
   if (e.target && e.target.closest && e.target.closest(".admin-menu-wrap")) return;
   closeAdminMenu();
 });
+document.addEventListener("click", function(e) {
+  if (e.target && e.target.closest && e.target.closest(".autocomplete-field")) return;
+  hideAllClientSuggestions();
+});
 if (dayScreenshotBtn) {
   dayScreenshotBtn.addEventListener("click", downloadResolvedScreenshot);
 }
@@ -4036,6 +4145,27 @@ if (successCaseCloseBtn) {
 if (successCaseOverlay) {
   successCaseOverlay.addEventListener("click", function(e) {
     if (e.target === successCaseOverlay) closeSuccessCaseModal();
+  });
+}
+if (clientInput) {
+  clientInput.addEventListener("input", function() {
+    lastSelectedClientMatch = null;
+    if (clientCodeInput) clientCodeInput.value = "";
+    if (clientLookupTerm(clientInput.value).length >= 2) scheduleClientLookup("name");
+    else hideClientSuggestions(clientSuggestions);
+  });
+  clientInput.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") hideClientSuggestions(clientSuggestions);
+  });
+}
+if (clientCodeInput) {
+  clientCodeInput.addEventListener("input", function() {
+    lastSelectedClientMatch = null;
+    if (clientLookupTerm(clientCodeInput.value).length >= 2) scheduleClientLookup("code");
+    else hideClientSuggestions(clientCodeSuggestions);
+  });
+  clientCodeInput.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") hideClientSuggestions(clientCodeSuggestions);
   });
 }
 ownerInput.addEventListener("change", function() {
@@ -4254,6 +4384,7 @@ form.addEventListener("submit", async function(e) {
     updatedAt: Date.now(),
     date: reportDate,
     owner: owner,
+    clientCode: clientCodeInput ? clientCodeInput.value.trim() : "",
     client: clientInput.value.trim(),
     branchName: branchInput ? branchInput.value.trim() : "",
     type: selectedType,

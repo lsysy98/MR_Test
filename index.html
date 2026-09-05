@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-store">
-  <title>MR수도권팀 일일보고</title>
+  <title>테스트</title>
   <style>
     * { box-sizing: border-box; }
     :root {
@@ -147,6 +147,64 @@
     .amount-wrap input { padding-right: 54px; }
     .amount-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
     .helper { color: var(--muted); font-size: 12px; margin-top: -4px; }
+    .autocomplete-field { position: relative; }
+    .client-suggestions {
+      display: none;
+      gap: 6px;
+      margin-top: -2px;
+      padding: 6px;
+      border: 1px solid #efc7ad;
+      border-radius: 8px;
+      background: #fffaf6;
+      box-shadow: 0 12px 26px rgba(95, 58, 27, .12);
+    }
+    .client-suggestions.active { display: grid; }
+    .client-suggestion {
+      width: 100%;
+      min-height: 44px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px 10px;
+      align-items: center;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .client-suggestion:hover,
+    .client-suggestion:focus-visible {
+      border-color: #f6b68a;
+      background: #fff3eb;
+      outline: none;
+    }
+    .client-suggestion strong {
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+    .client-suggestion code {
+      color: #c64e13;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .client-suggestion small {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .client-suggestion.empty {
+      min-height: 36px;
+      grid-template-columns: 1fr;
+      color: var(--muted);
+      cursor: default;
+    }
     .product-select-btn {
       width: 100%;
       min-height: 44px;
@@ -2029,7 +2087,7 @@
 <body class="view-form">
   <header>
     <div class="header-top">
-      <h1 id="appTitle">MR수도권팀 일일보고</h1>
+      <h1 id="appTitle">테스트</h1>
       <div class="admin-menu-wrap">
         <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="메뉴" aria-expanded="false">
           <span class="menu-bar" aria-hidden="true"></span>
@@ -2066,7 +2124,14 @@
           </select>
         </label>
         <label>날짜 <span class="date-input-wrap"><input id="date" type="text" readonly required></span></label>
-        <label>거래처명 <input id="client" type="text" required autocomplete="off"></label>
+        <label class="autocomplete-field">거래처코드
+          <input id="clientCode" type="text" inputmode="numeric" autocomplete="off" placeholder="코드 입력">
+          <div class="client-suggestions" id="clientCodeSuggestions" aria-live="polite"></div>
+        </label>
+        <label class="autocomplete-field">거래처명
+          <input id="client" type="text" required autocomplete="off">
+          <div class="client-suggestions" id="clientSuggestions" aria-live="polite"></div>
+        </label>
         <label><span>지점명 <span class="label-muted">(선택)</span></span>
           <input id="branchName" type="text" placeholder="선택 입력" autocomplete="off">
         </label>
@@ -2415,7 +2480,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260831-0006"></script>
+  <script src="app.js?v=20260905-0001"></script>
 </body>
 </html>
 

@@ -217,7 +217,7 @@ function statMatchesItem(stat, item) {
   return branchLooksSame(stat.branch, item.branch);
 }
 
-function mergeClientRows(directoryRows, statsRows) {
+function annotateDirectoryRows(directoryRows, statsRows) {
   const rows = directoryRows.map((item) => {
     const matches = statsRows.filter((stat) => statMatchesItem(stat, item));
     return {
@@ -225,20 +225,6 @@ function mergeClientRows(directoryRows, statsRows) {
       existing: matches.length > 0,
       owners: uniqueValues(matches.flatMap((stat) => stat.owners || []))
     };
-  });
-
-  statsRows.forEach((stat) => {
-    const alreadyExists = rows.some((item) => statMatchesItem(stat, item));
-    if (alreadyExists) return;
-    rows.push({
-      code: stat.code || "",
-      client: stat.client,
-      branch: stat.branch || "",
-      owners: uniqueValues(stat.owners || []),
-      existing: true,
-      source: "stats",
-      index: 100000 + stat.index
-    });
   });
 
   const seen = new Set();
@@ -313,26 +299,42 @@ module.exports = async function handler(req, res) {
     if (req.method !== "GET") {
       return json(res, 405, { error: "Method not allowed" });
     }
-    const directoryResult = await fetchSheetCsv(DIRECTORY_SHEET_ID, DIRECTORY_SHEET_GID, "Client directory")
-      .then((csv) => ({ ok: true, rows: directoryRowsFromCsv(csv) }))
-      .catch((error) => ({ ok: false, rows: [], error }));
-    const statsResult = await fetchSheetCsv(STATS_SHEET_ID, STATS_SHEET_GID, "Prescription stats")
-      .then((csv) => ({ ok: true, rows: statsRowsFromCsv(csv) }))
-      .catch((error) => ({ ok: false, rows: [], error }));
+    const [directoryResult, statsResult] = await Promise.all([
+      fetchSheetCsv(DIRECTORY_SHEET_ID, DIRECTORY_SHEET_GID, "CIMS")
+        .then((csv) => ({ ok: true, rows: directoryRowsFromCsv(csv) }))
+        .catch((error) => ({ ok: false, rows: [], error })),
+      fetchSheetCsv(STATS_SHEET_ID, STATS_SHEET_GID, "Prescription stats")
+        .then((csv) => ({ ok: true, rows: statsRowsFromCsv(csv) }))
+        .catch((error) => ({ ok: false, rows: [], error }))
+    ]);
 
-    if (!directoryResult.ok && !statsResult.ok) {
-      throw directoryResult.error || statsResult.error || new Error("Google Sheet request failed.");
+    if (requestUrl.searchParams.get("debug") === "1") {
+      return json(res, 200, {
+        ok: directoryResult.ok,
+        cimsLoaded: directoryResult.ok,
+        cimsCount: directoryResult.rows.length,
+        cimsError: directoryResult.ok ? "" : directoryResult.error?.message || "CIMS load failed",
+        statsLoaded: statsResult.ok,
+        statsCount: statsResult.rows.length,
+        statsError: statsResult.ok ? "" : statsResult.error?.message || "Prescription stats load failed",
+        message: "CIMS is used for input suggestions. Prescription stats is used only for existing-client labels and owner branch matching."
+      });
+    }
+
+    if (!directoryResult.ok) {
+      throw directoryResult.error || new Error("CIMS Google Sheet request failed.");
     }
 
     const ownerBranchScope = branchScopeForOwner(owner, statsResult.rows);
     const branchScope = uniqueValues(manualBranchScope.concat(ownerBranchScope)).map(normalizeBranch);
-    const rows = mergeClientRows(directoryResult.rows, statsResult.rows)
+    const rows = annotateDirectoryRows(directoryResult.rows, statsResult.rows)
       .filter((item) => matchesOwnerScope(item, owner, branchScope));
 
     if (includeAll) {
       return json(res, 200, {
         items: rows.map(formatItem),
         count: rows.length,
+        cimsLoaded: true,
         statsLoaded: statsResult.ok
       });
     }
@@ -353,6 +355,7 @@ module.exports = async function handler(req, res) {
     return json(res, 200, {
       items: filtered.slice(0, limit).map(formatItem),
       count: filtered.length,
+      cimsLoaded: true,
       statsLoaded: statsResult.ok
     });
   } catch (error) {

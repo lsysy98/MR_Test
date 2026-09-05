@@ -118,11 +118,14 @@ function scoreItem(item, query, codeQuery) {
     return 9;
   }
 
-  if (client === query) return 0;
-  if (client.startsWith(query)) return 1;
-  if (client.includes(query)) return 2;
-  if (branch.startsWith(query)) return 3;
-  if (branch.includes(query)) return 4;
+  if (code === query) return 0;
+  if (code.startsWith(query)) return 1;
+  if (client === query) return 2;
+  if (client.startsWith(query)) return 3;
+  if (client.includes(query)) return 4;
+  if (branch.startsWith(query)) return 5;
+  if (branch.includes(query)) return 6;
+  if (code.includes(query)) return 7;
   return 9;
 }
 
@@ -131,21 +134,36 @@ module.exports = async function handler(req, res) {
     const requestUrl = new URL(req.url, "http://localhost");
     const query = normalize(requestUrl.searchParams.get("q"));
     const codeQuery = normalize(requestUrl.searchParams.get("code"));
+    const includeAll = requestUrl.searchParams.get("all") === "1";
     const limit = Math.max(1, Math.min(30, Number(requestUrl.searchParams.get("limit") || 12)));
 
     if (req.method !== "GET") {
       return json(res, 405, { error: "Method not allowed" });
     }
+    const csv = await fetchSheetCsv();
+    const rows = rowsFromCsv(csv);
+
+    if (includeAll) {
+      return json(res, 200, {
+        items: rows.map((item) => ({
+          code: item.code,
+          client: item.client,
+          branch: item.branch
+        })),
+        count: rows.length
+      });
+    }
+
     if (!query && !codeQuery) {
       return json(res, 200, { items: [], count: 0 });
     }
 
-    const csv = await fetchSheetCsv();
-    const rows = rowsFromCsv(csv);
     const filtered = rows
       .filter((item) => {
         if (codeQuery) return normalize(item.code).includes(codeQuery);
-        return normalize(item.client).includes(query) || normalize(item.branch).includes(query);
+        return normalize(item.client).includes(query) ||
+          normalize(item.branch).includes(query) ||
+          normalize(item.code).includes(query);
       })
       .sort((a, b) => scoreItem(a, query, codeQuery) - scoreItem(b, query, codeQuery) || a.index - b.index);
 

@@ -174,6 +174,8 @@ var ownerLeaveRows = [];
 var clientLookupTimer = null;
 var clientLookupSeq = 0;
 var lastSelectedClientMatch = null;
+var clientDirectory = [];
+var clientDirectoryPromise = null;
 var editingLeaveRangeDates = [];
 var exhibitionEditingId = "";
 var openedExhibitionId = "";
@@ -466,6 +468,9 @@ function normalizeClientName(value) {
 function normalizeSearchText(value) {
   return normalizeClientName(value).toLowerCase();
 }
+function lookupKey(value) {
+  return String(value || "").trim().replace(/\s+/g, "").toLowerCase();
+}
 function clientLookupTerm(value) {
   return normalizeClientName(value);
 }
@@ -492,6 +497,28 @@ function clientSuggestionSubtitle(item) {
   if (item.code) parts.push("코드 " + item.code);
   if (item.branch) parts.push(item.branch);
   return parts.join(" · ") || "지점명 없음";
+}
+function itemClientCode(item) {
+  return String(item && item.clientCode || "").trim();
+}
+function itemBranchName(item) {
+  return String(item && item.branchName || "").trim();
+}
+function appendClientMeta(parent, item) {
+  var codeText = itemClientCode(item);
+  var branchText = itemBranchName(item);
+  if (codeText) {
+    var code = document.createElement("span");
+    code.className = "client-code";
+    code.textContent = codeText;
+    parent.appendChild(code);
+  }
+  if (branchText) {
+    var branch = document.createElement("span");
+    branch.className = "branch-name";
+    branch.textContent = branchText;
+    parent.appendChild(branch);
+  }
 }
 function applyClientMatch(item) {
   if (!item) return;
@@ -529,9 +556,8 @@ function renderClientSuggestions(box, items, mode) {
   box.classList.add("active");
 }
 async function loadClientSuggestions(mode) {
-  var isCode = mode === "code";
-  var input = isCode ? clientCodeInput : clientInput;
-  var box = isCode ? clientCodeSuggestions : clientSuggestions;
+  var input = clientInput;
+  var box = clientSuggestions;
   var term = clientLookupTerm(input ? input.value : "");
   if (term.length < 2) {
     hideClientSuggestions(box);
@@ -541,7 +567,7 @@ async function loadClientSuggestions(mode) {
   renderClientSuggestionMessage(box, "검색 중입니다.");
   try {
     var params = new URLSearchParams();
-    params.set(isCode ? "code" : "q", term);
+    params.set("q", term);
     params.set("limit", "12");
     var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
     if (seq !== clientLookupSeq) return;
@@ -560,7 +586,84 @@ function scheduleClientLookup(mode) {
 function clearClientCode() {
   lastSelectedClientMatch = null;
   if (clientCodeInput) clientCodeInput.value = "";
+  if (branchInput) branchInput.value = "";
   hideAllClientSuggestions();
+}
+async function autoApplyExactClientMatch() {
+  if (!clientInput) return;
+  if (clientCodeInput && clientCodeInput.value.trim()) return true;
+  var term = clientLookupTerm(clientInput.value);
+  if (term.length < 2) return false;
+  try {
+    var params = new URLSearchParams();
+    params.set("q", term);
+    params.set("limit", "8");
+    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
+    var normalized = lookupKey(term);
+    var exact = (result.items || []).find(function(item) {
+      return lookupKey(item.code) === normalized || lookupKey(item.client) === normalized;
+    });
+    if (exact) {
+      applyClientMatch(exact);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    // Manual entries should still save even if the spreadsheet lookup is unavailable.
+    return null;
+  }
+}
+function normalizeBranchKey(value) {
+  return lookupKey(value).replace(/지점$/g, "");
+}
+function branchLooksSame(a, b) {
+  var left = normalizeBranchKey(a);
+  var right = normalizeBranchKey(b);
+  return Boolean(left && right && left === right);
+}
+async function loadClientDirectory() {
+  if (clientDirectory.length) return clientDirectory;
+  if (!clientDirectoryPromise) {
+    clientDirectoryPromise = requestJson("/api/clients?all=1", { method: "GET" }, 12000)
+      .then(function(result) {
+        clientDirectory = result.items || [];
+        return clientDirectory;
+      })
+      .catch(function() {
+        clientDirectory = [];
+        return clientDirectory;
+      });
+  }
+  return clientDirectoryPromise;
+}
+function uniqueClientDirectoryMatch(report) {
+  if (!report || report.clientCode || !clientDirectory.length) return null;
+  var clientKey = lookupKey(report.client);
+  if (!clientKey) return null;
+  var clientMatches = clientDirectory.filter(function(item) {
+    return lookupKey(item.client) === clientKey;
+  });
+  if (!clientMatches.length) return null;
+  var branchText = itemBranchName(report);
+  if (branchText) {
+    var branchMatches = clientMatches.filter(function(item) {
+      return branchLooksSame(item.branch, branchText);
+    });
+    return branchMatches.length === 1 ? branchMatches[0] : null;
+  }
+  return clientMatches.length === 1 ? clientMatches[0] : null;
+}
+async function enrichReportsWithClientDirectory() {
+  await loadClientDirectory();
+  if (!clientDirectory.length) return;
+  reports = reports.map(function(report) {
+    var match = uniqueClientDirectoryMatch(report);
+    if (!match) return report;
+    return Object.assign({}, report, {
+      clientCode: match.code || report.clientCode || "",
+      branchName: report.branchName || match.branch || ""
+    });
+  });
 }
 function currentOwnerSearchTerm() {
   return committedOwnerSearchTerm;
@@ -578,6 +681,7 @@ function clearCommittedOwnerSearch() {
 function matchesOwnerSearch(item, term) {
   if (!term) return true;
   return normalizeSearchText(item.client).indexOf(term) >= 0 ||
+    normalizeSearchText(item.clientCode).indexOf(term) >= 0 ||
     normalizeSearchText(item.branchName).indexOf(term) >= 0;
 }
 function ownerSearchScopeOwner() {
@@ -1191,6 +1295,9 @@ async function loadData() {
   reports = await api("GET");
   status("", "");
   render();
+  enrichReportsWithClientDirectory().then(function() {
+    render();
+  });
   loadCompletionsForSelectedDate();
 }
 async function addData(item, skipNotice) {
@@ -2820,12 +2927,7 @@ function reportCard(item, index) {
   client.className = "client";
   client.textContent = item.client;
   clientWrap.appendChild(client);
-  if (item.branchName) {
-    var branch = document.createElement("span");
-    branch.className = "branch-name";
-    branch.textContent = item.branchName;
-    clientWrap.appendChild(branch);
-  }
+  appendClientMeta(clientWrap, item);
   var amount = document.createElement("div");
   amount.className = "report-amount";
   amount.textContent = won(item.amount);
@@ -2975,10 +3077,10 @@ function renderOwnerSearchResults() {
     client.className = "owner-search-client";
     client.textContent = item.client;
     main.appendChild(client);
-    if (item.branchName) {
+    if (item.clientCode || item.branchName) {
       var branch = document.createElement("div");
       branch.className = "owner-search-branch";
-      branch.textContent = item.branchName;
+      branch.textContent = [item.clientCode, item.branchName].filter(Boolean).join(" · ");
       main.appendChild(branch);
     }
 
@@ -3868,6 +3970,7 @@ function startEdit(item) {
   ownerInput.value = item.owner;
   setLeaveDateInput(dateInput, item.date);
   clearClientCode();
+  if (clientCodeInput) clientCodeInput.value = item.clientCode || "";
   clientInput.value = item.client;
   if (branchInput) branchInput.value = item.branchName || "";
   productInput.value = item.product || "";
@@ -4151,6 +4254,7 @@ if (clientInput) {
   clientInput.addEventListener("input", function() {
     lastSelectedClientMatch = null;
     if (clientCodeInput) clientCodeInput.value = "";
+    if (branchInput) branchInput.value = "";
     if (clientLookupTerm(clientInput.value).length >= 2) scheduleClientLookup("name");
     else hideClientSuggestions(clientSuggestions);
   });
@@ -4350,7 +4454,7 @@ form.addEventListener("submit", async function(e) {
     return;
   }
   if (!clientInput.value.trim()) {
-    toast("거래처명을 입력해주세요.");
+    toast("거래처를 입력해주세요.");
     clientInput.focus();
     return;
   }
@@ -4374,6 +4478,12 @@ form.addEventListener("submit", async function(e) {
   }
   if (isNonWorkingDateText(reportDate)) {
     showNotice("휴일에는 거래처 입력이 불가능합니다. 다른 날짜를 선택해주세요.", "danger");
+    return;
+  }
+  var lookupMatched = await autoApplyExactClientMatch();
+  if (/^\d{2,}$/.test(clientInput.value.trim()) && lookupMatched !== true) {
+    showNotice("입력한 거래처코드를 찾지 못했습니다. 후보 목록에서 거래처를 선택해주세요.", "danger");
+    clientInput.focus();
     return;
   }
 

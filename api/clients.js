@@ -59,6 +59,12 @@ function normalizeBranch(value) {
     .replace(/사업장명|사업장|영업소|지점명|지점|센터/g, "");
 }
 
+function normalizeClinicName(value) {
+  return normalize(value)
+    .replace(/[()（）\[\]{}]/g, "")
+    .replace(/치과의원|치과병원|의원|병원/g, "");
+}
+
 function isCimsBranchAllowed(branch) {
   return /지점$/.test(cleanCell(branch));
 }
@@ -261,11 +267,16 @@ function ownerBranchScope(owner, statsRows) {
 
 function statsMatchClient(item, statsRows) {
   const code = normalize(item.code);
-  const client = normalize(item.client);
+  const client = normalizeClinicName(item.client);
+  const branch = normalizeBranch(item.branch);
   return statsRows.some((stat) => {
     const statCode = normalize(stat.code);
-    const statClient = normalize(stat.client);
-    return Boolean((code && statCode && code === statCode) || (client && statClient && client === statClient));
+    const statClient = normalizeClinicName(stat.client);
+    const statBranch = normalizeBranch(stat.branch);
+    if (code && statCode && code === statCode) return true;
+    if (!client || !statClient || client !== statClient) return false;
+    if (!branch || !statBranch) return true;
+    return branch === statBranch || branch.includes(statBranch) || statBranch.includes(branch);
   });
 }
 
@@ -325,9 +336,11 @@ function existingKeySet(rows) {
   const keys = new Set();
   rows.forEach((row) => {
     const code = normalize(row.client_code || row.code);
-    const client = normalize(row.client_name || row.client);
+    const client = normalizeClinicName(row.client_name || row.client);
+    const branch = normalizeBranch(row.branch_name || row.branch);
     if (code) keys.add(`code:${code}`);
     if (client) keys.add(`client:${client}`);
+    if (client && branch) keys.add(`client-branch:${client}|${branch}`);
   });
   return keys;
 }
@@ -341,7 +354,9 @@ function supabaseItemFromRow(row, existingKeys) {
     code,
     client,
     branch,
-    existing: existingKeys.has(`code:${normalize(code)}`) || existingKeys.has(`client:${normalize(client)}`)
+    existing: existingKeys.has(`code:${normalize(code)}`) ||
+      existingKeys.has(`client-branch:${normalizeClinicName(client)}|${normalizeBranch(branch)}`) ||
+      existingKeys.has(`client:${normalizeClinicName(client)}`)
   };
 }
 

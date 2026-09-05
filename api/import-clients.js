@@ -57,6 +57,12 @@ function normalizeBranch(value) {
     .replace(/사업장명|사업장|영업소|지점명|지점|센터/g, "");
 }
 
+function normalizeClinicName(value) {
+  return normalize(value)
+    .replace(/[()（）\[\]{}]/g, "")
+    .replace(/치과의원|치과병원|의원|병원/g, "");
+}
+
 function isCimsBranchAllowed(branch) {
   return /지점$/.test(cleanCell(branch));
 }
@@ -289,6 +295,102 @@ function existingClientRows(statsRows, now) {
   return rows;
 }
 
+function reportClientLooksLikeDirectoryItem(reportClient, directoryItem) {
+  const reportKey = normalizeClinicName(reportClient);
+  const clientKey = normalizeClinicName(directoryItem && directoryItem.client_name);
+  const branchKey = normalizeBranch(directoryItem && directoryItem.branch_name);
+  const branchTextKey = normalize(directoryItem && directoryItem.branch_name);
+  if (!reportKey || !clientKey) return false;
+  if (reportKey === clientKey) return true;
+  if (!branchKey) return false;
+  return reportKey === branchTextKey + clientKey ||
+    reportKey === clientKey + branchTextKey ||
+    (reportKey.includes(clientKey) && reportKey.includes(branchKey));
+}
+
+function branchLooksSame(a, b) {
+  const left = normalizeBranch(a);
+  const right = normalizeBranch(b);
+  return Boolean(left && right && (left === right || left.includes(right) || right.includes(left)));
+}
+
+function buildOwnerBranchMap(branchRows) {
+  return branchRows.reduce((map, row) => {
+    const ownerKey = normalize(row.owner);
+    if (!ownerKey) return map;
+    if (!map.has(ownerKey)) map.set(ownerKey, new Set());
+    map.get(ownerKey).add(row.branch_key);
+    return map;
+  }, new Map());
+}
+
+function uniqueReportMatch(report, directoryRows, ownerBranchMap) {
+  if (!report || cleanCell(report.client_code)) return null;
+  const ownerBranches = ownerBranchMap.get(normalize(report.owner)) || new Set();
+  const ownerScoped = ownerBranches.size
+    ? directoryRows.filter((item) => ownerBranches.has(item.branch_key))
+    : directoryRows;
+  let matches = ownerScoped.filter((item) => reportClientLooksLikeDirectoryItem(report.client, item));
+  if (!matches.length) return null;
+
+  if (report.branch_name) {
+    const branchMatches = matches.filter((item) => branchLooksSame(item.branch_name, report.branch_name));
+    if (branchMatches.length) matches = branchMatches;
+  }
+
+  const byCode = new Map();
+  matches.forEach((item) => {
+    const code = normalize(item.client_code);
+    if (code) byCode.set(code, item);
+  });
+  if (byCode.size === 1) return Array.from(byCode.values())[0];
+  if (matches.length === 1) return matches[0];
+  return null;
+}
+
+async function supabasePaged(pathBase, pageSize = 1000, maxPages = 30) {
+  const rows = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const separator = pathBase.includes("?") ? "&" : "?";
+    const pageRows = await supabase(`${pathBase}${separator}limit=${pageSize}&offset=${page * pageSize}`);
+    if (!Array.isArray(pageRows) || !pageRows.length) break;
+    rows.push(...pageRows);
+    if (pageRows.length < pageSize) break;
+  }
+  return rows;
+}
+
+async function backfillReportClientCodes(directoryRows, branchRows) {
+  const reportRows = await supabasePaged("reports?select=id,owner,client,branch_name,client_code&order=created_at.asc");
+  const ownerBranchMap = buildOwnerBranchMap(branchRows);
+  let updated = 0;
+  let ambiguous = 0;
+  let skipped = 0;
+
+  for (const report of reportRows) {
+    if (cleanCell(report.client_code)) {
+      skipped += 1;
+      continue;
+    }
+    const match = uniqueReportMatch(report, directoryRows, ownerBranchMap);
+    if (!match) {
+      ambiguous += 1;
+      continue;
+    }
+    await supabase(`reports?id=eq.${encodeURIComponent(report.id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        client_code: match.client_code || "",
+        branch_name: report.branch_name || match.branch_name || ""
+      })
+    });
+    updated += 1;
+  }
+
+  return { total: reportRows.length, updated, ambiguous, skipped };
+}
+
 async function clearTable(table) {
   await supabase(`${table}?id=neq.__never__`, {
     method: "DELETE",
@@ -344,6 +446,7 @@ module.exports = async function handler(req, res) {
     await upsertRows("client_directory", directoryRows);
     await upsertRows("owner_branch_map", branchRows);
     await upsertRows("existing_clients", existingRows);
+    const backfill = await backfillReportClientCodes(directoryRows, branchRows);
 
     return json(res, 200, {
       ok: true,
@@ -351,6 +454,7 @@ module.exports = async function handler(req, res) {
       clientDirectoryCount: directoryRows.length,
       ownerBranchCount: branchRows.length,
       existingClientCount: existingRows.length,
+      reportClientCodeBackfill: backfill,
       cimsRule: "CIMS K열이 지점으로 끝나는 거래처만 저장했습니다."
     });
   } catch (error) {

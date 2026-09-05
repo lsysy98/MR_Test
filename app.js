@@ -543,7 +543,7 @@ function appendClientMeta(parent, item) {
   if (codeText) {
     var code = document.createElement("span");
     code.className = "client-code";
-    code.textContent = codeText;
+    code.textContent = "코드 " + codeText;
     parent.appendChild(code);
   }
   if (branchText) {
@@ -1358,11 +1358,9 @@ async function loadData() {
   status("보고 데이터를 불러오는 중입니다.", "");
   await loadCalendarDays(true);
   reports = await api("GET");
+  await enrichReportsWithClientDirectory();
   status("", "");
   render();
-  enrichReportsWithClientDirectory().then(function() {
-    render();
-  });
   loadCompletionsForSelectedDate();
 }
 async function addData(item, skipNotice) {

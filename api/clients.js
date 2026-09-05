@@ -195,6 +195,15 @@ function annotateCimsRows(cimsRows, statsRows) {
   }));
 }
 
+function smallSample(rows, count = 5) {
+  return rows.slice(0, count).map((item) => ({
+    code: item.code || "",
+    client: item.client || "",
+    branch: item.branch || "",
+    owner: item.owner || ""
+  }));
+}
+
 function scoreItem(item, query) {
   const client = normalize(item.client);
   const branch = normalize(item.branch);
@@ -236,21 +245,31 @@ module.exports = async function handler(req, res) {
     const statsResult = await fetchSheetCsv(STATS_SHEET_ID, STATS_SHEET_GID, "전체처방통계")
       .then((csv) => ({ ok: true, rows: rowsFromStatsCsv(csv) }))
       .catch((error) => ({ ok: false, rows: [], error }));
+    const cimsRows = rowsFromCimsCsv(cimsCsv);
     const ownerBranches = ownerBranchScope(owner, statsResult.rows);
-    const rows = annotateCimsRows(rowsFromCimsCsv(cimsCsv), statsResult.rows)
-      .filter((item) => branchMatchesScope(item.branch, ownerBranches));
+    const annotatedRows = annotateCimsRows(cimsRows, statsResult.rows);
+    const scopedRows = ownerBranches.length
+      ? annotatedRows.filter((item) => branchMatchesScope(item.branch, ownerBranches))
+      : annotatedRows;
+    const branchFilterFallback = ownerBranches.length > 0 && scopedRows.length === 0;
+    const rows = branchFilterFallback ? annotatedRows : scopedRows;
 
     if (requestUrl.searchParams.get("debug") === "1") {
       return json(res, 200, {
         ok: true,
         cimsLoaded: true,
-        cimsCount: rows.length,
+        cimsTotal: cimsRows.length,
+        cimsAfterOwnerBranchFilter: scopedRows.length,
+        cimsVisibleCount: rows.length,
         cimsSheetIdStart: CIMS_SHEET_ID.slice(0, 10),
         statsLoaded: statsResult.ok,
         statsCount: statsResult.rows.length,
         statsError: statsResult.ok ? "" : statsResult.error?.message || "전체처방통계 연결 실패",
         owner: owner,
         ownerBranches: ownerBranches,
+        branchFilterFallback: branchFilterFallback,
+        cimsSample: smallSample(cimsRows),
+        statsOwnerSample: smallSample(statsResult.rows.filter((item) => normalize(item.owner) === normalize(owner))),
         message: "거래처 입력 후보는 CIMS A/B/K열만 사용하고, 전체처방통계 C/D/G/J열은 기존거래처 표시와 담당자 지점 파악에만 사용합니다."
       });
     }

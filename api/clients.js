@@ -2,6 +2,8 @@ const DEFAULT_CIMS_SHEET_ID = "1ciVrJFqZyrXQvgBxZtSLwn9MxvOculLugDERIpHeEkY";
 const DEFAULT_CIMS_SHEET_GID = "0";
 const DEFAULT_STATS_SHEET_ID = "18g8f_EtcBQ7bMTg8rwnkHUsMxmHFAxoAz7hcF9weFm8";
 const DEFAULT_STATS_SHEET_GID = "627148657";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const CIMS_SHEET_ID =
   process.env.CIMS_SHEET_ID ||
@@ -24,10 +26,18 @@ const STATS_SHEET_GID =
   process.env.PRESCRIPTION_STATS_SHEET_GID ||
   DEFAULT_STATS_SHEET_GID;
 
+function cleanSupabaseUrl() {
+  if (!SUPABASE_URL) return "";
+  return SUPABASE_URL
+    .trim()
+    .replace(/\/rest\/v1\/?$/i, "")
+    .replace(/\/+$/g, "");
+}
+
 function json(res, status, data) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+  res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(data));
 }
 
@@ -47,6 +57,10 @@ function normalizeBranch(value) {
   return normalize(value)
     .replace(/[()（）\[\]{}]/g, "")
     .replace(/사업장명|사업장|영업소|지점명|지점|센터/g, "");
+}
+
+function isCimsBranchAllowed(branch) {
+  return /지점$/.test(cleanCell(branch));
 }
 
 function uniqueValues(values) {
@@ -105,6 +119,55 @@ function parseCsv(text) {
   return rows;
 }
 
+async function supabase(path, options = {}) {
+  const baseUrl = cleanSupabaseUrl();
+
+  if (!baseUrl || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(baseUrl)) {
+    throw new Error("SUPABASE_URL must look like https://xxxx.supabase.co");
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/rest/v1/${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+        ...(options.headers || {})
+      }
+    });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Supabase response timed out.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(data?.message || text || "Supabase request failed.");
+  }
+
+  return data;
+}
+
+function isMissingSupabaseLookup(error) {
+  return /client_directory|owner_branch_map|existing_clients|schema cache|relation .* does not exist|42P01/i.test(error?.message || "");
+}
+
 function findCimsHeaderIndex(rows) {
   return rows.findIndex((row, index) => {
     if (index > 20) return false;
@@ -128,6 +191,7 @@ function rowsFromCimsCsv(text) {
     .filter((item) => {
       if (item.index === headerIndex) return false;
       if (!item.client) return false;
+      if (!isCimsBranchAllowed(item.branch)) return false;
       const key = item.code ? `code:${normalize(item.code)}` : `client:${normalize(item.client)}:${normalize(item.branch)}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -257,6 +321,101 @@ function formatItem(item) {
   };
 }
 
+function existingKeySet(rows) {
+  const keys = new Set();
+  rows.forEach((row) => {
+    const code = normalize(row.client_code || row.code);
+    const client = normalize(row.client_name || row.client);
+    if (code) keys.add(`code:${code}`);
+    if (client) keys.add(`client:${client}`);
+  });
+  return keys;
+}
+
+function supabaseItemFromRow(row, existingKeys) {
+  const code = row.client_code || "";
+  const client = row.client_name || "";
+  const branch = row.branch_name || "";
+  return {
+    index: Number(row.sort_order || 0),
+    code,
+    client,
+    branch,
+    existing: existingKeys.has(`code:${normalize(code)}`) || existingKeys.has(`client:${normalize(client)}`)
+  };
+}
+
+async function supabasePaged(pathBase, pageSize = 1000, maxPages = 30) {
+  const rows = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const separator = pathBase.includes("?") ? "&" : "?";
+    const pageRows = await supabase(`${pathBase}${separator}limit=${pageSize}&offset=${page * pageSize}`);
+    if (!Array.isArray(pageRows) || !pageRows.length) break;
+    rows.push(...pageRows);
+    if (pageRows.length < pageSize) break;
+  }
+  return rows;
+}
+
+async function readSupabaseLookup(owner, query, includeAll, limit) {
+  const readyRows = await supabase("client_directory?select=id&limit=1");
+  if (!Array.isArray(readyRows) || !readyRows.length) {
+    return { ok: true, ready: false, reason: "client_directory is empty" };
+  }
+
+  const ownerBranches = owner
+    ? await supabase(`owner_branch_map?owner=eq.${encodeURIComponent(owner)}&select=branch_name,branch_key&order=branch_name.asc&limit=200`)
+    : [];
+  const branchKeys = ownerBranches
+    .map((row) => normalizeBranch(row.branch_key || row.branch_name))
+    .filter(Boolean);
+
+  const filters = [
+    "select=id,client_code,client_name,branch_name,branch_key,search_text,sort_order",
+    "order=client_name.asc"
+  ];
+
+  if (branchKeys.length) {
+    filters.push(`branch_key=in.(${branchKeys.map(encodeURIComponent).join(",")})`);
+  }
+
+  if (query) {
+    filters.push(`search_text=ilike.*${encodeURIComponent(query)}*`);
+  }
+
+  const rowPath = `client_directory?${filters.join("&")}`;
+  const directoryRows = includeAll
+    ? await supabasePaged(rowPath)
+    : await supabase(`${rowPath}&limit=${Math.max(50, limit * 3)}`);
+  const existingRows = await supabasePaged("existing_clients?select=client_code,client_name");
+  const existingKeys = existingKeySet(existingRows);
+  let rows = directoryRows
+    .filter((row) => isCimsBranchAllowed(row.branch_name))
+    .map((row) => supabaseItemFromRow(row, existingKeys));
+
+  if (query) {
+    rows = rows
+      .filter((item) => {
+        return normalize(item.client).includes(query) ||
+          normalize(item.branch).includes(query) ||
+          normalize(item.code).includes(query);
+      })
+      .sort((a, b) => scoreItem(a, query) - scoreItem(b, query) || a.index - b.index)
+      .slice(0, limit);
+  }
+
+  return {
+    ok: true,
+    ready: true,
+    source: "supabase",
+    rows,
+    ownerBranches: branchKeys,
+    branchMatchedCount: directoryRows.length,
+    directoryCount: directoryRows.length,
+    existingCount: existingRows.length
+  };
+}
+
 module.exports = async function handler(req, res) {
   try {
     const requestUrl = new URL(req.url, "http://localhost");
@@ -267,6 +426,54 @@ module.exports = async function handler(req, res) {
 
     if (req.method !== "GET") {
       return json(res, 405, { error: "Method not allowed" });
+    }
+
+    const supabaseResult = await readSupabaseLookup(owner, query, includeAll, limit)
+      .catch((error) => ({ ok: false, ready: false, error }));
+
+    if (supabaseResult.ok && supabaseResult.ready) {
+      if (requestUrl.searchParams.get("debug") === "1") {
+        return json(res, 200, {
+          ok: true,
+          source: "supabase",
+          supabaseLookupReady: true,
+          cimsVisibleCount: supabaseResult.rows.length,
+          cimsAfterOwnerBranchFilter: supabaseResult.branchMatchedCount,
+          existingClientCount: supabaseResult.existingCount,
+          owner,
+          ownerBranches: supabaseResult.ownerBranches,
+          sample: smallSample(supabaseResult.rows),
+          message: "Supabase 거래처목록을 사용합니다. CIMS에서 K열이 지점으로 끝나는 거래처만 저장했고, 담당자별 지점은 전체처방통계 G/J 기준입니다."
+        });
+      }
+
+      if (includeAll) {
+        return json(res, 200, {
+          items: supabaseResult.rows.map(formatItem),
+          count: supabaseResult.rows.length,
+          source: "supabase",
+          cimsLoaded: true,
+          statsLoaded: true
+        });
+      }
+
+      if (!query) {
+        return json(res, 200, {
+          items: [],
+          count: 0,
+          source: "supabase",
+          cimsLoaded: true,
+          statsLoaded: true
+        });
+      }
+
+      return json(res, 200, {
+        items: supabaseResult.rows.map(formatItem),
+        count: supabaseResult.rows.length,
+        source: "supabase",
+        cimsLoaded: true,
+        statsLoaded: true
+      });
     }
 
     const cimsCsv = await fetchSheetCsv(CIMS_SHEET_ID, CIMS_SHEET_GID, "CIMS");
@@ -289,6 +496,9 @@ module.exports = async function handler(req, res) {
         statsLoaded: statsResult.ok,
         statsCount: statsResult.rows.length,
         statsError: statsResult.ok ? "" : statsResult.error?.message || "전체처방통계 연결 실패",
+        supabaseLookupReady: false,
+        supabaseLookupError: supabaseResult.ok ? supabaseResult.reason || "" : supabaseResult.error?.message || "",
+        supabaseMissingTable: supabaseResult.ok ? false : isMissingSupabaseLookup(supabaseResult.error),
         owner: owner,
         ownerBranches: ownerBranches,
         cimsSample: smallSample(cimsRows),

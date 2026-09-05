@@ -23,6 +23,7 @@ const STATS_SHEET_GID =
   process.env.CLIENT_STATS_SHEET_GID ||
   process.env.PRESCRIPTION_STATS_SHEET_GID ||
   DEFAULT_STATS_SHEET_GID;
+const TEAM_OWNERS = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
 
 function json(res, status, data) {
   res.statusCode = status;
@@ -39,8 +40,14 @@ function normalize(value) {
   return cleanCell(value).replace(/\s+/g, "").toLowerCase();
 }
 
+function normalizeOwner(value) {
+  return normalize(value);
+}
+
 function normalizeBranch(value) {
-  return normalize(value).replace(/지점$/g, "");
+  return normalize(value)
+    .replace(/[()（）\[\]{}]/g, "")
+    .replace(/사업장명|사업장|영업소|지점명|지점|센터/g, "");
 }
 
 function uniqueValues(values) {
@@ -99,16 +106,60 @@ function parseCsv(text) {
   return rows;
 }
 
+function findColumn(header, names) {
+  const keys = names.map(normalize);
+  for (let i = 0; i < header.length; i += 1) {
+    const key = normalize(header[i]);
+    if (keys.some((name) => key === name || key.includes(name))) return i;
+  }
+  return -1;
+}
+
+function findCimsHeaderIndex(rows) {
+  return rows.findIndex((row, index) => {
+    if (index > 20) return false;
+    return /거래처|치과/.test(normalize(row[1])) || /거래처코드|코드/.test(normalize(row[0]));
+  });
+}
+
+function findCimsOwnerIndex(rows, headerIndex) {
+  if (headerIndex >= 0) {
+    const headerMatch = findColumn(rows[headerIndex], ["MR담당자명", "담당자명", "담당자", "MR"]);
+    if (headerMatch >= 0) return headerMatch;
+  }
+
+  const ownerSet = new Set(TEAM_OWNERS.map(normalizeOwner));
+  const maxColumns = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  let bestIndex = -1;
+  let bestCount = 0;
+  for (let column = 0; column < maxColumns; column += 1) {
+    let count = 0;
+    rows.slice(0, 500).forEach((row) => {
+      if (ownerSet.has(normalizeOwner(row[column]))) count += 1;
+    });
+    if (count > bestCount) {
+      bestCount = count;
+      bestIndex = column;
+    }
+  }
+  return bestCount >= 2 ? bestIndex : -1;
+}
+
 function rowsFromCimsCsv(text) {
+  const rawRows = parseCsv(text).map((row) => row.map(cleanCell));
+  const headerIndex = findCimsHeaderIndex(rawRows);
+  const ownerIndex = findCimsOwnerIndex(rawRows, headerIndex);
   const seen = new Set();
-  return parseCsv(text)
+  return rawRows
     .map((row, index) => ({
       index,
       code: cleanCell(row[0]),
       client: cleanCell(row[1]),
-      branch: cleanCell(row[10])
+      branch: cleanCell(row[10]),
+      owner: ownerIndex >= 0 ? cleanCell(row[ownerIndex]) : ""
     }))
     .filter((item) => {
+      if (item.index === headerIndex) return false;
       if (!item.client) return false;
       if (item.index === 0 && /코드|거래처|치과|사업장|지점/i.test(`${item.code} ${item.client} ${item.branch}`)) return false;
       const key = item.code ? `code:${normalize(item.code)}` : `client:${normalize(item.client)}:${normalize(item.branch)}`;
@@ -169,11 +220,11 @@ function branchMatchesScope(branch, branchScope) {
 }
 
 function ownerBranchScope(owner, statsRows) {
-  const ownerKey = normalize(owner);
+  const ownerKey = normalizeOwner(owner);
   if (!ownerKey) return [];
   return uniqueValues(
     statsRows
-      .filter((item) => normalize(item.owner) === ownerKey)
+      .filter((item) => normalizeOwner(item.owner) === ownerKey)
       .map((item) => item.branch)
   ).map(normalizeBranch).filter(Boolean);
 }
@@ -202,6 +253,24 @@ function smallSample(rows, count = 5) {
     branch: item.branch || "",
     owner: item.owner || ""
   }));
+}
+
+function scopeCimsRows(cimsRows, owner, ownerBranches) {
+  const ownerKey = normalizeOwner(owner);
+  const hasCimsOwner = cimsRows.some((item) => Boolean(normalizeOwner(item.owner)));
+  const ownerRows = ownerKey && hasCimsOwner
+    ? cimsRows.filter((item) => normalizeOwner(item.owner) === ownerKey)
+    : cimsRows;
+  const branchRows = ownerBranches.length
+    ? ownerRows.filter((item) => branchMatchesScope(item.branch, ownerBranches))
+    : ownerRows;
+
+  return {
+    rows: branchRows,
+    hasCimsOwner,
+    ownerMatchedCount: ownerRows.length,
+    branchMatchedCount: branchRows.length
+  };
 }
 
 function scoreItem(item, query) {
@@ -247,19 +316,17 @@ module.exports = async function handler(req, res) {
       .catch((error) => ({ ok: false, rows: [], error }));
     const cimsRows = rowsFromCimsCsv(cimsCsv);
     const ownerBranches = ownerBranchScope(owner, statsResult.rows);
-    const annotatedRows = annotateCimsRows(cimsRows, statsResult.rows);
-    const scopedRows = ownerBranches.length
-      ? annotatedRows.filter((item) => branchMatchesScope(item.branch, ownerBranches))
-      : annotatedRows;
-    const branchFilterFallback = ownerBranches.length > 0 && scopedRows.length === 0;
-    const rows = branchFilterFallback ? annotatedRows : scopedRows;
+    const scoped = scopeCimsRows(cimsRows, owner, ownerBranches);
+    const rows = annotateCimsRows(scoped.rows, statsResult.rows);
 
     if (requestUrl.searchParams.get("debug") === "1") {
       return json(res, 200, {
         ok: true,
         cimsLoaded: true,
         cimsTotal: cimsRows.length,
-        cimsAfterOwnerBranchFilter: scopedRows.length,
+        cimsHasOwnerColumn: scoped.hasCimsOwner,
+        cimsOwnerMatchedCount: scoped.ownerMatchedCount,
+        cimsAfterOwnerBranchFilter: scoped.branchMatchedCount,
         cimsVisibleCount: rows.length,
         cimsSheetIdStart: CIMS_SHEET_ID.slice(0, 10),
         statsLoaded: statsResult.ok,
@@ -267,10 +334,10 @@ module.exports = async function handler(req, res) {
         statsError: statsResult.ok ? "" : statsResult.error?.message || "전체처방통계 연결 실패",
         owner: owner,
         ownerBranches: ownerBranches,
-        branchFilterFallback: branchFilterFallback,
         cimsSample: smallSample(cimsRows),
-        statsOwnerSample: smallSample(statsResult.rows.filter((item) => normalize(item.owner) === normalize(owner))),
-        message: "거래처 입력 후보는 CIMS A/B/K열만 사용하고, 전체처방통계 C/D/G/J열은 기존거래처 표시와 담당자 지점 파악에만 사용합니다."
+        cimsOwnerSample: smallSample(cimsRows.filter((item) => normalizeOwner(item.owner) === normalizeOwner(owner))),
+        statsOwnerSample: smallSample(statsResult.rows.filter((item) => normalizeOwner(item.owner) === normalizeOwner(owner))),
+        message: "전체처방통계 G/J로 담당자 지점을 파악한 뒤, CIMS 담당자명과 K열 지점이 맞는 거래처만 입력 후보로 사용합니다."
       });
     }
 

@@ -31,9 +31,7 @@ var ownerFilters = {};
 var committedOwnerSearchTerm = "";
 var editingId = "";
 var ownerNames = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
-var ownerBranchScopes = {
-  "이승엽": ["서초지점", "관악지점", "반포", "동작", "광명", "시흥", "안산지점"]
-};
+var ownerBranchScopes = {};
 var productGroups = [
   { group: "항생제", items: ["아목시스", "아목시클라", "세파클리"] },
   { group: "진통제", items: ["록소리펜", "나프록소", "아세클로페낙"] },
@@ -59,6 +57,7 @@ var clientCodeInput = document.getElementById("clientCode");
 var clientInput = document.getElementById("client");
 var clientSuggestions = document.getElementById("clientSuggestions");
 var clientCodeSuggestions = document.getElementById("clientCodeSuggestions");
+var clientMatchStatus = document.getElementById("clientMatchStatus");
 var branchInput = document.getElementById("branchName");
 var productInput = document.getElementById("product");
 var productChooseBtn = document.getElementById("productChooseBtn");
@@ -482,6 +481,8 @@ function currentOwnerBranchScope() {
   return ownerBranchScopes[owner] || [];
 }
 function applyClientLookupParams(params) {
+  var owner = ownerInput ? ownerInput.value.trim() : "";
+  if (owner) params.set("owner", owner);
   var branches = currentOwnerBranchScope();
   if (branches.length) params.set("branches", branches.join(","));
 }
@@ -508,6 +509,27 @@ function clientSuggestionSubtitle(item) {
   if (item.code) parts.push("코드 " + item.code);
   if (item.branch) parts.push(item.branch);
   return parts.join(" · ") || "지점명 없음";
+}
+function clearClientMatchStatus() {
+  if (!clientMatchStatus) return;
+  clientMatchStatus.classList.remove("active");
+  clientMatchStatus.classList.remove("existing");
+  clientMatchStatus.textContent = "";
+}
+function setClientMatchStatus(item) {
+  if (!clientMatchStatus) return;
+  if (!item) {
+    clearClientMatchStatus();
+    return;
+  }
+  var parts = [];
+  if (item.existing) parts.push("기존 거래처");
+  else if (item.code) parts.push("거래처 코드 연결");
+  if (item.code) parts.push("코드 " + item.code);
+  if (item.branch) parts.push(item.branch);
+  clientMatchStatus.textContent = parts.join(" · ");
+  clientMatchStatus.classList.add("active");
+  clientMatchStatus.classList.toggle("existing", Boolean(item.existing));
 }
 function itemClientCode(item) {
   return String(item && item.clientCode || "").trim();
@@ -537,6 +559,7 @@ function applyClientMatch(item) {
   if (clientCodeInput) clientCodeInput.value = item.code || "";
   if (clientInput) clientInput.value = item.client || "";
   if (branchInput) branchInput.value = item.branch || "";
+  setClientMatchStatus(item);
   hideAllClientSuggestions();
 }
 function renderClientSuggestions(box, items, mode) {
@@ -550,13 +573,22 @@ function renderClientSuggestions(box, items, mode) {
     var button = document.createElement("button");
     button.className = "client-suggestion";
     button.type = "button";
+    var title = document.createElement("span");
+    title.className = "client-suggestion-title";
     var name = document.createElement("strong");
     name.textContent = item.client || "-";
+    title.appendChild(name);
+    if (item.existing) {
+      var badge = document.createElement("span");
+      badge.className = "client-existing-badge";
+      badge.textContent = "기존 거래처";
+      title.appendChild(badge);
+    }
     var code = document.createElement("code");
     code.textContent = item.code || "";
     var meta = document.createElement("small");
     meta.textContent = clientSuggestionSubtitle(item);
-    button.appendChild(name);
+    button.appendChild(title);
     button.appendChild(code);
     button.appendChild(meta);
     button.addEventListener("click", function() {
@@ -599,6 +631,7 @@ function clearClientCode() {
   lastSelectedClientMatch = null;
   if (clientCodeInput) clientCodeInput.value = "";
   if (branchInput) branchInput.value = "";
+  clearClientMatchStatus();
   hideAllClientSuggestions();
 }
 async function autoApplyExactClientMatch() {
@@ -613,11 +646,19 @@ async function autoApplyExactClientMatch() {
     applyClientLookupParams(params);
     var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
     var normalized = lookupKey(term);
-    var exact = (result.items || []).find(function(item) {
-      return lookupKey(item.code) === normalized || lookupKey(item.client) === normalized;
+    var items = result.items || [];
+    var exactCode = items.find(function(item) {
+      return lookupKey(item.code) === normalized;
     });
-    if (exact) {
-      applyClientMatch(exact);
+    if (exactCode) {
+      applyClientMatch(exactCode);
+      return true;
+    }
+    var exactClients = items.filter(function(item) {
+      return lookupKey(item.client) === normalized;
+    });
+    if (exactClients.length === 1) {
+      applyClientMatch(exactClients[0]);
       return true;
     }
     return false;
@@ -633,6 +674,18 @@ function branchLooksSame(a, b) {
   var left = normalizeBranchKey(a);
   var right = normalizeBranchKey(b);
   return Boolean(left && right && left === right);
+}
+function reportClientLooksLikeDirectoryItem(reportClient, directoryItem) {
+  var reportKey = lookupKey(reportClient);
+  var clientKey = lookupKey(directoryItem && directoryItem.client);
+  var branchKey = normalizeBranchKey(directoryItem && directoryItem.branch);
+  var branchTextKey = lookupKey(directoryItem && directoryItem.branch);
+  if (!reportKey || !clientKey) return false;
+  if (reportKey === clientKey) return true;
+  if (!branchKey) return false;
+  return reportKey === branchTextKey + clientKey ||
+    reportKey === clientKey + branchTextKey ||
+    (reportKey.indexOf(clientKey) >= 0 && reportKey.indexOf(branchKey) >= 0);
 }
 async function loadClientDirectory() {
   if (clientDirectory.length) return clientDirectory;
@@ -651,10 +704,8 @@ async function loadClientDirectory() {
 }
 function uniqueClientDirectoryMatch(report) {
   if (!report || report.clientCode || !clientDirectory.length) return null;
-  var clientKey = lookupKey(report.client);
-  if (!clientKey) return null;
   var clientMatches = clientDirectory.filter(function(item) {
-    return lookupKey(item.client) === clientKey;
+    return reportClientLooksLikeDirectoryItem(report.client, item);
   });
   if (!clientMatches.length) return null;
   var branchText = itemBranchName(report);
@@ -674,7 +725,8 @@ async function enrichReportsWithClientDirectory() {
     if (!match) return report;
     return Object.assign({}, report, {
       clientCode: match.code || report.clientCode || "",
-      branchName: report.branchName || match.branch || ""
+      branchName: report.branchName || match.branch || "",
+      existingClient: Boolean(match.existing)
     });
   });
 }

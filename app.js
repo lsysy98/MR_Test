@@ -481,10 +481,7 @@ function currentOwnerBranchScope() {
   return ownerBranchScopes[owner] || [];
 }
 function applyClientLookupParams(params) {
-  var owner = ownerInput ? ownerInput.value.trim() : "";
-  if (owner) params.set("owner", owner);
-  var branches = currentOwnerBranchScope();
-  if (branches.length) params.set("branches", branches.join(","));
+  return params;
 }
 function hideClientSuggestions(box) {
   if (!box) return;
@@ -523,8 +520,7 @@ function setClientMatchStatus(item) {
     return;
   }
   var parts = [];
-  if (item.existing) parts.push("기존 거래처");
-  else if (item.code) parts.push("거래처 코드 연결");
+  if (item.code) parts.push("거래처 코드 연결");
   if (item.code) parts.push("코드 " + item.code);
   if (item.branch) parts.push(item.branch);
   clientMatchStatus.textContent = parts.join(" · ");
@@ -611,7 +607,7 @@ async function loadClientSuggestions(mode) {
   try {
     var params = new URLSearchParams();
     params.set("q", term);
-    params.set("limit", "12");
+    params.set("limit", "20");
     applyClientLookupParams(params);
     var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
     if (seq !== clientLookupSeq) return;

@@ -27,7 +27,7 @@
     }
     body { margin: 0; background: var(--bg); color: var(--text); font-family: "Malgun Gothic", system-ui, sans-serif; }
     header { background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line); padding: 14px 16px; position: sticky; top: 0; z-index: 5; box-shadow: 0 2px 14px rgba(120, 74, 36, .06); }
-    .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1120px; margin: 0 auto; }
     h1 { margin: 0; font-size: 19px; user-select: none; }
     .admin-menu-wrap {
       position: relative;
@@ -1118,8 +1118,43 @@
     .status { border: 1px solid #cbd8d1; border-radius: 8px; padding: 10px 12px; background: #fbfdfc; color: var(--muted); font-size: 13px; }
     .status.ok { border-color: #98d8bf; background: #ecf9f3; color: #0f5b47; }
     .status.error { border-color: #efb8b8; background: #fff1f1; color: #b42323; }
+    .desktop-tabs {
+      flex: 1;
+      max-width: 760px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid #e5d4c6;
+      border-radius: 8px;
+      background: #fff7f0;
+    }
     .mobile-tabs { display: none; }
+    .mobile-tab {
+      min-height: 38px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .mobile-tab.active { background: var(--green); color: #fff; }
     .today-panel, .code-panel { grid-column: 2; }
+    @media (min-width: 901px) {
+      body.view-form main { grid-template-columns: minmax(320px, 440px); justify-content: center; }
+      body.view-dashboard main,
+      body.view-today main,
+      body.view-meeting main,
+      body.view-codes main { grid-template-columns: minmax(0, 1fr); }
+      body.view-dashboard .input-panel, body.view-dashboard .today-panel, body.view-dashboard .meeting-panel, body.view-dashboard .code-panel { display: none; }
+      body.view-form .dashboard, body.view-form .today-panel, body.view-form .meeting-panel, body.view-form .code-panel { display: none; }
+      body.view-today .input-panel, body.view-today .dashboard, body.view-today .meeting-panel, body.view-today .code-panel { display: none; }
+      body.view-meeting .input-panel, body.view-meeting .dashboard, body.view-meeting .today-panel, body.view-meeting .code-panel { display: none; }
+      body.view-codes .input-panel, body.view-codes .dashboard, body.view-codes .today-panel, body.view-codes .meeting-panel { display: none; }
+      .dashboard, .today-panel, .meeting-panel, .code-panel { grid-column: 1; }
+    }
     .summary-title { margin: 2px 0 -2px; color: var(--muted); font-size: 14px; font-weight: 800; }
     .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .metric { padding: 14px; min-height: 92px; display: grid; gap: 6px; align-content: space-between; }
@@ -1478,12 +1513,11 @@
     .empty { color: var(--muted); text-align: center; padding: 18px 10px; border: 1px dashed #e5d4c6; border-radius: 8px; background: #fff; }
     @media (max-width: 900px) {
       header { padding: 12px 12px 10px; }
+      .desktop-tabs { display: none; }
       .header-settings { min-height: 32px; padding: 0 9px; font-size: 12px; }
       .header-menu-toggle { width: 38px; padding: 0; }
       .admin-menu { width: 142px; }
       .mobile-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 10px; padding: 4px; border: 1px solid #e5d4c6; border-radius: 8px; background: #fff7f0; }
-      .mobile-tab { min-height: 38px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
-      .mobile-tab.active { background: var(--green); color: #fff; }
       main { display: block; padding: 14px 12px 24px; }
       body.view-dashboard .input-panel, body.view-dashboard .today-panel, body.view-dashboard .meeting-panel, body.view-dashboard .code-panel { display: none; }
       body.view-form .dashboard, body.view-form .today-panel, body.view-form .meeting-panel, body.view-form .code-panel { display: none; }
@@ -2321,6 +2355,13 @@
   <header>
     <div class="header-top">
       <h1 id="appTitle">테스트</h1>
+      <div class="desktop-tabs" aria-label="화면 선택">
+        <button class="mobile-tab active" type="button" data-view="form">작성하기</button>
+        <button class="mobile-tab" type="button" data-view="dashboard">월간현황</button>
+        <button class="mobile-tab" type="button" data-view="today">일일현황</button>
+        <button class="mobile-tab" type="button" data-view="meeting">회의자료</button>
+        <button class="mobile-tab" type="button" data-view="codes">코드확인</button>
+      </div>
       <div class="admin-menu-wrap">
         <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="메뉴" aria-expanded="false">
           <span class="menu-bar" aria-hidden="true"></span>
@@ -2756,7 +2797,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260907-0014"></script>
+  <script src="app.js?v=20260907-0015"></script>
 </body>
 </html>
 

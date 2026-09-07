@@ -1120,9 +1120,9 @@
     .status.error { border-color: #efb8b8; background: #fff1f1; color: #b42323; }
     .desktop-tabs {
       flex: 1;
-      max-width: 620px;
+      max-width: 720px;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       padding: 4px;
       border: 1px solid #e5d4c6;
@@ -1150,26 +1150,29 @@
         width: calc(100% - 48px);
         padding: 18px 0 30px;
       }
-      body.view-daily-work main { grid-template-columns: minmax(340px, 430px) minmax(0, 1fr); align-items: start; }
-      body.view-monthly-work main { grid-template-columns: minmax(520px, .95fr) minmax(520px, 1.05fr); align-items: start; }
-      body.view-form main { grid-template-columns: minmax(360px, 560px); justify-content: center; }
       body.view-dashboard main,
       body.view-today main,
       body.view-meeting main,
-      body.view-codes main { grid-template-columns: minmax(0, 1fr); }
+      body.view-codes main,
+      body.view-daily-work main,
+      body.view-monthly-work main { grid-template-columns: minmax(340px, 430px) minmax(0, 1fr); align-items: start; }
+      body.view-form main { grid-template-columns: minmax(360px, 560px); justify-content: center; }
       body.view-daily-work .dashboard, body.view-daily-work .meeting-panel, body.view-daily-work .code-panel { display: none; }
-      body.view-monthly-work .input-panel, body.view-monthly-work .today-panel, body.view-monthly-work .code-panel { display: none; }
-      body.view-dashboard .input-panel, body.view-dashboard .today-panel, body.view-dashboard .meeting-panel, body.view-dashboard .code-panel { display: none; }
+      body.view-monthly-work .today-panel, body.view-monthly-work .meeting-panel, body.view-monthly-work .code-panel { display: none; }
+      body.view-dashboard .today-panel, body.view-dashboard .meeting-panel, body.view-dashboard .code-panel { display: none; }
       body.view-form .dashboard, body.view-form .today-panel, body.view-form .meeting-panel, body.view-form .code-panel { display: none; }
-      body.view-today .input-panel, body.view-today .dashboard, body.view-today .meeting-panel, body.view-today .code-panel { display: none; }
-      body.view-meeting .input-panel, body.view-meeting .dashboard, body.view-meeting .today-panel, body.view-meeting .code-panel { display: none; }
-      body.view-codes .input-panel, body.view-codes .dashboard, body.view-codes .today-panel, body.view-codes .meeting-panel { display: none; }
+      body.view-today .dashboard, body.view-today .meeting-panel, body.view-today .code-panel { display: none; }
+      body.view-meeting .dashboard, body.view-meeting .today-panel, body.view-meeting .code-panel { display: none; }
+      body.view-codes .dashboard, body.view-codes .today-panel, body.view-codes .meeting-panel { display: none; }
       .dashboard, .today-panel, .meeting-panel, .code-panel { grid-column: auto; }
       body.view-daily-work .input-panel { grid-column: 1; }
       body.view-daily-work .today-panel { grid-column: 2; }
+      body.view-dashboard .dashboard,
+      body.view-today .today-panel,
+      body.view-meeting .meeting-panel,
+      body.view-codes .code-panel { grid-column: 2; }
       body.view-monthly-work .dashboard { grid-column: 1; }
       body.view-monthly-work .meeting-panel { grid-column: 2; }
-      body.view-codes .code-panel { grid-column: 1; }
       .dashboard > section,
       .today-panel > section,
       .meeting-panel > section,
@@ -2379,10 +2382,16 @@
       .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
       .meeting-slide { max-width: 1280px; margin: 0 auto; }
       .code-review-list { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
-      body.view-daily-work .summary { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
-      body.view-monthly-work .summary { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
-      body.view-monthly-work .dashboard,
-      body.view-monthly-work .meeting-panel { min-width: 0; }
+      body.view-dashboard .summary,
+      body.view-today .summary,
+      body.view-meeting .summary,
+      body.view-codes .summary,
+      body.view-daily-work .summary,
+      body.view-monthly-work .summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .dashboard,
+      .today-panel,
+      .meeting-panel,
+      .code-panel { min-width: 0; }
       .dashboard .body,
       .today-panel .body,
       .meeting-panel .body,
@@ -2396,8 +2405,9 @@
     <div class="header-top">
       <h1 id="appTitle">테스트</h1>
       <div class="desktop-tabs" aria-label="화면 선택">
-        <button class="mobile-tab active" type="button" data-view="daily-work">작성하기 · 일일현황</button>
-        <button class="mobile-tab" type="button" data-view="monthly-work">월간현황 · 회의자료</button>
+        <button class="mobile-tab" type="button" data-view="dashboard">월간현황</button>
+        <button class="mobile-tab active" type="button" data-view="today">일일현황</button>
+        <button class="mobile-tab" type="button" data-view="meeting">회의자료</button>
       </div>
       <div class="admin-menu-wrap">
         <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="메뉴" aria-expanded="false">
@@ -2833,7 +2843,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260907-0016"></script>
+  <script src="app.js?v=20260908-0017"></script>
 </body>
 </html>
 

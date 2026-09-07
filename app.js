@@ -4411,8 +4411,8 @@ function isDesktopLayout() {
 }
 function normalizeViewForLayout(view) {
   if (isDesktopLayout()) {
-    if (!view || view === "form" || view === "today") return "daily-work";
-    if (view === "dashboard" || view === "meeting") return "monthly-work";
+    if (!view || view === "form" || view === "daily-work") return "today";
+    if (view === "monthly-work") return "dashboard";
     return view;
   }
   if (view === "daily-work") return "form";
@@ -4457,7 +4457,7 @@ function startEdit(item) {
   updateTypeButtons();
   updateAmountPreview();
   document.getElementById("submitBtn").textContent = "수정 저장";
-  setActiveView(isDesktopLayout() ? "daily-work" : "form", false);
+  setActiveView(isDesktopLayout() ? "today" : "form", false);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 

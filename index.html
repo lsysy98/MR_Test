@@ -1139,12 +1139,21 @@
       font-weight: 800;
       cursor: pointer;
       white-space: nowrap;
+      appearance: none;
+      box-shadow: none;
     }
     .mobile-tab.active { background: var(--green); color: #fff; }
     .today-panel, .code-panel { grid-column: 2; }
     @media (min-width: 901px) {
       header { padding-left: 24px; padding-right: 24px; }
-      .header-top { max-width: 1560px; }
+      .header-top {
+        max-width: 1084px;
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(340px, 430px) minmax(360px, 1fr) auto;
+        align-items: center;
+      }
+      .desktop-tabs { width: 100%; max-width: none; }
       main {
         max-width: 1560px;
         width: calc(100% - 48px);

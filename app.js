@@ -674,7 +674,7 @@ function scheduleClientLookup(mode) {
   if (clientLookupTimer) clearTimeout(clientLookupTimer);
   clientLookupTimer = setTimeout(function() {
     loadClientSuggestions(mode);
-  }, 220);
+  }, 300);
 }
 function clearClientCode() {
   lastSelectedClientMatch = null;
@@ -1622,12 +1622,15 @@ async function loadExhibitions() {
 }
 async function loadData() {
   status("보고 데이터를 불러오는 중입니다.", "");
-  await loadCalendarDays(true);
-  reports = await api("GET");
-  await enrichReportsWithClientDirectory();
+  var loaded = await Promise.all([
+    api("GET"),
+    loadCalendarDays(true),
+    loadCompletionsForSelectedDate(true),
+    loadExhibitions()
+  ]);
+  reports = loaded[0];
   status("", "");
   render();
-  loadCompletionsForSelectedDate();
 }
 async function addData(item, skipNotice) {
   var saved = await api("POST", item);

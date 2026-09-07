@@ -1120,7 +1120,7 @@
     .status.error { border-color: #efb8b8; background: #fff1f1; color: #b42323; }
     .desktop-tabs {
       flex: 1;
-      max-width: 760px;
+      max-width: 980px;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
@@ -1143,7 +1143,14 @@
     .mobile-tab.active { background: var(--green); color: #fff; }
     .today-panel, .code-panel { grid-column: 2; }
     @media (min-width: 901px) {
-      body.view-form main { grid-template-columns: minmax(320px, 440px); justify-content: center; }
+      header { padding-left: 24px; padding-right: 24px; }
+      .header-top { max-width: 1560px; }
+      main {
+        max-width: 1560px;
+        width: calc(100% - 48px);
+        padding: 18px 0 30px;
+      }
+      body.view-form main { grid-template-columns: minmax(360px, 560px); justify-content: center; }
       body.view-dashboard main,
       body.view-today main,
       body.view-meeting main,
@@ -1154,6 +1161,15 @@
       body.view-meeting .input-panel, body.view-meeting .dashboard, body.view-meeting .today-panel, body.view-meeting .code-panel { display: none; }
       body.view-codes .input-panel, body.view-codes .dashboard, body.view-codes .today-panel, body.view-codes .meeting-panel { display: none; }
       .dashboard, .today-panel, .meeting-panel, .code-panel { grid-column: 1; }
+      .dashboard > section,
+      .today-panel > section,
+      .meeting-panel > section,
+      .code-panel > section { min-height: 0; }
+      .summary { grid-template-columns: repeat(4, minmax(180px, 1fr)); }
+      .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .meeting-slide { max-width: 1280px; margin: 0 auto; }
+      .code-review-list { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+      .code-review-owner { align-self: start; }
     }
     .summary-title { margin: 2px 0 -2px; color: var(--muted); font-size: 14px; font-weight: 800; }
     .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -2347,6 +2363,17 @@
       .presentation-line { grid-template-columns: 1fr; gap: 4px; }
       .presentation-line strong { font-size: 20px; }
       .presentation-client-name { font-size: 19px; }
+    }
+
+    @media (min-width: 901px) {
+      .summary { grid-template-columns: repeat(4, minmax(180px, 1fr)); }
+      .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .meeting-slide { max-width: 1280px; margin: 0 auto; }
+      .code-review-list { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+      .dashboard .body,
+      .today-panel .body,
+      .meeting-panel .body,
+      .code-panel .body { padding-left: 18px; padding-right: 18px; }
     }
 
   </style>

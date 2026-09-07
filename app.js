@@ -3599,8 +3599,21 @@ function renderCodeReviewPanel() {
     var rows = document.createElement("div");
     rows.className = "code-review-rows";
     group.items.forEach(function(item) {
-      var row = document.createElement("div");
+      var row = document.createElement("button");
+      row.type = "button";
       row.className = "code-review-row";
+      row.addEventListener("click", function() {
+        if (ownerInput) {
+          ownerInput.value = group.owner;
+          localStorage.setItem("ownerName", group.owner);
+        }
+        if (clientInput) clientInput.value = item.client || "";
+        if (clientCodeInput) clientCodeInput.value = "";
+        if (branchInput) branchInput.value = item.branch || "";
+        lastSelectedClientMatch = null;
+        clearClientMatchStatus();
+        openManualClientModal(item.client || "", false, false);
+      });
 
       var main = document.createElement("div");
       main.className = "code-review-client";

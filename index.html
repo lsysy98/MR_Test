@@ -1156,7 +1156,10 @@
       body.view-codes main,
       body.view-daily-work main,
       body.view-monthly-work main { grid-template-columns: minmax(340px, 430px) minmax(0, 1fr); align-items: start; }
-      body.view-meeting main {
+      body.view-dashboard main,
+      body.view-today main,
+      body.view-meeting main,
+      body.view-codes main {
         grid-template-columns: minmax(340px, 430px) minmax(520px, 640px);
         justify-content: center;
       }
@@ -1183,6 +1186,9 @@
       .code-panel > section { min-height: 0; }
       .summary { grid-template-columns: repeat(4, minmax(180px, 1fr)); }
       .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .dashboard,
+      .today-panel,
+      .code-panel,
       .meeting-panel { max-width: 640px; width: 100%; }
       .meeting-slide { max-width: 560px; margin: 0 auto; }
       .code-review-list { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
@@ -1772,10 +1778,18 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
+      width: 100%;
       padding: 10px 12px;
+      border: 0;
       border-top: 1px solid #f2e2d7;
+      background: #fff;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
     }
     .code-review-row:first-child { border-top: 0; }
+    .code-review-row:hover { background: #fff7f0; }
     .code-review-client { display: grid; gap: 5px; min-width: 0; }
     .code-review-client strong { color: var(--text); font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
     .code-review-meta {
@@ -2388,10 +2402,16 @@
     @media (min-width: 901px) {
       .summary { grid-template-columns: repeat(4, minmax(180px, 1fr)); }
       .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-      body.view-meeting main {
+      body.view-dashboard main,
+      body.view-today main,
+      body.view-meeting main,
+      body.view-codes main {
         grid-template-columns: minmax(340px, 430px) minmax(520px, 640px);
         justify-content: center;
       }
+      .dashboard,
+      .today-panel,
+      .code-panel,
       .meeting-panel { max-width: 640px; width: 100%; }
       .meeting-slide { max-width: 560px; margin: 0 auto; }
       .code-review-list { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
@@ -2856,7 +2876,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260908-0018"></script>
+  <script src="app.js?v=20260908-0019"></script>
 </body>
 </html>
 

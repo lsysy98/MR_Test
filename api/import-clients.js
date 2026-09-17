@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const { analyzeCims } = require('../lib/cims-policy');
-const { readBody } = require('../lib/storage');
 
 const DEFAULT_CIMS_SHEET_ID = "1ciVrJFqZyrXQvgBxZtSLwn9MxvOculLugDERIpHeEkY";
 const DEFAULT_CIMS_SHEET_GID = "0";
@@ -352,22 +351,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (requestUrl.searchParams.get('mode') === 'cleanup') {
-      if (req.method !== 'POST') return json(res, 405, { error: 'POST 요청이 필요합니다.' });
-      const body = await readBody(req);
-      if (!['preview', 'page', 'apply', 'restore'].includes(body.action)) return json(res, 400, { error: '작업을 확인해주세요.' });
-      let candidates = [];
-      let runId = body.runId;
-      if (body.action === 'preview') {
-        const csv = await fetchSheetCsv(CIMS_SHEET_ID, CIMS_SHEET_GID, 'CIMS');
-        candidates = analyzeCims(parseCsv(csv)).excluded;
-        runId = crypto.randomUUID();
-      }
-      if (!/^[0-9a-f-]{36}$/.test(runId || '')) return json(res, 400, { error: '미리보기를 먼저 실행해주세요.' });
-      const result = await supabase('rpc/client_cleanup', { method: 'POST', body: JSON.stringify({
-        p_action: body.action, p_run: runId, p_candidates: candidates, p_page: Math.max(0, Number(body.page) || 0)
-      }) });
-      res.setHeader('Cache-Control', 'no-store');
-      return json(res, 200, { ok: true, ...result });
+      return json(res, 410, { error: '사이트 내 거래처 정리 기능은 종료되었습니다. 기존 데이터는 변경하지 않았습니다.' });
     }
 
     const [cimsCsv, statsCsv] = await Promise.all([
@@ -394,7 +378,7 @@ module.exports = async function handler(req, res) {
       existingClientCount: existingRows.length,
       clientDirectoryMode: "upsert only",
       reportClientCodeBackfill: backfill,
-      cimsRule: "지점 거래처 중 기공소, 폐업, 오스템 담당 거래처를 제외했습니다. 기존 검색 데이터 삭제는 메뉴 > 거래처 정리에서 확인 후 실행해주세요."
+      cimsRule: "지점 거래처 중 기공소, 폐업, 오스템 담당 거래처를 제외했습니다. 기존 검색 데이터는 자동 삭제하지 않습니다."
     });
   } catch (error) {
     return json(res, 500, { error: error.message });

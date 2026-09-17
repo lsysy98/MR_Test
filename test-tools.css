@@ -17,23 +17,9 @@
 .notification-details div { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 10px; padding: 12px 0; border-bottom: 1px solid #e2e5e9; font-size: 14px; }
 .notification-details dt { color: #667085; }
 .notification-details dd { margin: 0; color: #18202b; }
-.cleanup-dialog { width: min(100%, 700px); }
-.cleanup-auth { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 12px; }
-.cleanup-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 16px; }
-.cleanup-table th { text-align: left; font-size: 12px; color: #667085; padding: 10px 8px; background: #f6f7f9; }
-.cleanup-table th:last-child { width: 110px; }
-.cleanup-table td { padding: 12px 8px; border-bottom: 1px solid #e2e5e9; font-size: 13px; vertical-align: middle; overflow-wrap: anywhere; }
-.cleanup-table td:last-child { word-break: keep-all; overflow-wrap: normal; }
-.cleanup-table strong { display: block; font-size: 14px; color: #111827; line-height: 1.5; }
-.cleanup-table small { display: block; margin-top: 3px; color: #667085; line-height: 1.5; font-size: 12px; }
-.cleanup-pages { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; font-size: 13px; }
-.test-tools-dialog .cleanup-confirm { display: flex; align-items: center; gap: 8px; min-height: 32px; color: #18202b; }
-.test-tools-dialog .cleanup-confirm input { width: 18px; height: 18px; margin: 0; }
 @media (max-width: 480px) {
   .test-tools-overlay { padding: 10px; }
   .test-tools-dialog { max-height: calc(100dvh - 20px); }
   .test-tools-dialog header, .test-tools-dialog footer { padding: 12px 14px; }
   .test-tools-body { padding: 14px; }
-  .cleanup-auth { grid-template-columns: 1fr; gap: 10px; }
-  .cleanup-table th:last-child { width: 100px; }
 }

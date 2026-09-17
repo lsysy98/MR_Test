@@ -14,7 +14,7 @@
   function close() {
     if (busy || !active) return;
     active.hidden = true; document.body.style.overflow = oldOverflow; active = null;
-    $('cleanupKey').value = ''; if (opener) opener.focus();
+    if (opener) opener.focus();
   }
   document.querySelectorAll('[data-tools-close]').forEach(function (button) { button.addEventListener('click', close); });
   document.addEventListener('keydown', function (event) {
@@ -26,16 +26,16 @@
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }, true);
-  async function request(url, body, key) {
+  async function request(url, body) {
     var controller = new AbortController(); var timer = setTimeout(function () { controller.abort(); }, 60000);
     try {
       var response = await fetch(url, { method: body ? 'POST' : 'GET', signal: controller.signal,
-        headers: Object.assign({ 'Content-Type': 'application/json' }, key ? { Authorization: 'Bearer ' + key } : {}),
+        headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined });
       var raw = await response.text(); var data;
       try { data = JSON.parse(raw); } catch (_) { throw new Error('서버 응답이 늦거나 올바르지 않습니다. 잠시 후 다시 시도해주세요.'); }
       if (!response.ok) {
-        if (/client_cleanup|schema cache|does not exist/i.test(data.error || '')) throw new Error('검색 정리·알림용 SQL을 테스트 Supabase에 한 번 적용해주세요.');
+        if (/schema cache|does not exist/i.test(data.error || '')) throw new Error('알림용 SQL을 테스트 Supabase에 한 번 적용해주세요.');
         throw new Error(data.error || '요청에 실패했습니다.');
       }
       return data;
@@ -52,48 +52,6 @@
     }
   }
 
-  var cleanup = null;
-  function refreshCleanup() {
-    try { $('cleanupPreviousRun').hidden = !localStorage.getItem('testCleanupRun'); } catch (_) {}
-    $('cleanupResults').hidden = !cleanup;
-    $('cleanupConfirmWrap').hidden = !cleanup || cleanup.state !== 'preview' || !cleanup.total;
-    $('cleanupApply').disabled = !cleanup || cleanup.state !== 'preview' || !cleanup.total || !$('cleanupConfirm').checked;
-    $('cleanupRestore').disabled = !cleanup || cleanup.state !== 'applied';
-    $('cleanupPrev').disabled = !cleanup || cleanup.page <= 0;
-    $('cleanupNext').disabled = !cleanup || (cleanup.page + 1) * cleanup.pageSize >= cleanup.total;
-  }
-  function renderCleanup(data) {
-    cleanup = data; $('cleanupRows').replaceChildren();
-    data.items.forEach(function (item) {
-      var tr = document.createElement('tr'), td = document.createElement('td'), reason = document.createElement('td');
-      var name = document.createElement('strong'), meta = document.createElement('small');
-      name.textContent = item.client; meta.textContent = [item.code, item.branch].filter(Boolean).join(' · ');
-      td.append(name, meta); reason.textContent = item.reasons.join(', '); tr.append(td, reason); $('cleanupRows').append(tr);
-    });
-    $('cleanupPage').textContent = (data.total ? data.page + 1 : 0) + ' / ' + Math.ceil(data.total / data.pageSize);
-    try { localStorage.setItem('testCleanupRun', data.runId); } catch (_) {}
-  }
-  async function cleanupAction(action, page) {
-    var key = $('cleanupKey').value.trim(); if (!key) throw new Error('관리자 비밀번호를 입력해주세요.');
-    var run = cleanup && cleanup.runId;
-    if (!run) { try { run = localStorage.getItem('testCleanupRun'); } catch (_) {} }
-    var data = await request('/api/import-clients?mode=cleanup', { action: action, runId: run, page: page || 0 }, key);
-    renderCleanup(data);
-    setStatus('cleanupStatus', data.state === 'applied' ? data.removed + '곳을 검색 목록에서 삭제했습니다. 기존 보고는 유지됩니다.' :
-      data.state === 'restored' ? '이번에 삭제한 거래처를 복구했습니다. 이후 수정·재등록된 거래처는 덮어쓰지 않습니다.' :
-      data.total + '곳이 삭제 후보입니다. 목록을 확인한 뒤 적용해주세요.');
-  }
-  $('menuCleanupBtn').addEventListener('click', function () { open('cleanupOverlay'); refreshCleanup(); });
-  $('cleanupPreviewBtn').addEventListener('click', function () {
-    $('cleanupConfirm').checked = false;
-    task('cleanupStatus', async function () { setStatus('cleanupStatus', 'CIMS와 현재 검색 목록을 확인 중입니다.'); await cleanupAction('preview'); }, refreshCleanup);
-  });
-  $('cleanupConfirm').addEventListener('change', refreshCleanup);
-  $('cleanupPreviousRun').addEventListener('click', function () { task('cleanupStatus', function () { return cleanupAction('page'); }, refreshCleanup); });
-  $('cleanupApply').addEventListener('click', function () { task('cleanupStatus', function () { return cleanupAction('apply'); }, refreshCleanup); });
-  $('cleanupRestore').addEventListener('click', function () { task('cleanupStatus', function () { return cleanupAction('restore'); }, refreshCleanup); });
-  $('cleanupPrev').addEventListener('click', function () { task('cleanupStatus', function () { return cleanupAction('page', cleanup.page - 1); }, refreshCleanup); });
-  $('cleanupNext').addEventListener('click', function () { task('cleanupStatus', function () { return cleanupAction('page', cleanup.page + 1); }, refreshCleanup); });
 
   var settings = null, registration = null, saved = {}, connected = false;
   try { saved = JSON.parse(localStorage.getItem('reportPushDevice') || '{}'); } catch (_) {}

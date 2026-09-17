@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/report-192.png">
   <meta name="theme-color" content="#ffffff">
-  <link rel="stylesheet" href="test-tools.css?v=20260918-time-1">
+  <link rel="stylesheet" href="test-tools.css?v=20260918-notifications-2">
   <style>
     * { box-sizing: border-box; }
     :root {
@@ -2497,7 +2497,6 @@
           <button type="button" id="menuHolidayBtn">휴일 설정</button>
           <button type="button" id="menuExhibitionBtn">전시회 참석</button>
           <button type="button" id="menuCodeReviewBtn">코드 확인</button>
-          <button type="button" id="menuCleanupBtn">거래처 정리</button>
           <button type="button" id="menuNotificationsBtn">알림 설정</button>
         </div>
       </div>
@@ -2925,28 +2924,13 @@
       </div>
     </div>
   </div>
-  <div class="test-tools-overlay" id="cleanupOverlay" hidden>
-    <section class="test-tools-dialog cleanup-dialog" role="dialog" aria-modal="true" aria-labelledby="cleanupTitle">
-      <header><h2 id="cleanupTitle">거래처 정리</h2><button class="btn" type="button" data-tools-close>닫기</button></header>
-      <div class="test-tools-body">
-        <div class="cleanup-auth"><label>관리자 키 (ADMIN_KEY)<input id="cleanupKey" type="password" autocomplete="off"></label><button type="button" class="btn" id="cleanupPreviewBtn">삭제 후보 확인</button></div>
-        <p class="tools-status" id="cleanupStatus" role="status">기존 보고와 직접 추가한 거래처는 유지됩니다.</p>
-        <button type="button" class="btn" id="cleanupPreviousRun" hidden>이전 정리 확인</button>
-        <div class="cleanup-table-wrap" id="cleanupResults" hidden>
-          <table class="cleanup-table"><thead><tr><th>거래처</th><th>제외 사유</th></tr></thead><tbody id="cleanupRows"></tbody></table>
-          <nav class="cleanup-pages" aria-label="삭제 후보 페이지"><button type="button" class="btn" id="cleanupPrev" aria-label="이전 페이지">이전</button><span id="cleanupPage"></span><button type="button" class="btn" id="cleanupNext" aria-label="다음 페이지">다음</button></nav>
-        </div>
-      </div>
-      <footer><label class="cleanup-confirm" id="cleanupConfirmWrap" hidden><input type="checkbox" id="cleanupConfirm">확인한 검색용 거래처만 삭제</label><div class="tools-actions"><button class="btn primary" type="button" id="cleanupApply" disabled>삭제 적용</button><button class="btn" type="button" id="cleanupRestore" disabled>이번 정리 복구</button></div></footer>
-    </section>
-  </div>
   <div class="test-tools-overlay" id="notificationsOverlay" hidden>
     <section class="test-tools-dialog" role="dialog" aria-modal="true" aria-labelledby="notificationsTitle">
       <header><h2 id="notificationsTitle">일일보고 알림</h2><button class="btn" type="button" data-tools-close>닫기</button></header>
       <div class="test-tools-body">
         <label>이 기기의 담당자<select id="notificationOwner"><option value="">본인 이름 선택</option></select></label>
         <label class="notification-time">알림 시간 (한국시간)<input id="notificationTime" type="time" value="18:00" step="60" required></label>
-        <dl class="notification-details"><div><dt>대상</dt><dd>당일 보고 미완료</dd></div><div><dt>빈도</dt><dd>하루 한 번</dd></div><div><dt>제외</dt><dd>휴일 · 연차 · 보고 완료</dd></div></dl>
+        <dl class="notification-details"><div><dt>대상</dt><dd>당일 보고 미완료</dd></div><div><dt>제외</dt><dd>휴일 · 연차 · 보고 완료</dd></div></dl>
         <p class="tools-status" id="notificationStatus" role="status">알림 연결 확인 중</p>
         <p class="tools-status" id="notificationIosHint" hidden>아이폰은 Safari에서 공유 → 홈 화면에 추가 후, 추가한 아이콘으로 열어주세요.</p>
       </div>
@@ -2954,7 +2938,7 @@
     </section>
   </div>
   <script src="app.js?v=20260917-search-push-1"></script>
-  <script src="test-tools.js?v=20260918-time-1"></script>
+  <script src="test-tools.js?v=20260918-notifications-2"></script>
 </body>
 </html>
 

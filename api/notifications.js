@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
     const result = action === 'test' ? await push.sendTest(body) : await push.device(action, body);
     return json(res, 200, { ok: true, ...result });
   } catch (error) {
-    if (['PGRST202','42P01','42883','42703'].includes(error.code)) return json(res, 503, { error: '검색 정리·알림용 SQL을 테스트 Supabase에 한 번 적용해주세요.' });
+    if (['PGRST202','42P01','42883','42703'].includes(error.code)) return json(res, 503, { error: '알림용 SQL을 테스트 Supabase에 한 번 적용해주세요.' });
     const messages = {
       invalid_subscription: '브라우저 알림 정보를 확인하지 못했습니다.',
       invalid_device_token: '이 기기의 알림 연결을 다시 설정해주세요.',

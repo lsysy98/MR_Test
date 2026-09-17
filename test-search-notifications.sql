@@ -4,60 +4,6 @@ create extension if not exists pg_cron with schema pg_catalog;
 create extension if not exists pg_net with schema extensions;
 create extension if not exists supabase_vault with schema vault;
 
-create table if not exists public.client_cleanup_runs (
-  id uuid primary key,
-  created_at timestamptz not null default now(),
-  state text not null default 'preview' check (state in ('preview','applied','restored'))
-);
-create table if not exists public.client_cleanup_items (
-  run_id uuid not null references public.client_cleanup_runs(id),
-  client_id text not null,
-  snapshot jsonb not null,
-  reasons jsonb not null,
-  removed boolean not null default false,
-  primary key(run_id, client_id)
-);
-
-create or replace function public.client_cleanup(p_action text, p_run uuid, p_candidates jsonb default '[]', p_page integer default 0)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare r public.client_cleanup_runs; n integer; result jsonb;
-begin
-  if p_action = 'preview' then
-    insert into client_cleanup_runs(id) values(p_run);
-    insert into client_cleanup_items(run_id,client_id,snapshot,reasons)
-      select p_run,d.id,to_jsonb(d),c.reasons from jsonb_to_recordset(p_candidates) as c(id text,reasons jsonb)
-      join client_directory d on d.id=c.id
-      where d.id like 'code-%' or d.id like 'client-%';
-  end if;
-  select * into r from client_cleanup_runs where id=p_run for update;
-  if not found then raise exception '미리보기를 다시 실행해주세요.'; end if;
-  if p_action = 'apply' and r.state = 'preview' then
-    if r.created_at < now()-interval '15 minutes' then raise exception '미리보기가 만료되었습니다. 다시 확인해주세요.'; end if;
-    -- Only remove the exact rows reviewed; preserve intervening edits and manual clients.
-    with removed as (
-      delete from client_directory d using client_cleanup_items i
-      where i.run_id=p_run and d.id=i.client_id and to_jsonb(d)=i.snapshot returning d.id
-    ) update client_cleanup_items i set removed=true from removed d where i.run_id=p_run and i.client_id=d.id;
-    update client_cleanup_runs set state='applied' where id=p_run;
-  elsif p_action = 'restore' and r.state = 'applied' then
-    insert into client_directory
-      select restored.* from client_cleanup_items i
-      cross join lateral jsonb_populate_record(null::client_directory,i.snapshot) restored
-      where i.run_id=p_run and i.removed on conflict(id) do nothing;
-    update client_cleanup_runs set state='restored' where id=p_run;
-  elsif p_action not in ('preview','page','apply','restore') then
-    raise exception 'invalid_request';
-  end if;
-  select count(*) into n from client_cleanup_items where run_id=p_run;
-  select jsonb_build_object('runId',p_run,'total',n,'page',greatest(0,p_page),'pageSize',50,
-    'state',(select state from client_cleanup_runs where id=p_run),
-    'removed',(select count(*) from client_cleanup_items where run_id=p_run and removed),
-    'items',coalesce((select jsonb_agg(x) from (
-      select snapshot->>'client_name' as client,snapshot->>'client_code' as code,snapshot->>'branch_name' as branch,reasons
-      from client_cleanup_items where run_id=p_run order by snapshot->>'client_name',client_id limit 50 offset greatest(0,p_page)*50
-    ) x),'[]'::jsonb)) into result;
-  return result;
-end $$;
 
 create table if not exists public.report_push_subscriptions (
   id text primary key,
@@ -156,13 +102,11 @@ begin
   return n=1;
 end $$;
 
-alter table public.client_cleanup_runs enable row level security;
-alter table public.client_cleanup_items enable row level security;
 alter table public.report_push_subscriptions enable row level security;
 alter table public.report_push_deliveries enable row level security;
-revoke all on public.client_cleanup_runs,public.client_cleanup_items,public.report_push_subscriptions,public.report_push_deliveries from anon,authenticated;
-grant all on public.client_cleanup_runs,public.client_cleanup_items,public.report_push_subscriptions,public.report_push_deliveries to service_role;
-revoke all on function public.client_cleanup(text,uuid,jsonb,integer),public.report_push_device(text,text,text,text,jsonb,text),public.claim_report_push(text,text,uuid),public.report_push_due(timestamptz),public.configure_report_push_scheduler(text,text),public.tick_report_push() from public,anon,authenticated;
-grant execute on function public.client_cleanup(text,uuid,jsonb,integer),public.report_push_device(text,text,text,text,jsonb,text),public.claim_report_push(text,text,uuid),public.report_push_due(timestamptz),public.configure_report_push_scheduler(text,text) to service_role;
+revoke all on public.report_push_subscriptions,public.report_push_deliveries from anon,authenticated;
+grant all on public.report_push_subscriptions,public.report_push_deliveries to service_role;
+revoke all on function public.report_push_device(text,text,text,text,jsonb,text),public.claim_report_push(text,text,uuid),public.report_push_due(timestamptz),public.configure_report_push_scheduler(text,text),public.tick_report_push() from public,anon,authenticated;
+grant execute on function public.report_push_device(text,text,text,text,jsonb,text),public.claim_report_push(text,text,uuid),public.report_push_due(timestamptz),public.configure_report_push_scheduler(text,text) to service_role;
 select pg_notify('pgrst','reload schema');
 commit;

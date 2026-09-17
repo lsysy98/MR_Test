@@ -2054,6 +2054,12 @@
       font-weight: 900;
       cursor: pointer;
     }
+    .client-match-review { display: grid; gap: 8px; margin-top: 12px; }
+    .client-match-review article { display: grid; gap: 8px; border-bottom: 1px solid #dedede; padding: 12px 0; min-width: 0; }
+    .client-match-review strong { color: #191919; font-weight: 800; }
+    .client-match-review p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+    .client-match-review small { color: #595959; }
+    .client-match-review button { justify-self: start; white-space: nowrap; }
     .presentation-head {
       display: grid;
       grid-template-columns: minmax(260px, .75fr) minmax(360px, 1.25fr);
@@ -2413,7 +2419,9 @@
       .presentation-product-summary-row strong,
       .presentation-product-summary-row b { font-size: 14px; }
       .presentation-product-inline-list span { font-size: 12px; }
-      .presentation-head { display: grid; padding-right: 58px; gap: 10px; }
+      .presentation-head { display: grid; grid-template-columns: minmax(0, 1fr); padding-right: 0; gap: 10px; }
+      .presentation-head > div:first-child { padding-right: 58px; min-width: 0; }
+      .presentation-stage > *, .presentation-head > * { min-width: 0; }
       .presentation-total-card { padding: 16px; }
       .presentation-total-card strong { font-size: 38px; }
       .presentation-metrics, .presentation-body { grid-template-columns: 1fr; }
@@ -2542,7 +2550,7 @@
           </label>
           <label>예상 금액
             <div class="amount-wrap">
-              <input id="amount" type="text" inputmode="numeric" required autocomplete="off">
+              <input id="amount" type="text" inputmode="decimal" required autocomplete="off">
               <span class="amount-unit">만원</span>
             </div>
           </label>
@@ -2680,6 +2688,8 @@
           </div>
           <div class="code-review-list" id="codeReviewList"></div>
           <div class="empty" id="codeReviewEmpty">거래처코드가 비어 있는 보고가 없습니다.</div>
+          <button type="button" class="btn" id="clientMatchReviewBtn">연결 변경 미리보기</button>
+          <div id="clientMatchReview" class="client-match-review" aria-live="polite"></div>
         </div>
       </section>
     </section>
@@ -2909,7 +2919,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260910-0020"></script>
+  <script src="app.js?v=20260917-stability-1"></script>
 </body>
 </html>
 

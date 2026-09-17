@@ -191,6 +191,13 @@ var noticeActionRequired = false;
 var ownerLeaveRows = [];
 var clientLookupTimer = null;
 var clientLookupSeq = 0;
+var clientLookupController = null;
+function cancelClientLookup() {
+  clientLookupSeq += 1;
+  if (clientLookupTimer) clearTimeout(clientLookupTimer);
+  if (clientLookupController) clientLookupController.abort();
+  clientLookupController = null;
+}
 var manualClientLookupTimer = null;
 var manualClientLookupSeq = 0;
 var lastSelectedClientMatch = null;
@@ -457,10 +464,14 @@ function digits(v) {
   return String(v || "").replace(/[^\d]/g, "");
 }
 function amountMan(v) {
-  return Number(digits(v) || 0);
+  return amountWon(v) / 10000;
 }
 function amountWon(v) {
-  return amountMan(v) * 10000;
+  var text = String(v || "").trim().replace(/,/g, "");
+  if (!/^\d+(?:\.\d{0,4})?$/.test(text)) return 0;
+  var parts = text.split(".");
+  var value = Number(parts[0]) * 10000 + Number(((parts[1] || "") + "0000").slice(0, 4));
+  return Number.isSafeInteger(value) ? value : 0;
 }
 function won(v) {
   var n = Number(v || 0);
@@ -468,7 +479,7 @@ function won(v) {
 }
 function wonMan(v) {
   var n = Number(v || 0);
-  return n ? money.format(Math.round(n / 10000)) + "만원" : "0원";
+  return n ? (n / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 4 }) + "만원" : "0원";
 }
 function yearOf(x) {
   return x.date ? Number(String(x.date).slice(0, 4)) : currentYear;
@@ -602,6 +613,7 @@ function appendClientMeta(parent, item) {
 }
 function applyClientMatch(item) {
   if (!item) return;
+  cancelClientLookup();
   lastSelectedClientMatch = item;
   if (clientCodeInput) clientCodeInput.value = item.code || "";
   if (clientInput) clientInput.value = item.client || "";
@@ -657,6 +669,8 @@ function renderClientSuggestions(box, items, mode) {
   box.classList.add("active");
 }
 async function loadClientSuggestions(mode) {
+  cancelClientLookup();
+  var seq = clientLookupSeq;
   var input = clientInput;
   var box = clientSuggestions;
   var term = clientLookupTerm(input ? input.value : "");
@@ -664,14 +678,14 @@ async function loadClientSuggestions(mode) {
     hideClientSuggestions(box);
     return;
   }
-  var seq = ++clientLookupSeq;
+  clientLookupController = new AbortController();
   renderClientSuggestionMessage(box, "검색 중입니다.");
   try {
     var params = new URLSearchParams();
     params.set("q", term);
     params.set("limit", "20");
     applyClientLookupParams(params);
-    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
+    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET", signal: clientLookupController.signal }, 10000);
     if (seq !== clientLookupSeq) return;
     var items = result.items || [];
     if (!items.length) renderClientNoResultMessage(box, term);
@@ -682,12 +696,14 @@ async function loadClientSuggestions(mode) {
   }
 }
 function scheduleClientLookup(mode) {
-  if (clientLookupTimer) clearTimeout(clientLookupTimer);
+  cancelClientLookup();
+  hideAllClientSuggestions();
   clientLookupTimer = setTimeout(function() {
     loadClientSuggestions(mode);
   }, 300);
 }
 function clearClientCode() {
+  cancelClientLookup();
   lastSelectedClientMatch = null;
   if (clientCodeInput) clientCodeInput.value = "";
   if (branchInput) branchInput.value = "";
@@ -738,16 +754,7 @@ function branchLooksSame(a, b) {
 function reportClientLooksLikeDirectoryItem(reportClient, directoryItem) {
   var reportKey = clientCompareKey(reportClient);
   var clientKey = clientCompareKey(directoryItem && directoryItem.client);
-  var branchKey = normalizeBranchKey(directoryItem && directoryItem.branch);
-  var branchTextKey = lookupKey(directoryItem && directoryItem.branch);
-  if (!reportKey || !clientKey) return false;
-  if (reportKey === clientKey) return true;
-  if (reportKey.length >= 5 && clientKey.indexOf(reportKey) >= 0) return true;
-  if (clientKey.length >= 5 && reportKey.indexOf(clientKey) >= 0) return true;
-  if (!branchKey) return false;
-  return reportKey === branchTextKey + clientKey ||
-    reportKey === clientKey + branchTextKey ||
-    (reportKey.indexOf(clientKey) >= 0 && reportKey.indexOf(branchKey) >= 0);
+  return Boolean(reportKey && clientKey && reportKey === clientKey);
 }
 async function loadClientDirectory() {
   if (clientDirectory.length) return clientDirectory;
@@ -770,7 +777,7 @@ function uniqueClientDirectoryMatch(report) {
   var codeText = itemClientCode(report);
   if (codeText) {
     var codeMatches = clientDirectory.filter(function(item) {
-      return lookupKey(item.code) === lookupKey(codeText);
+      return lookupKey(item.code) === lookupKey(codeText) && reportClientLooksLikeDirectoryItem(report.client, item);
     });
     if (branchText) {
       codeMatches = codeMatches.filter(function(item) {
@@ -884,6 +891,7 @@ async function loadManualClientResults() {
   }
 }
 function scheduleManualClientLookup() {
+  manualClientLookupSeq += 1;
   if (manualClientLookupTimer) clearTimeout(manualClientLookupTimer);
   manualClientLookupTimer = setTimeout(function() {
     loadManualClientResults();
@@ -964,6 +972,8 @@ function openManualClientModal(term, resumeSubmit, showAdd) {
   }, 0);
 }
 function closeManualClientModal() {
+  manualClientLookupSeq += 1;
+  if (manualClientLookupTimer) clearTimeout(manualClientLookupTimer);
   if (!manualClientOverlay) return;
   manualClientOverlay.classList.remove("active");
   manualClientOverlay.setAttribute("aria-hidden", "true");
@@ -1558,11 +1568,22 @@ function resetToCurrentMonth() {
 async function requestJson(url, options, timeoutMs) {
   var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   var timer = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 12000) : null;
-  if (controller) options.signal = controller.signal;
+  if (controller) {
+    if (options.signal) {
+      if (options.signal.aborted) controller.abort();
+      else options.signal.addEventListener("abort", function() { controller.abort(); }, { once: true });
+    }
+    options.signal = controller.signal;
+  }
   try {
     var response = await fetch(url, options);
     var data = await response.json().catch(function() { return {}; });
-    if (!response.ok) throw new Error(data.error || "요청 실패");
+    if (!response.ok) {
+      var failure = new Error(data.error || "요청 실패");
+      failure.code = data.code;
+      failure.status = response.status;
+      throw failure;
+    }
     return data;
   } catch (error) {
     if (error.name === "AbortError") {
@@ -1574,9 +1595,45 @@ async function requestJson(url, options, timeoutMs) {
   }
 }
 async function api(method, body, query) {
+  var mutation = prepareMutation("reports", method, body, query);
+  body = mutation.body;
+  query = mutation.query;
   var options = { method: method, headers: { "Content-Type": "application/json" } };
   if (body) options.body = JSON.stringify(body);
-  return requestJson("/api/reports" + (query || ""), options, 12000);
+  var result = await requestJson("/api/reports" + (query || ""), options, 20000);
+  if (mutation.key) delete pendingMutations[mutation.key];
+  return result;
+}
+var pendingMutations = {};
+var reportDraftId = "";
+var reportSaving = false;
+var editingVersion = null;
+var successCaseVersion = null;
+var successCaseSaving = false;
+var exhibitionDraftId = "";
+var exhibitionVersion = null;
+var exhibitionSaving = false;
+var calendarLoading = true;
+function disableControls(container) {
+  var controls = Array.from(container.querySelectorAll("input, select, textarea, button")).map(function(control) {
+    var wasDisabled = control.disabled;
+    control.disabled = true;
+    return { control: control, disabled: wasDisabled };
+  });
+  return function() { controls.forEach(function(item) { item.control.disabled = item.disabled; }); };
+}
+function prepareMutation(resource, method, body, query) {
+  if (method === "GET") return { body: body, query: query };
+  var data = Object.assign({}, body || {});
+  var params = new URLSearchParams(query || "");
+  if (method === "DELETE") data = Object.fromEntries(params.entries());
+  if (method !== "POST" && data.expectedUpdatedAt == null) data.expectedUpdatedAt = data.updatedAt;
+  delete data.updatedAt;
+  delete data.createdAt;
+  var key = resource + method + JSON.stringify(data);
+  data.operationId = pendingMutations[key] || (pendingMutations[key] = makeId());
+  if (method === "DELETE") return { key: key, body: null, query: "?" + new URLSearchParams(data).toString() };
+  return { key: key, body: data, query: query };
 }
 async function completionApi(method, body, query) {
   var options = { method: method, headers: { "Content-Type": "application/json" } };
@@ -1589,9 +1646,14 @@ async function holidayApi(method, body, query) {
   return requestJson("/api/holidays" + (query || ""), options, 8000);
 }
 async function exhibitionApi(method, body, query) {
+  var mutation = prepareMutation("exhibitions", method, body, query);
+  body = mutation.body;
+  query = mutation.query;
   var options = { method: method, headers: { "Content-Type": "application/json" } };
   if (body) options.body = JSON.stringify(body);
-  return requestJson("/api/exhibitions" + (query || ""), options, 8000);
+  var result = await requestJson("/api/exhibitions" + (query || ""), options, 20000);
+  if (mutation.key) delete pendingMutations[mutation.key];
+  return result;
 }
 function exhibitionErrorMessage(error) {
   var message = error && error.message ? error.message : String(error || "");
@@ -1601,12 +1663,15 @@ function exhibitionErrorMessage(error) {
   return message;
 }
 async function loadCalendarDays(skipRender) {
+  calendarLoading = true;
   try {
     teamCalendarDays = await holidayApi("GET");
     calendarLoadError = "";
   } catch (error) {
     teamCalendarDays = [];
     calendarLoadError = error.message;
+  } finally {
+    calendarLoading = false;
   }
   if (!skipRender) render();
 }
@@ -1625,7 +1690,6 @@ async function loadExhibitions() {
     exhibitionEvents = await exhibitionApi("GET");
     exhibitionLoadError = "";
   } catch (error) {
-    exhibitionEvents = [];
     exhibitionLoadError = error.message;
   }
   renderExhibitionForm();
@@ -1633,18 +1697,19 @@ async function loadExhibitions() {
 }
 async function loadData() {
   status("보고 데이터를 불러오는 중입니다.", "");
-  var loaded = await Promise.all([
-    api("GET"),
+  var supportingData = Promise.all([
     loadCalendarDays(true),
-    loadCompletionsForSelectedDate(true),
-    loadExhibitions()
+    loadCompletionsForSelectedDate(true)
   ]);
-  reports = loaded[0];
+  reports = await api("GET");
   status("", "");
+  render();
+  await supportingData;
   render();
 }
 async function addData(item, skipNotice) {
   var saved = await api("POST", item);
+  reports = reports.filter(function(report) { return report.id !== saved.id; });
   reports.unshift(saved);
   render();
   if (!skipNotice) showNotice("저장되었습니다.");
@@ -1668,7 +1733,7 @@ async function deleteData(id) {
     return;
   }
   var actor = ownerInput.value.trim() || localStorage.getItem("ownerName") || item.owner || "";
-  await api("DELETE", null, "?id=" + encodeURIComponent(id) + "&actor=" + encodeURIComponent(actor));
+  await api("DELETE", null, "?id=" + encodeURIComponent(id) + "&actor=" + encodeURIComponent(actor) + "&expectedUpdatedAt=" + item.updatedAt);
   reports = reports.filter(function(report) {
     return report.id !== id;
   });
@@ -1688,11 +1753,9 @@ function askCompleteAfterSave(owner, reportDate) {
   });
 }
 async function togglePrescription(item) {
-  var next = Object.assign({}, item, {
-    prescriptionDone: !item.prescriptionDone,
-    updatedAt: Date.now()
-  });
-  await updateData(next);
+  var saved = await api("PATCH", { id: item.id, expectedUpdatedAt: item.updatedAt, prescriptionDone: !item.prescriptionDone, actor: ownerInput.value });
+  reports = reports.map(function(report) { return report.id === saved.id ? saved : report; });
+  render();
 }
 
 function summarize(items) {
@@ -2799,6 +2862,8 @@ function renderExhibitionForm() {
   if (exhibitionSaveBtn) exhibitionSaveBtn.textContent = exhibitionEditingId ? "수정 저장" : "저장";
 }
 function resetExhibitionForm() {
+  exhibitionDraftId = "";
+  exhibitionVersion = null;
   exhibitionEditingId = "";
   rerollExhibitionTieOrder();
   setLeaveDateInput(exhibitionDateInput, "");
@@ -3120,6 +3185,9 @@ function renderExhibitionList(message) {
   });
 }
 function startEditExhibition(event) {
+  if (exhibitionSaving) return;
+  exhibitionDraftId = "";
+  exhibitionVersion = event.updatedAt;
   exhibitionEditingId = event.id;
   setExhibitionFormVisible(true);
   var days = normalizeEventDays(event);
@@ -3157,6 +3225,7 @@ function closeExhibitionModal() {
   exhibitionOverlay.setAttribute("aria-hidden", "true");
 }
 async function saveExhibitionEvent() {
+  if (exhibitionSaving) return;
   var date = leaveDateValue(exhibitionDateInput);
   var title = exhibitionNameInput ? exhibitionNameInput.value.trim() : "";
   var days = exhibitionDraftDays();
@@ -3178,8 +3247,12 @@ async function saveExhibitionEvent() {
     return;
   }
 
+  exhibitionSaving = true;
+  var restoreExhibitionControls = disableControls(exhibitionOverlay);
+  try {
   var saved = await exhibitionApi("POST", {
-    id: exhibitionEditingId,
+    id: exhibitionEditingId || (exhibitionDraftId || (exhibitionDraftId = makeId())),
+    expectedUpdatedAt: exhibitionEditingId ? exhibitionVersion : null,
     date: days[0].date,
     title: title,
     neededCount: days[0].neededCount || 2,
@@ -3200,9 +3273,12 @@ async function saveExhibitionEvent() {
   setExhibitionFormVisible(false);
   renderExhibitionList();
   showNotice("전시회 참석 기록을 저장했습니다.");
+  } finally { exhibitionSaving = false; restoreExhibitionControls(); }
 }
 async function deleteExhibitionEvent(id) {
-  await exhibitionApi("DELETE", null, "?id=" + encodeURIComponent(id));
+  var current = exhibitionEvents.find(function(event) { return event.id === id; });
+  if (!current || exhibitionSaving) return;
+  await exhibitionApi("DELETE", null, "?id=" + encodeURIComponent(id) + "&expectedUpdatedAt=" + current.updatedAt);
   exhibitionEvents = exhibitionEvents.filter(function(event) {
     return event.id !== id;
   });
@@ -3407,11 +3483,18 @@ function renderOwnerSearchResults() {
       selectedMonth = collectionMonthOf(item);
       openedOwner = item.owner;
       openedReportId = item.id;
+      ownerFilters[item.owner] = "";
       committedOwnerSearchTerm = "";
       if (ownerSearchInput) ownerSearchInput.value = "";
       syncMonthPicker();
       render();
-      scrollOpenedOwnerIntoView(ownerCards, item.owner);
+      setTimeout(function() {
+        var card = Array.from(ownerCards.querySelectorAll("[data-report-id]")).find(function(node) { return node.dataset.reportId === item.id; });
+        if (!card) return;
+        var header = document.querySelector("header");
+        var offset = header ? header.getBoundingClientRect().height : 0;
+        window.scrollTo({ top: Math.max(0, card.getBoundingClientRect().top + window.pageYOffset - offset - 8), behavior: "smooth" });
+      }, 0);
     });
 
     var main = document.createElement("div");
@@ -3751,6 +3834,8 @@ function scrollOpenedOwnerIntoView(container, owner) {
   }, 0);
 }
 function openSuccessCaseModal(item) {
+  if (successCaseSaving) return;
+  successCaseVersion = item.updatedAt;
   successCaseEditingId = item.id;
   if (successCaseClient) successCaseClient.textContent = item.owner + " · " + item.client;
   if (successCaseText) successCaseText.value = item.successCase || "";
@@ -3769,24 +3854,30 @@ function closeSuccessCaseModal() {
   successCaseOverlay.setAttribute("aria-hidden", "true");
 }
 async function saveSuccessCase() {
+  if (successCaseSaving) return;
   var item = reports.find(function(report) { return report.id === successCaseEditingId; });
   if (!item) {
     showNotice("성공사례를 저장할 거래처를 찾지 못했습니다.", "danger");
     return;
   }
   var actor = ownerInput.value.trim() || localStorage.getItem("ownerName") || item.owner || "";
-  var next = Object.assign({}, item, {
+  var next = {
+    id: item.id,
+    expectedUpdatedAt: successCaseVersion,
     successCase: successCaseText ? successCaseText.value.trim() : "",
-    updatedAt: Date.now(),
     actor: actor
-  });
-  var saved = await api("PUT", next);
+  };
+  successCaseSaving = true;
+  var restoreSuccessControls = disableControls(successCaseOverlay);
+  try {
+  var saved = await api("PATCH", next);
   reports = reports.map(function(report) {
     return report.id === saved.id ? saved : report;
   });
   closeSuccessCaseModal();
   render();
   showNotice("성공사례를 저장했습니다.");
+  } finally { successCaseSaving = false; restoreSuccessControls(); }
 }
 function productSummary(items) {
   var rows = [
@@ -4405,6 +4496,8 @@ function render() {
   }
 }
 function resetAfterSave() {
+  reportDraftId = "";
+  editingVersion = null;
   editingId = "";
   clientInput.value = "";
   clearClientCode();
@@ -4419,6 +4512,9 @@ function resetAfterSave() {
   clientInput.focus();
 }
 function resetFormAll() {
+  if (reportSaving) return;
+  reportDraftId = "";
+  editingVersion = null;
   editingId = "";
   clientInput.value = "";
   clearClientCode();
@@ -4466,6 +4562,9 @@ function syncViewForLayout() {
   setActiveView(activeViewName(), false);
 }
 function startEdit(item) {
+  if (reportSaving) return;
+  reportDraftId = "";
+  editingVersion = item.updatedAt;
   editingId = item.id;
   ownerInput.value = item.owner;
   setLeaveDateInput(dateInput, item.date);
@@ -4477,7 +4576,7 @@ function startEdit(item) {
   productInput.value = item.product || "";
   updateProductSelectionSummary();
   renderProductOptions();
-  amountInput.value = String(Math.round(Number(item.amount || 0) / 10000));
+  amountInput.value = String(Number(item.amount || 0) / 10000);
   selectedType = item.type;
   collectionYear = collectionYearOf(item);
   collectionMonth = collectionMonthOf(item);
@@ -4782,6 +4881,8 @@ if (manualClientAddToggleBtn) {
 }
 if (clientInput) {
   clientInput.addEventListener("input", function() {
+    cancelClientLookup();
+    clearClientMatchStatus();
     lastSelectedClientMatch = null;
     if (clientCodeInput) clientCodeInput.value = "";
     if (branchInput) branchInput.value = "";
@@ -4789,20 +4890,23 @@ if (clientInput) {
     else hideClientSuggestions(clientSuggestions);
   });
   clientInput.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") hideClientSuggestions(clientSuggestions);
+    if (e.key === "Escape") { cancelClientLookup(); hideClientSuggestions(clientSuggestions); }
   });
 }
 if (clientCodeInput) {
   clientCodeInput.addEventListener("input", function() {
+    cancelClientLookup();
     lastSelectedClientMatch = null;
     if (clientLookupTerm(clientCodeInput.value).length >= 2) scheduleClientLookup("code");
     else hideClientSuggestions(clientCodeSuggestions);
   });
   clientCodeInput.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") hideClientSuggestions(clientCodeSuggestions);
+    if (e.key === "Escape") { cancelClientLookup(); hideClientSuggestions(clientCodeSuggestions); }
   });
 }
 ownerInput.addEventListener("change", function() {
+  clearClientCode();
+  manualClientLookupSeq += 1;
   var owner = ownerInput.value.trim();
   if (ownerNames.indexOf(owner) >= 0) {
     localStorage.setItem("ownerName", owner);
@@ -4817,12 +4921,12 @@ ownerInput.addEventListener("change", function() {
   render();
 });
 amountInput.addEventListener("input", function() {
-  amountInput.value = digits(amountInput.value);
+  amountInput.value = amountInput.value.replace(/[^\d.]/g, "");
   updateAmountPreview();
 });
 document.querySelectorAll("[data-add-amount]").forEach(function(button) {
   button.addEventListener("click", function() {
-    amountInput.value = String(amountMan(amountInput.value) + Number(button.dataset.addAmount || 0));
+    amountInput.value = String((amountWon(amountInput.value) + Number(button.dataset.addAmount || 0) * 10000) / 10000);
     updateAmountPreview();
   });
 });
@@ -4982,6 +5086,7 @@ if (meetingMonthPicker) {
 
 form.addEventListener("submit", async function(e) {
   e.preventDefault();
+  if (reportSaving) return;
 
   var owner = ownerInput.value.trim();
   if (!owner) {
@@ -5020,9 +5125,15 @@ form.addEventListener("submit", async function(e) {
     return;
   }
 
+  if (calendarLoading || calendarLoadError) {
+    showNotice(calendarLoading ? "휴일 정보를 확인 중입니다. 잠시 후 저장해주세요." : "휴일 정보를 불러오지 못했습니다. 새로고침 후 다시 저장해주세요.", "danger");
+    return;
+  }
+
   var old = reports.find(function(report) { return report.id === editingId; }) || {};
   var item = {
-    id: editingId || makeId(),
+    id: editingId || (reportDraftId || (reportDraftId = makeId())),
+    expectedUpdatedAt: editingId ? editingVersion : null,
     createdAt: old.createdAt || Date.now(),
     updatedAt: Date.now(),
     date: reportDate,
@@ -5051,6 +5162,10 @@ form.addEventListener("submit", async function(e) {
     if (!keepSaving) return;
   }
 
+  reportSaving = true;
+  var restoreFormControls = disableControls(form);
+  var submitButton = document.getElementById("submitBtn");
+  submitButton.disabled = true;
   try {
     var wasEditing = Boolean(editingId);
     if (wasEditing) await updateData(item);
@@ -5062,12 +5177,59 @@ form.addEventListener("submit", async function(e) {
   } catch (error) {
     status("저장 실패: " + error.message, "error");
     toast(error.message);
+  } finally {
+    reportSaving = false;
+    restoreFormControls();
+    submitButton.disabled = false;
   }
 });
 
 syncMonthPicker();
 setDefaultWeeklyReportRange();
 updateAmountPreview();
+var clientMatchReviewBtn = document.getElementById("clientMatchReviewBtn");
+if (clientMatchReviewBtn) clientMatchReviewBtn.addEventListener("click", async function() {
+  var box = document.getElementById("clientMatchReview");
+  clientMatchReviewBtn.disabled = true;
+  box.textContent = "연결 후보를 확인하는 중입니다.";
+  try {
+    var response = await requestJson("/api/import-clients?mode=review", { method: "GET" }, 20000);
+    box.textContent = "";
+    if (!response.items.length) box.textContent = "변경할 연결 후보가 없습니다.";
+    response.items.forEach(function(candidate) {
+      var row = document.createElement("article");
+      var name = document.createElement("strong");
+      name.textContent = candidate.owner + " · " + candidate.client;
+      var before = document.createElement("p");
+      before.textContent = [candidate.clientCode || "코드 없음", candidate.branchName || "지점 없음"].join(" · ");
+      var after = document.createElement("p");
+      after.textContent = candidate.next
+        ? "변경 후보: " + [candidate.next.client, candidate.next.code, candidate.next.branch].join(" · ")
+        : candidate.reason;
+      row.append(name, before, after);
+      {
+        var button = document.createElement("button");
+        button.className = "btn";
+        button.type = "button";
+        button.textContent = candidate.next ? "수정하기" : "거래처 찾기";
+        button.addEventListener("click", function() {
+          var report = reports.find(function(item) { return item.id === candidate.id; });
+          if (!report || Number(report.updatedAt) !== Number(candidate.expectedUpdatedAt)) {
+            showNotice("보고가 변경되었습니다. 새로고침 후 다시 확인해주세요.", "danger");
+            return;
+          }
+          startEdit(report);
+          if (candidate.next) applyClientMatch(candidate.next);
+          setActiveView(isDesktopLayout() ? "dashboard" : "form", true);
+          if (!candidate.next) openManualClientModal(report.client, false, false);
+        });
+        row.appendChild(button);
+      }
+      box.appendChild(row);
+    });
+  } catch(error) { box.textContent = error.message; }
+  finally { clientMatchReviewBtn.disabled = false; }
+});
 loadData().catch(function(error) {
   status("연결 실패: " + error.message, "error");
 });

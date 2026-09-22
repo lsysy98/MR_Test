@@ -30,7 +30,7 @@ var selectedMeetingOwner = "";
 var ownerFilters = {};
 var committedOwnerSearchTerm = "";
 var editingId = "";
-var ownerNames = ["성진욱", "김무영", "이승엽", "김태홍", "제성규", "송진영", "이현욱"];
+var ownerNames = ["성진욱", "김무영", "김태홍", "이승엽", "제성규", "송진영", "이현욱"];
 var ownerBranchScopes = {};
 var productGroups = [
   { group: "항생제", items: ["아목시스", "아목시클라", "세파클리"] },

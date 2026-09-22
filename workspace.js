@@ -60,12 +60,14 @@
   }
   function decorateOwners(root, monthly) {
     if (!root) return;
-    var totals = {};
-    if (monthly) groupByOwner(monthlyItems()).forEach(function (group) { totals[group.owner] = group.summary.total.amount; });
     root.querySelectorAll('.owner-card').forEach(function (card, index) {
       var button = card.querySelector('.owner-button');
       if (!button) return;
       button.setAttribute('aria-expanded', String(card.classList.contains('open')));
+      var status = button.querySelector('.daily-status');
+      if (status && !status.querySelector('svg')) {
+        status.prepend(icon(status.classList.contains('done') ? 'circle-check' : status.classList.contains('leave') ? 'calendar-off' : 'clock'));
+      }
       var details = card.querySelector('.detail-list');
       if (details) {
         details.id = root.id + '-details-' + index;
@@ -87,8 +89,9 @@
         if (rate && !button.querySelector('.owner-performance')) {
           var performance = document.createElement('div');
           performance.className = 'owner-performance';
-          var amount = document.createElement('strong');
-          amount.textContent = won(totals[card.dataset.owner] || 0);
+          var achievement = document.createElement('strong');
+          achievement.textContent = rate.textContent;
+          achievement.setAttribute('aria-label', '목표 달성률 ' + rate.textContent);
           var meta = document.createElement('div');
           meta.className = 'owner-performance-meta';
           var progress = document.createElement('span');
@@ -98,8 +101,9 @@
           fill.style.width = Math.max(0, Math.min(100, parseFloat(rate.textContent) || 0)) + '%';
           progress.appendChild(fill);
           rate.before(performance);
-          meta.append(progress, rate);
-          performance.append(amount, meta);
+          meta.appendChild(progress);
+          performance.append(achievement, meta);
+          rate.remove();
         }
       }
     });

@@ -99,7 +99,6 @@ var meetingMonthPicker = document.getElementById("meetingMonthPicker");
 var monthPickerLabel = document.getElementById("monthPickerLabel");
 var meetingMonthPickerLabel = document.getElementById("meetingMonthPickerLabel");
 var meetingPrevMonthBtn = document.getElementById("meetingPrevMonthBtn");
-var meetingCurrentMonthBtn = document.getElementById("meetingCurrentMonthBtn");
 var meetingNextMonthBtn = document.getElementById("meetingNextMonthBtn");
 var todayEmpty = document.getElementById("todayEmpty");
 var statusBox = document.getElementById("statusBox");
@@ -3368,7 +3367,18 @@ function reportCard(item, index) {
 
   var info = document.createElement("div");
   info.className = "report-info";
-  info.textContent = item.date + " · " + productShortLabel(item.product);
+  var reportDate = document.createElement("time");
+  reportDate.className = "report-date";
+  reportDate.dateTime = item.date;
+  reportDate.textContent = item.date;
+  var reportProduct = document.createElement("span");
+  reportProduct.className = "report-product";
+  reportProduct.textContent = productShortLabel(item.product);
+  var separator = document.createElement("span");
+  separator.className = "report-info-separator";
+  separator.setAttribute("aria-hidden", "true");
+  separator.textContent = "·";
+  info.append(reportDate, separator, reportProduct);
 
   var bottom = document.createElement("div");
   bottom.className = "report-bottom";
@@ -4964,15 +4974,11 @@ document.getElementById("prevCollectionBtn").addEventListener("click", function(
 document.getElementById("nextCollectionBtn").addEventListener("click", function() { moveCollectionMonth(1); });
 document.getElementById("prevMonthBtn").addEventListener("click", function() { moveMonth(-1); });
 document.getElementById("nextMonthBtn").addEventListener("click", function() { moveMonth(1); });
-document.getElementById("currentMonthBtn").addEventListener("click", resetToCurrentMonth);
 if (meetingPrevMonthBtn) {
   meetingPrevMonthBtn.addEventListener("click", function() { moveMonth(-1); });
 }
 if (meetingNextMonthBtn) {
   meetingNextMonthBtn.addEventListener("click", function() { moveMonth(1); });
-}
-if (meetingCurrentMonthBtn) {
-  meetingCurrentMonthBtn.addEventListener("click", resetToCurrentMonth);
 }
 document.getElementById("cancelEditBtn").addEventListener("click", resetFormAll);
 document.querySelectorAll("[data-view]").forEach(function(button) {

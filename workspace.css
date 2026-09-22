@@ -126,7 +126,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .month-nav { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 0; }
 .workspace .month-picker-shell { position: relative; }
 .workspace .month-picker-input { position: absolute !important; left: 0; bottom: 0; width: 1px !important; height: 1px !important; min-height: 1px !important; padding: 0 !important; opacity: 0; pointer-events: none; }
-.workspace .month-current { min-height: 36px; padding: 0 8px; border-color: transparent; background: transparent; font-size: 13px; }
 .workspace .summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0; background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 20px 0; }
 .workspace .metric { padding: 0 21px; border: 0; border-radius: 0; box-shadow: none; min-height: 85px; background: none; display: grid; gap: 8px; border-right: 1px solid var(--line); align-content: start; }
 .workspace .metric:last-child { border-right: 0; }
@@ -146,6 +145,10 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .dashboard .summary { grid-template-columns: repeat(4,minmax(0,1fr)) !important; padding: 18px 0; }
 .workspace .dashboard .metric { padding: 0 14px; }
 .workspace .dashboard .metric strong { font-size: 22px; }
+.workspace .dashboard .metric span, .workspace .dashboard .metric small { color: #4d5961; font-weight: 600; }
+.workspace .dashboard .owner-count { color: #4d5961; font-weight: 600; }
+.workspace .dashboard .detail-metric span, .workspace .dashboard .detail-metric small { color: #4d5961; font-weight: 600; }
+.workspace .dashboard .owner-search-head, .workspace .dashboard .owner-search-meta { color: #4d5961; }
 .workspace #doneCount { font-size: 12px; line-height: 1.6; }
 .workspace .view-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; }
 .workspace .period-switch { width: 140px; flex-shrink: 0; }
@@ -204,13 +207,16 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .report-card::before { display: none; }
 .workspace .report-card.open { border-color: var(--accent-line); background: #fff; }
 .workspace .report-number { border-radius: 4px; background: #f0f5f4; color: #7b9492; left: 12px; top: 16px; width: 18px; height: 18px; font-size: 12px; }
-.workspace .client { font-size: 15px; font-weight: 700; line-height: 1.5; color: #243b44; }
-.workspace .client-code { color: #92a0a7; font-size: 12px; font-weight: 500; background: none; padding: 0; }
-.workspace .branch-name { color: #6d7980; font-size: 12px; font-weight: 400; }
+.workspace .client { font-size: 15px; font-weight: 700; line-height: 1.5; color: #20272b; }
+.workspace .client-code { color: #2455a4; font-size: 12px; font-weight: 650; background: none; padding: 0; font-variant-numeric: tabular-nums; }
+.workspace .branch-name { color: #087566; font-size: 13px; font-weight: 650; }
 .workspace .report-amount { color: #2f4650; font-size: 16px; font-weight: 650; line-height: 1.5; }
-.workspace .report-info { font-size: 12px; color: #6d7980; }
+.workspace .report-info { font-size: 13px; color: #4d5961; font-weight: 600; align-items: baseline; }
+.workspace .report-date { color: #4d5961; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.workspace .report-product { color: #7345a0; font-weight: 650; }
+.workspace .report-info-separator { color: #59656b; }
 .workspace .badge, .workspace .prescription-state, .workspace .success-case-mark { min-height: 20px; border-radius: 4px; font-size: 12px; font-weight: 500; padding: 1px 6px; }
-.workspace .prescription-state.pending { color: #a7767d; background: #faf0f2; }
+.workspace .prescription-state.pending { color: #a54254; background: #faf0f2; }
 .workspace .report-actions .btn { font-size: 13px; min-height: 30px; }
 .workspace .report-actions .btn.pending, .workspace .report-actions .btn.done { min-width: 68px; }
 .workspace .completion-panel { background: transparent; border: 0; padding: 0; border-radius: 0; }

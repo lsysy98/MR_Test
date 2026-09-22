@@ -92,6 +92,7 @@
           var achievement = document.createElement('strong');
           achievement.textContent = rate.textContent;
           achievement.setAttribute('aria-label', '목표 달성률 ' + rate.textContent);
+          achievement.classList.toggle('is-over-target', parseFloat(rate.textContent) >= 100);
           var meta = document.createElement('div');
           meta.className = 'owner-performance-meta';
           var progress = document.createElement('span');

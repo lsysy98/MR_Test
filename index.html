@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260923-monthly-calendar-10">
+  <link rel="stylesheet" href="workspace.css?v=20260923-period-navigation-11">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2597,15 +2597,15 @@
             <input class="owner-search" id="ownerSearchInput" type="search" placeholder="치과명/코드/지점명 검색" autocomplete="off" aria-label="담당자별 치과명, 거래처코드 또는 지점명 검색">
             <button class="btn owner-search-btn" id="ownerSearchBtn" type="button">검색</button>
           </div>
-          </div>
-          <div class="month-nav">
-          <div class="month-main month-picker-shell">
-            <button class="month-picker-label" id="monthPickerLabel" type="button" aria-label="월 선택"><span>2026. 09</span><i data-icon="calendar-days" aria-hidden="true"></i></button>
-            <input class="month-picker-input" id="monthPicker" type="month" aria-label="월 선택">
-          </div>
-          <div class="month-actions">
+        </div>
+        <div class="month-nav">
+          <button class="btn month-current" type="button" id="currentMonthBtn">현재</button>
+          <div class="period-navigation month-control">
             <button class="btn" type="button" id="prevMonthBtn">전 달</button>
-            <button class="btn" type="button" id="currentMonthBtn">현재</button>
+            <div class="month-picker-shell">
+              <button class="month-picker-label" id="monthPickerLabel" type="button" aria-label="월 선택" title="월 선택"><span>2026. 09</span></button>
+              <input class="month-picker-input" id="monthPicker" type="month" aria-label="월 선택" tabindex="-1">
+            </div>
             <button class="btn" type="button" id="nextMonthBtn">다음 달</button>
           </div>
         </div>
@@ -2643,7 +2643,7 @@
           </div>
           <div class="period-controls">
             <div class="period-control-row">
-              <div class="day-control" id="teamDayControl">
+              <div class="day-control period-navigation" id="teamDayControl">
                 <button class="btn" type="button" id="prevDayBtn">이전 일</button>
                 <div class="date-pick-wrap">
                   <button class="date-label" type="button" id="teamDateLabel">2026. 07. 01. 수</button>
@@ -2651,7 +2651,7 @@
                 </div>
                 <button class="btn" type="button" id="nextDayBtn">다음 일</button>
               </div>
-              <div class="week-control" id="teamWeekControl">
+              <div class="week-control period-navigation" id="teamWeekControl">
                 <button class="btn" type="button" id="prevWeekBtn">이전 주</button>
                 <div class="date-pick-wrap">
                   <button class="week-label" type="button" id="teamWeekLabel">7월 1주차</button>
@@ -2695,13 +2695,13 @@
         <div class="head"><h2>회의자료</h2></div>
         <div class="body">
           <div class="month-nav meeting-month-nav">
-            <div class="month-main month-picker-shell">
-              <button class="month-picker-label" id="meetingMonthPickerLabel" type="button" aria-label="회의자료 월 선택"><span>2026. 09</span><i data-icon="calendar-days" aria-hidden="true"></i></button>
-              <input class="month-picker-input" id="meetingMonthPicker" type="month" aria-label="회의자료 월 선택">
-            </div>
-            <div class="month-actions">
+            <button class="btn month-current" type="button" id="meetingCurrentMonthBtn">현재</button>
+            <div class="period-navigation month-control">
               <button class="btn" type="button" id="meetingPrevMonthBtn">전 월</button>
-              <button class="btn" type="button" id="meetingCurrentMonthBtn">현재</button>
+              <div class="month-picker-shell">
+                <button class="month-picker-label" id="meetingMonthPickerLabel" type="button" aria-label="회의자료 월 선택" title="월 선택"><span>2026. 09</span></button>
+                <input class="month-picker-input" id="meetingMonthPicker" type="month" aria-label="회의자료 월 선택" tabindex="-1">
+              </div>
               <button class="btn" type="button" id="meetingNextMonthBtn">다음 월</button>
             </div>
           </div>
@@ -2967,7 +2967,7 @@
   </div>
   <script src="app.js?v=20260922-owner-order-3"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="workspace.js?v=20260923-layout-4"></script>
+  <script src="workspace.js?v=20260923-period-navigation-11"></script>
 </body>
 </html>
 

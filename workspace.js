@@ -116,7 +116,7 @@
     });
   }
   document.querySelectorAll('.date-label, .week-label').forEach(function (label) {
-    if (!label.querySelector('.period-calendar-icon')) label.appendChild(icon('calendar-days', 'period-calendar-icon'));
+    label.title = label.classList.contains('week-label') ? '주차 선택' : '날짜 선택';
   });
   document.querySelectorAll('.official-osstem-mascot').forEach(function (image) {
     image.addEventListener('load', function () { image.parentElement.classList.add('has-official'); });

@@ -123,16 +123,10 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .owner-search-control { width: 230px; grid-template-columns: minmax(0,1fr) 46px; gap: 0; position: relative; }
 .workspace .owner-search-control input { border-radius: 5px 0 0 5px; font-size: 13px !important; min-height: 34px !important; }
 .workspace .owner-search-control button { width: 46px; min-width: 46px; padding: 0; border-left: 0; border-radius: 0 5px 5px 0; min-height: 34px; overflow: hidden; }
-.workspace .month-nav { display: flex; justify-content: space-between; gap: 12px; padding: 0; }
-.workspace .month-main { display: block; }
+.workspace .month-nav { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 0; }
 .workspace .month-picker-shell { position: relative; }
-.workspace .month-picker-label { width: 100%; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 5px; border: 0; border-radius: 4px; background: transparent; color: #485962; font-size: 15px; font-weight: 650; white-space: nowrap; }
-.workspace .month-picker-label:hover { background: #f4f6f7; }
-.workspace .month-picker-label .ui-icon { width: 16px; height: 16px; color: var(--accent); }
-.workspace .month-picker-input { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 1px !important; padding: 0 !important; opacity: 0; pointer-events: none; }
-.workspace .month-actions { gap: 5px; }
-.workspace .month-actions .btn { min-height: 34px; font-size: 13px; }
-.workspace .dashboard #currentMonthBtn { display: inline-flex; }
+.workspace .month-picker-input { position: absolute !important; left: 0; bottom: 0; width: 1px !important; height: 1px !important; min-height: 1px !important; padding: 0 !important; opacity: 0; pointer-events: none; }
+.workspace .month-current { min-height: 36px; padding: 0 8px; border-color: transparent; background: transparent; font-size: 13px; }
 .workspace .summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0; background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 20px 0; }
 .workspace .metric { padding: 0 21px; border: 0; border-radius: 0; box-shadow: none; min-height: 85px; background: none; display: grid; gap: 8px; border-right: 1px solid var(--line); align-content: start; }
 .workspace .metric:last-child { border-right: 0; }
@@ -155,14 +149,14 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace #doneCount { font-size: 12px; line-height: 1.6; }
 .workspace .view-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; }
 .workspace .period-switch { width: 140px; flex-shrink: 0; }
-.workspace .period-controls { min-width: 0; }
-.workspace .day-control, .workspace .week-control { grid-template-columns: 32px minmax(0,1fr) 32px; gap: 3px; }
-.workspace .period-control-row { display: contents; }
+.workspace .period-controls { min-width: 0; margin-left: auto; flex: 0 0 auto; max-width: 100%; }
+.workspace .period-navigation { display: grid; width: max-content; max-width: 100%; grid-template-columns: 32px max-content 32px; gap: 3px; align-items: center; }
+.workspace .period-control-row { display: block; }
 .workspace .daily-owner-search-control { display: grid; }
-.workspace .date-label, .workspace .week-label { gap: 7px; }
-.workspace .period-calendar-icon { width: 16px; height: 16px; color: var(--accent); flex: 0 0 auto; }
-.workspace .day-control .btn, .workspace .week-control .btn { border-color: transparent; background: transparent; min-height: 36px; }
-.workspace .date-label, .workspace .week-label { border: 0; border-radius: 4px; font-size: 15px; font-weight: 650; background: transparent; color: #485962; padding: 0 5px; min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.workspace .period-navigation > .btn { width: 32px; height: 36px; min-height: 36px; padding: 0; border-color: transparent; background: transparent; }
+.workspace .date-label, .workspace .week-label, .workspace .month-picker-label { border: 0; border-radius: 4px; font-size: 15px; font-weight: 650; background: transparent; color: #485962; padding: 0 5px; min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.workspace .month-picker-label { min-width: 90px; }
+.workspace .month-picker-label:hover { background: #f4f6f7; }
 .workspace .date-label::before, .workspace .date-label::after, .workspace .week-label::before, .workspace .week-label::after { display: none; }
 .team-list-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 4px; margin-bottom: -8px; }
 .workspace .team-list-heading h3 { margin: 0; font-size: 16px; font-weight: 650; }
@@ -338,7 +332,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .metric strong { font-size: 23px; }
   .workspace .view-toolbar { gap: 7px; }
   .workspace .period-switch { width: 112px; }
-  .workspace .date-label { font-size: 13px; }
+  .workspace .date-label, .workspace .week-label, .workspace .month-picker-label { font-size: 13px; }
   .workspace .dashboard .summary { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 18px 0; }
   .workspace .dashboard .metric:nth-child(2) { border-right: 0; }
   .workspace .head.with-search { display: grid; gap: 12px; }
@@ -351,7 +345,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .desktop-tabs .mobile-tab { min-height: 44px; justify-content: flex-start; padding: 0 14px; }
   .sidebar-team { margin: auto 0 0; padding: 18px 9px 0; border-top: 1px solid var(--line); }
   .workspace-main { margin-left: var(--sidebar); padding-top: 28px; }
-  .workspace .period-control-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 250px); gap: 10px; align-items: center; }
   .workspace .daily-owner-search-control { width: 230px; }
   .workspace .today-panel .desktop-daily-search-results.active { display: grid; }
   .workspace .today-panel .body > .completion-panel { order: 6; }
@@ -363,19 +356,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .today-panel .body > .desktop-daily-search-results { order: 1; }
   .workspace .today-panel .body > .view-toolbar { order: 0; }
   .workspace .today-panel > section > .head.with-search { display: flex; margin-bottom: 18px; }
-  .workspace .dashboard .month-nav { display: grid; grid-template-columns: minmax(0,1fr) auto auto minmax(175px,175px); gap: 8px; align-items: center; }
-  .workspace .dashboard .month-main { grid-column: 4; grid-row: 1; width: 175px; justify-self: end; }
-  .workspace .dashboard .month-actions { display: contents; }
-  .workspace .dashboard #prevMonthBtn { grid-column: 1; grid-row: 1; justify-self: start; }
-  .workspace .dashboard #currentMonthBtn { grid-column: 2; grid-row: 1; }
-  .workspace .dashboard #nextMonthBtn { grid-column: 3; grid-row: 1; }
-  .workspace .meeting-month-nav { display: grid; grid-template-columns: minmax(0,1fr) auto auto minmax(175px,175px); gap: 8px; align-items: center; }
-  .workspace .meeting-month-nav .month-main { grid-column: 4; grid-row: 1; width: 175px; justify-self: end; }
-  .workspace .meeting-month-nav .month-actions { display: contents; }
-  .workspace .meeting-month-nav #meetingPrevMonthBtn { grid-column: 1; grid-row: 1; justify-self: start; }
-  .workspace .meeting-month-nav #meetingCurrentMonthBtn { grid-column: 2; grid-row: 1; }
-  .workspace .meeting-month-nav #meetingNextMonthBtn { grid-column: 3; grid-row: 1; }
-  .workspace .period-calendar-icon { display: inline-block; }
 }
 @media (max-width: 900px) {
   .workspace .workspace-topbar { height: 58px; padding: 0 18px; }
@@ -415,9 +395,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .view-toolbar { gap: 10px; flex-wrap: wrap; }
   .workspace .period-switch { width: 110px; }
   .workspace .period-switch button { min-height: 33px; font-size: 14px; }
-  .workspace .date-label, .workspace .week-label { font-size: 13px; gap: 3px; min-height: 38px; }
-  .workspace .day-control, .workspace .week-control { grid-template-columns: 25px minmax(0,1fr) 25px; gap: 0; }
-  .workspace .day-control .btn, .workspace .week-control .btn { width: 25px; }
+  .workspace .date-label, .workspace .week-label, .workspace .month-picker-label { font-size: 13px; gap: 3px; min-height: 38px; }
+  .workspace .period-navigation { grid-template-columns: 25px max-content 25px; gap: 0; }
+  .workspace .period-navigation > .btn { width: 25px; height: 38px; min-height: 38px; }
   .workspace .summary { padding: 19px 0; }
   .workspace .metric { padding: 0 12px; gap: 8px; min-height: 80px; }
   .workspace .metric span { font-size: 12px; }
@@ -450,9 +430,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .head.with-search { display: grid; gap: 14px; }
   .workspace .owner-search-control { width: 100%; }
   .workspace .owner-search-control input { font-size: 16px !important; }
-  .workspace .month-picker-label { font-size: 15px; }
-  .workspace .month-actions .btn { font-size: 12px; min-height: 34px; padding: 0 9px; }
-  .workspace .month-actions .icon-only { width: 30px; padding: 0; }
   .workspace .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
   .workspace .meeting-owner-button { padding: 15px 12px; gap: 12px; }
   .workspace .meeting-owner-head strong { font-size: 14px; }
@@ -477,14 +454,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .daily-owner-search-control { width: 100%; }
   .workspace .today-panel > section > .head.with-search { display: flex; margin-bottom: 14px; }
   .workspace .today-panel .desktop-daily-search-results.active { display: grid; }
-  .workspace .dashboard .month-nav { display: grid; grid-template-columns: 1fr; gap: 8px; }
-  .workspace .dashboard .month-main { grid-column: auto; width: 100%; }
-  .workspace .dashboard .month-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
-  .workspace .meeting-month-nav { display: grid; grid-template-columns: 1fr; gap: 8px; }
-  .workspace .meeting-month-nav .month-main { grid-column: auto; width: 100%; }
-  .workspace .meeting-month-nav .month-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
-  .workspace .period-control-row { display: contents; }
-  .workspace .period-calendar-icon { display: none; }
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }
 }
 @media (min-width: 901px) and (max-width: 1200px) {

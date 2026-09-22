@@ -120,9 +120,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace main > :not(.input-panel) > section > .head { margin-bottom: 18px; }
 .workspace .today-panel > section > .head { display: none; }
 .workspace .head.with-search { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.workspace .owner-search-control { width: 230px; grid-template-columns: minmax(0,1fr) 34px; gap: 0; position: relative; }
+.workspace .owner-search-control { width: 230px; grid-template-columns: minmax(0,1fr) 46px; gap: 0; position: relative; }
 .workspace .owner-search-control input { border-radius: 5px 0 0 5px; font-size: 13px !important; min-height: 34px !important; }
-.workspace .owner-search-control button { border-left: 0; border-radius: 0 5px 5px 0; min-height: 34px; }
+.workspace .owner-search-control button { width: 46px; min-width: 46px; padding: 0; border-left: 0; border-radius: 0 5px 5px 0; min-height: 34px; overflow: hidden; }
 .workspace .month-nav { display: flex; justify-content: space-between; gap: 12px; padding: 0; }
 .workspace .month-main { display: block; }
 .workspace .month-main input { width: 175px; font-size: 15px !important; min-height: 36px !important; }
@@ -137,9 +137,14 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .metric small { font-size: 13px; color: #717d84; word-break: keep-all; }
 .workspace .metric:nth-child(2) strong { color: var(--green); }
 .workspace .metric:nth-child(3) strong { color: #526eb0; }
-.workspace .dashboard { display: flex; flex-direction: column; gap: 26px; }
-.workspace .dashboard > .body { order: -1; }
-.workspace .dashboard > .body .summary-title { display: none; }
+.workspace .dashboard { display: flex; flex-direction: column; gap: 22px; }
+.workspace .dashboard > .dashboard-toolbar { display: grid; gap: 14px; order: 0; }
+.workspace .dashboard > .dashboard-toolbar > .head.with-search { margin-bottom: 0; }
+.workspace .dashboard > .dashboard-toolbar > .status { margin: 0; }
+.workspace .dashboard > .monthly-summary { order: 1; }
+.workspace .dashboard > .monthly-summary .summary-title { display: none; }
+.workspace .dashboard > .dashboard-owner-list { order: 2; }
+.workspace .dashboard-owner-list .body { gap: 16px; }
 .workspace .dashboard .summary { grid-template-columns: repeat(4,minmax(0,1fr)) !important; padding: 18px 0; }
 .workspace .dashboard .metric { padding: 0 14px; }
 .workspace .dashboard .metric strong { font-size: 22px; }
@@ -339,12 +344,12 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .owner-search-control { width: 100%; }
 }
 @media (min-width: 901px) {
-  .workspace-sidebar { top: 64px; left: 0; bottom: auto; width: 100%; height: 58px; padding: 0 32px; border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; align-items: center; box-sizing: border-box; }
-  .sidebar-caption { padding: 0 18px 0 0; white-space: nowrap; }
-  .workspace .desktop-tabs { width: min(560px, 100%); flex: 0 1 560px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; }
-  .workspace .desktop-tabs .mobile-tab { min-height: 40px; justify-content: center; padding: 0 14px; }
-  .sidebar-team { margin: 0 0 0 auto; padding: 0 0 0 18px; border-top: 0; }
-  .workspace-main { margin-left: 0; padding-top: 110px; }
+  .workspace-sidebar { top: 64px; left: 0; bottom: 0; width: var(--sidebar); height: auto; padding: 30px 12px 20px; border-right: 1px solid var(--line); border-bottom: 0; flex-direction: column; align-items: stretch; box-sizing: border-box; }
+  .sidebar-caption { padding: 0 15px 13px; white-space: normal; }
+  .workspace .desktop-tabs { width: auto; flex: 0; grid-template-columns: 1fr; gap: 5px; padding: 0; }
+  .workspace .desktop-tabs .mobile-tab { min-height: 44px; justify-content: flex-start; padding: 0 14px; }
+  .sidebar-team { margin: auto 0 0; padding: 18px 9px 0; border-top: 1px solid var(--line); }
+  .workspace-main { margin-left: var(--sidebar); padding-top: 28px; }
   .workspace .period-control-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 250px); gap: 10px; align-items: center; }
   .workspace .daily-owner-search-control { width: 230px; }
   .workspace .today-panel .desktop-daily-search-results.active { display: grid; }
@@ -471,6 +476,12 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .period-control-row { display: contents; }
   .workspace .period-calendar-icon { display: none; }
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .workspace-sidebar { padding: 24px 8px 16px; }
+  .workspace-sidebar .sidebar-caption, .workspace-sidebar .sidebar-team { display: none; }
+  .workspace .desktop-tabs .mobile-tab { justify-content: center; padding: 0; }
+  .workspace .desktop-tabs .mobile-tab span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .workspace *, .workspace *::before, .workspace *::after { scroll-behavior: auto !important; transition: none !important; }

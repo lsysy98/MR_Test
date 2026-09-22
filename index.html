@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260923-search-rate-6">
+  <link rel="stylesheet" href="workspace.css?v=20260923-monthly-top-8">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2590,7 +2590,7 @@
     </section>
 
     <section class="dashboard" id="dashboard">
-      <section>
+      <section class="dashboard-toolbar">
         <div class="head with-search">
           <h2>담당자별 현황</h2>
           <div class="owner-search-control">
@@ -2598,22 +2598,17 @@
             <button class="btn owner-search-btn" id="ownerSearchBtn" type="button">검색</button>
           </div>
         </div>
-        <div class="body">
-          <div class="status" id="statusBox">보고 데이터를 불러오는 중입니다.</div>
-          <div class="month-nav">
-            <div class="month-main">
-              <input id="monthPicker" type="month" aria-label="월 선택">
-            </div>
-            <div class="month-actions">
-              <button class="btn" type="button" id="prevMonthBtn">전 달</button>
-              <button class="btn" type="button" id="currentMonthBtn">현재</button>
-              <button class="btn" type="button" id="nextMonthBtn">다음 달</button>
-            </div>
+        <div class="month-nav">
+          <div class="month-main">
+            <input id="monthPicker" type="month" aria-label="월 선택">
           </div>
-          <div class="owner-search-results" id="ownerSearchResults" aria-live="polite"></div>
-          <div class="owner-grid" id="ownerCards"></div>
-          <div class="empty" id="empty">아직 입력된 보고가 없습니다.</div>
+          <div class="month-actions">
+            <button class="btn" type="button" id="prevMonthBtn">전 달</button>
+            <button class="btn" type="button" id="currentMonthBtn">현재</button>
+            <button class="btn" type="button" id="nextMonthBtn">다음 달</button>
+          </div>
         </div>
+        <div class="status" id="statusBox">보고 데이터를 불러오는 중입니다.</div>
       </section>
       <div class="body monthly-summary">
         <div class="summary-title">월 전체 요약</div>
@@ -2624,6 +2619,13 @@
           <div class="metric"><span>목표 달성율</span><strong id="doneRate">0%</strong><small id="doneCount">총매출 0원 / 목표 0원</small></div>
         </div>
       </div>
+      <section class="dashboard-owner-list">
+        <div class="body">
+          <div class="owner-search-results" id="ownerSearchResults" aria-live="polite"></div>
+          <div class="owner-grid" id="ownerCards"></div>
+          <div class="empty" id="empty">아직 입력된 보고가 없습니다.</div>
+        </div>
+      </section>
     </section>
 
     <section class="today-panel" id="todayPanel">

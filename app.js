@@ -86,6 +86,9 @@ var ownerCards = document.getElementById("ownerCards");
 var ownerSearchInput = document.getElementById("ownerSearchInput");
 var ownerSearchButton = document.getElementById("ownerSearchBtn");
 var ownerSearchResults = document.getElementById("ownerSearchResults");
+var desktopOwnerSearchInput = document.getElementById("desktopOwnerSearchInput");
+var desktopOwnerSearchButton = document.getElementById("desktopOwnerSearchBtn");
+var desktopOwnerSearchResults = document.getElementById("desktopOwnerSearchResults");
 var todayOwnerCards = document.getElementById("todayOwnerCards");
 var meetingCards = document.getElementById("meetingCards");
 var codeReviewList = document.getElementById("codeReviewList");
@@ -1020,9 +1023,11 @@ async function enrichReportsWithClientDirectory() {
 function currentOwnerSearchTerm() {
   return committedOwnerSearchTerm;
 }
-function submitOwnerSearch() {
-  committedOwnerSearchTerm = normalizeSearchText(ownerSearchInput ? ownerSearchInput.value : "");
+function submitOwnerSearch(sourceInput) {
+  var input = sourceInput || (document.activeElement === desktopOwnerSearchInput ? desktopOwnerSearchInput : ownerSearchInput);
+  committedOwnerSearchTerm = normalizeSearchText(input ? input.value : "");
   if (ownerSearchInput) ownerSearchInput.value = "";
+  if (desktopOwnerSearchInput) desktopOwnerSearchInput.value = "";
   render();
 }
 function clearCommittedOwnerSearch() {
@@ -3430,19 +3435,45 @@ function addDetailMetric(parent, owner, filterType, value, sub) {
   button.appendChild(small);
   parent.appendChild(button);
 }
+function openOwnerSearchReport(item) {
+  selectedYear = collectionYearOf(item);
+  selectedMonth = collectionMonthOf(item);
+  openedOwner = item.owner;
+  openedReportId = item.id;
+  ownerFilters[item.owner] = "";
+  committedOwnerSearchTerm = "";
+  if (ownerSearchInput) ownerSearchInput.value = "";
+  if (desktopOwnerSearchInput) desktopOwnerSearchInput.value = "";
+  syncMonthPicker();
+  render();
+  setTimeout(function() {
+    var card = Array.from(ownerCards.querySelectorAll("[data-report-id]")).find(function(node) { return node.dataset.reportId === item.id; });
+    if (!card) return;
+    var header = document.querySelector("header");
+    var offset = header ? header.getBoundingClientRect().height : 0;
+    window.scrollTo({ top: Math.max(0, card.getBoundingClientRect().top + window.pageYOffset - offset - 8), behavior: "smooth" });
+  }, 0);
+}
 function renderOwnerSearchResults() {
-  if (!ownerSearchResults) return;
+  var containers = [ownerSearchResults, desktopOwnerSearchResults].filter(function(container, index, list) {
+    return container && list.indexOf(container) === index;
+  });
+  if (!containers.length) return;
   var term = currentOwnerSearchTerm();
-  ownerSearchResults.textContent = "";
-  ownerSearchResults.classList.toggle("active", !!term);
+  containers.forEach(function(container) {
+    container.textContent = "";
+    container.classList.toggle("active", !!term);
+  });
   if (!term) return;
 
   var scopeOwner = ownerSearchScopeOwner();
   if (!scopeOwner) {
-    var needOwner = document.createElement("div");
-    needOwner.className = "empty";
-    needOwner.textContent = "담당자 이름을 선택하거나 담당자 카드를 연 뒤 검색해주세요.";
-    ownerSearchResults.appendChild(needOwner);
+    containers.forEach(function(container) {
+      var needOwner = document.createElement("div");
+      needOwner.className = "empty";
+      needOwner.textContent = "담당자 이름을 선택하거나 담당자 카드를 연 뒤 검색해주세요.";
+      container.appendChild(needOwner);
+    });
     return;
   }
   var results = reports
@@ -3458,83 +3489,68 @@ function renderOwnerSearchResults() {
       return Number(b.createdAt || 0) - Number(a.createdAt || 0);
     });
 
-  var head = document.createElement("div");
-  head.className = "owner-search-head";
-  var scope = document.createElement("span");
-  scope.textContent = scopeOwner + " · 전체 기간 검색";
-  var count = document.createElement("span");
-  count.textContent = results.length + "건";
-  head.appendChild(scope);
-  head.appendChild(count);
-  ownerSearchResults.appendChild(head);
+  containers.forEach(function(container) {
+    var head = document.createElement("div");
+    head.className = "owner-search-head";
+    var scope = document.createElement("span");
+    scope.textContent = scopeOwner + " · 전체 기간 검색";
+    var count = document.createElement("span");
+    count.textContent = results.length + "건";
+    head.appendChild(scope);
+    head.appendChild(count);
+    container.appendChild(head);
 
-  if (!results.length) {
-    var empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "검색 결과가 없습니다.";
-    ownerSearchResults.appendChild(empty);
-    return;
-  }
-
-  results.slice(0, 30).forEach(function(item) {
-    var row = document.createElement("button");
-    row.type = "button";
-    row.className = "owner-search-row";
-    row.addEventListener("click", function() {
-      selectedYear = collectionYearOf(item);
-      selectedMonth = collectionMonthOf(item);
-      openedOwner = item.owner;
-      openedReportId = item.id;
-      ownerFilters[item.owner] = "";
-      committedOwnerSearchTerm = "";
-      if (ownerSearchInput) ownerSearchInput.value = "";
-      syncMonthPicker();
-      render();
-      setTimeout(function() {
-        var card = Array.from(ownerCards.querySelectorAll("[data-report-id]")).find(function(node) { return node.dataset.reportId === item.id; });
-        if (!card) return;
-        var header = document.querySelector("header");
-        var offset = header ? header.getBoundingClientRect().height : 0;
-        window.scrollTo({ top: Math.max(0, card.getBoundingClientRect().top + window.pageYOffset - offset - 8), behavior: "smooth" });
-      }, 0);
-    });
-
-    var main = document.createElement("div");
-    main.className = "owner-search-main";
-    var client = document.createElement("div");
-    client.className = "owner-search-client";
-    client.textContent = item.client;
-    main.appendChild(client);
-    if (item.clientCode || item.branchName) {
-      var branch = document.createElement("div");
-      branch.className = "owner-search-branch";
-      branch.textContent = [item.clientCode, item.branchName].filter(Boolean).join(" · ");
-      main.appendChild(branch);
+    if (!results.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "검색 결과가 없습니다.";
+      container.appendChild(empty);
+      return;
     }
 
-    var meta = document.createElement("div");
-    meta.className = "owner-search-meta";
-    [item.owner, item.date, "수거 " + collectionText(item), item.type, productShortLabel(item.product)].forEach(function(text) {
-      var span = document.createElement("span");
-      span.textContent = text;
-      meta.appendChild(span);
+    results.slice(0, 30).forEach(function(item) {
+      var row = document.createElement("button");
+      row.type = "button";
+      row.className = "owner-search-row";
+      row.addEventListener("click", function() { openOwnerSearchReport(item); });
+
+      var main = document.createElement("div");
+      main.className = "owner-search-main";
+      var client = document.createElement("div");
+      client.className = "owner-search-client";
+      client.textContent = item.client;
+      main.appendChild(client);
+      if (item.clientCode || item.branchName) {
+        var branch = document.createElement("div");
+        branch.className = "owner-search-branch";
+        branch.textContent = [item.clientCode, item.branchName].filter(Boolean).join(" · ");
+        main.appendChild(branch);
+      }
+
+      var meta = document.createElement("div");
+      meta.className = "owner-search-meta";
+      [item.owner, item.date, "수거 " + collectionText(item), item.type, productShortLabel(item.product)].forEach(function(text) {
+        var span = document.createElement("span");
+        span.textContent = text;
+        meta.appendChild(span);
+      });
+      main.appendChild(meta);
+
+      var amount = document.createElement("div");
+      amount.className = "owner-search-amount";
+      amount.textContent = won(item.amount);
+      row.appendChild(main);
+      row.appendChild(amount);
+      container.appendChild(row);
     });
-    main.appendChild(meta);
 
-    var amount = document.createElement("div");
-    amount.className = "owner-search-amount";
-    amount.textContent = won(item.amount);
-    row.appendChild(main);
-    row.appendChild(amount);
-    ownerSearchResults.appendChild(row);
+    if (results.length > 30) {
+      var more = document.createElement("div");
+      more.className = "owner-search-head";
+      more.textContent = "최근 30건만 표시합니다.";
+      container.appendChild(more);
+    }
   });
-
-  if (results.length > 30) {
-    var more = document.createElement("div");
-    more.className = "owner-search-head";
-    more.textContent = "최근 30건만 표시합니다.";
-    ownerSearchResults.appendChild(more);
-  }
 }
 function renderOwnerCards(items) {
   ownerCards.textContent = "";
@@ -4981,7 +4997,25 @@ if (ownerSearchInput) {
   });
 }
 if (ownerSearchButton) {
-  ownerSearchButton.addEventListener("click", submitOwnerSearch);
+  ownerSearchButton.addEventListener("click", function() { submitOwnerSearch(ownerSearchInput); });
+}
+if (desktopOwnerSearchInput) {
+  desktopOwnerSearchInput.addEventListener("input", function() {
+    clearCommittedOwnerSearch();
+  });
+  desktopOwnerSearchInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitOwnerSearch(desktopOwnerSearchInput);
+    }
+    if (e.key === "Escape") {
+      desktopOwnerSearchInput.value = "";
+      clearCommittedOwnerSearch();
+    }
+  });
+}
+if (desktopOwnerSearchButton) {
+  desktopOwnerSearchButton.addEventListener("click", function() { submitOwnerSearch(desktopOwnerSearchInput); });
 }
 document.querySelectorAll("[data-period]").forEach(function(button) {
   button.addEventListener("click", function() {

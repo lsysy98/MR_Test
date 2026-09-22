@@ -50,10 +50,10 @@
   decorateCommand('manualClientAddToggleBtn', 'plus');
   decorateCommand('exhibitionFormToggleBtn', 'plus');
 
-  function avatar(name) {
+  function avatar(name, rank) {
     var node = document.createElement('span');
     node.className = 'owner-avatar';
-    node.textContent = name.slice(0, 1);
+    node.textContent = rank || (ownerNames.indexOf(name) + 1);
     node.dataset.tone = String(Math.max(0, ownerNames.indexOf(name)) % 5);
     node.setAttribute('aria-hidden', 'true');
     return node;
@@ -79,7 +79,7 @@
           var identity = document.createElement('div');
           identity.className = 'owner-identity';
           title.before(identity);
-          identity.appendChild(avatar(card.dataset.owner || ''));
+          identity.appendChild(avatar(card.dataset.owner || '', index + 1));
           identity.appendChild(title);
         }
         button.appendChild(icon('chevron-right', 'owner-chevron'));
@@ -109,11 +109,18 @@
     });
   }
   function decorateMeeting() {
-    byId('meetingCards').querySelectorAll('.meeting-owner-head').forEach(function (head) {
+    byId('meetingCards').querySelectorAll('.meeting-owner-head').forEach(function (head, index) {
       var name = head.querySelector('strong');
-      if (name && !head.querySelector('.owner-avatar')) head.prepend(avatar(name.textContent));
+      if (name && !head.querySelector('.owner-avatar')) head.prepend(avatar(name.textContent, index + 1));
     });
   }
+  document.querySelectorAll('.date-label, .week-label').forEach(function (label) {
+    if (!label.querySelector('.period-calendar-icon')) label.appendChild(icon('calendar-days', 'period-calendar-icon'));
+  });
+  document.querySelectorAll('.official-osstem-mascot').forEach(function (image) {
+    image.addEventListener('load', function () { image.parentElement.classList.add('has-official'); });
+    if (image.complete && image.naturalWidth) image.parentElement.classList.add('has-official');
+  });
   function dateLabel(value) {
     var date = parseDateText(value);
     return date.getFullYear() + '년 ' + (date.getMonth() + 1) + '월 ' + date.getDate() + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][date.getDay()] + '요일';

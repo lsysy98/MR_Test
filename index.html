@@ -2477,13 +2477,13 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260922-completion-3">
+  <link rel="stylesheet" href="workspace.css?v=20260923-layout-5">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
     <div class="header-top">
       <div class="workspace-brand">
-        <span class="brand-mark" aria-hidden="true"><i data-icon="activity"></i></span>
+        <span class="brand-mark" aria-label="표랑이"><span class="osstem-mascot"><img class="official-osstem-mascot" src="https://play-lh.googleusercontent.com/v5hMvoQxdCMPa39JEfdonOInJDxmmm5I00EodMXU6bP9uRUpGnwxMgluVXdkrcmaMLERgC_ZAueIFDbWKULfCTU=w96-h96-rw" alt=""><i class="mascot-eyes"></i><i class="mascot-mouth"></i></span></span>
         <h1 id="appTitle">MR <span>일일보고</span></h1>
       </div>
       <div class="workspace-team"><span>수도권팀</span><span class="environment-label">테스트</span></div>
@@ -2636,24 +2636,31 @@
             <button type="button" data-period="week">주간</button>
           </div>
           <div class="period-controls">
-            <div class="day-control" id="teamDayControl">
-              <button class="btn" type="button" id="prevDayBtn">이전 일</button>
-              <div class="date-pick-wrap">
-                <button class="date-label" type="button" id="teamDateLabel">2026. 07. 01. 수</button>
-                <input class="hidden-date" id="teamDatePicker" type="date" aria-label="일일현황 날짜 선택">
+            <div class="period-control-row">
+              <div class="day-control" id="teamDayControl">
+                <button class="btn" type="button" id="prevDayBtn">이전 일</button>
+                <div class="date-pick-wrap">
+                  <button class="date-label" type="button" id="teamDateLabel">2026. 07. 01. 수</button>
+                  <input class="hidden-date" id="teamDatePicker" type="date" aria-label="일일현황 날짜 선택">
+                </div>
+                <button class="btn" type="button" id="nextDayBtn">다음 일</button>
               </div>
-              <button class="btn" type="button" id="nextDayBtn">다음 일</button>
-            </div>
-            <div class="week-control" id="teamWeekControl">
-              <button class="btn" type="button" id="prevWeekBtn">이전 주</button>
-              <div class="date-pick-wrap">
-                <button class="week-label" type="button" id="teamWeekLabel">7월 1주차</button>
-                <input class="hidden-date" id="teamWeekPicker" type="date" aria-label="일일현황 주차 선택">
+              <div class="week-control" id="teamWeekControl">
+                <button class="btn" type="button" id="prevWeekBtn">이전 주</button>
+                <div class="date-pick-wrap">
+                  <button class="week-label" type="button" id="teamWeekLabel">7월 1주차</button>
+                  <input class="hidden-date" id="teamWeekPicker" type="date" aria-label="일일현황 주차 선택">
+                </div>
+                <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
               </div>
-              <button class="btn" type="button" id="nextWeekBtn">다음 주</button>
+              <div class="owner-search-control desktop-daily-search">
+                <input class="owner-search" id="desktopOwnerSearchInput" type="search" placeholder="거래처 검색" autocomplete="off" aria-label="거래처 검색">
+                <button class="btn owner-search-btn" id="desktopOwnerSearchBtn" type="button">검색</button>
+              </div>
             </div>
           </div>
           </div>
+          <div class="owner-search-results desktop-daily-search-results" id="desktopOwnerSearchResults" aria-live="polite"></div>
           <div class="completion-panel" id="completionPanel">
             <div class="completion-summary" id="completionSummary">
               <strong id="completionCount">완료 0/7</strong>
@@ -2957,7 +2964,7 @@
   </div>
   <script src="app.js?v=20260922-owner-order-3"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="workspace.js?v=20260922-completion-3"></script>
+  <script src="workspace.js?v=20260923-layout-4"></script>
 </body>
 </html>
 

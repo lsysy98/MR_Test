@@ -125,7 +125,11 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .owner-search-control button { width: 46px; min-width: 46px; padding: 0; border-left: 0; border-radius: 0 5px 5px 0; min-height: 34px; overflow: hidden; }
 .workspace .month-nav { display: flex; justify-content: space-between; gap: 12px; padding: 0; }
 .workspace .month-main { display: block; }
-.workspace .month-main input { width: 175px; font-size: 15px !important; min-height: 36px !important; }
+.workspace .month-picker-shell { position: relative; }
+.workspace .month-picker-label { width: 100%; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 5px; border: 0; border-radius: 4px; background: transparent; color: #485962; font-size: 15px; font-weight: 650; white-space: nowrap; }
+.workspace .month-picker-label:hover { background: #f4f6f7; }
+.workspace .month-picker-label .ui-icon { width: 16px; height: 16px; color: var(--accent); }
+.workspace .month-picker-input { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 1px !important; padding: 0 !important; opacity: 0; pointer-events: none; }
 .workspace .month-actions { gap: 5px; }
 .workspace .month-actions .btn { min-height: 34px; font-size: 13px; }
 .workspace .dashboard #currentMonthBtn { display: inline-flex; }
@@ -170,21 +174,18 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .owner-button { display: grid; grid-template-columns: minmax(130px,1fr) auto 16px; gap: 15px; width: 100%; min-height: 66px; padding: 12px 20px; border: 0; border-radius: 0; background: #fff; transition: background .15s; align-items: center; }
 .workspace .owner-button:hover { background: #f7f9fa; }
 .workspace .owner-button.active { background: var(--accent-soft); }
-.workspace .owner-card.report-done > .owner-button { background: #f5faf7; }
-.workspace .owner-card.report-done > .owner-button.active { background: #eaf5ee; }
+.workspace .owner-card.report-done > .owner-button { background: #f1f8f4; }
+.workspace .owner-card.report-done > .owner-button.active { background: #e7f3ec; }
 .workspace .owner-card.report-leave > .owner-button { background: #fafbfc; }
 .workspace .owner-identity { display: flex; align-items: center; gap: 12px; text-align: left; min-width: 0; }
 .owner-avatar { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: #edf2f4; color: #718995; font-size: 14px; font-weight: 650; }
-.owner-avatar[data-tone="1"] { background: #edf2fc; color: #6680ae; }
-.owner-avatar[data-tone="2"] { background: #f8f1e7; color: #af905d; }
-.owner-avatar[data-tone="3"] { background: #e7f3f0; color: #5b9588; }
-.owner-avatar[data-tone="4"] { background: #f6ecee; color: #aa7c87; }
+.owner-avatar[data-tone="1"], .owner-avatar[data-tone="2"], .owner-avatar[data-tone="3"], .owner-avatar[data-tone="4"] { background: #edf1f2; color: #65757d; }
 .workspace .owner-name { font-size: 16px; font-weight: 700; color: #2d3d45; white-space: nowrap; }
 .workspace .owner-title { display: grid; gap: 4px; align-items: start; text-align: left; justify-items: start; }
-.workspace .daily-status { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; font-size: 13px; font-weight: 700; padding: 3px 7px; line-height: 1.4; border: 1px solid transparent; border-radius: 4px; white-space: nowrap; }
-.workspace .daily-status.done { color: #11664f; background: #e0f1e7; border-color: #b7d9c5; }
-.workspace .daily-status.missing { color: #ab3747; background: #fff0f2; border-color: #f0d1d7; }
-.workspace .daily-status.leave { color: #536275; background: #edf1f7; border-color: #d4dce7; }
+.workspace .daily-status { display: inline-flex; align-items: center; gap: 4px; min-height: 0; font-size: 13px; font-weight: 700; padding: 0; line-height: 1.4; border: 0; border-radius: 0; background: transparent; white-space: nowrap; }
+.workspace .daily-status.done { color: #16805a; background: transparent; }
+.workspace .daily-status.missing { color: #c34a57; background: transparent; }
+.workspace .daily-status.leave { color: #647180; background: transparent; }
 .workspace .daily-status::before { display: none; }
 .workspace .daily-status .ui-icon { width: 14px; height: 14px; stroke-width: 2; }
 .workspace .team-line { display: grid; grid-template-columns: 56px 56px 120px; align-items: center; gap: 6px; }
@@ -362,12 +363,18 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .today-panel .body > .desktop-daily-search-results { order: 1; }
   .workspace .today-panel .body > .view-toolbar { order: 0; }
   .workspace .today-panel > section > .head.with-search { display: flex; margin-bottom: 18px; }
-  .workspace .dashboard .month-nav { display: grid; grid-template-columns: minmax(0,1fr) auto auto minmax(0,1fr); gap: 8px; align-items: center; }
-  .workspace .dashboard .month-main { grid-column: 2; grid-row: 1; width: 175px; }
+  .workspace .dashboard .month-nav { display: grid; grid-template-columns: minmax(0,1fr) auto auto minmax(175px,175px); gap: 8px; align-items: center; }
+  .workspace .dashboard .month-main { grid-column: 4; grid-row: 1; width: 175px; justify-self: end; }
   .workspace .dashboard .month-actions { display: contents; }
   .workspace .dashboard #prevMonthBtn { grid-column: 1; grid-row: 1; justify-self: start; }
-  .workspace .dashboard #currentMonthBtn { grid-column: 3; grid-row: 1; }
-  .workspace .dashboard #nextMonthBtn { grid-column: 4; grid-row: 1; justify-self: end; }
+  .workspace .dashboard #currentMonthBtn { grid-column: 2; grid-row: 1; }
+  .workspace .dashboard #nextMonthBtn { grid-column: 3; grid-row: 1; }
+  .workspace .meeting-month-nav { display: grid; grid-template-columns: minmax(0,1fr) auto auto minmax(175px,175px); gap: 8px; align-items: center; }
+  .workspace .meeting-month-nav .month-main { grid-column: 4; grid-row: 1; width: 175px; justify-self: end; }
+  .workspace .meeting-month-nav .month-actions { display: contents; }
+  .workspace .meeting-month-nav #meetingPrevMonthBtn { grid-column: 1; grid-row: 1; justify-self: start; }
+  .workspace .meeting-month-nav #meetingCurrentMonthBtn { grid-column: 2; grid-row: 1; }
+  .workspace .meeting-month-nav #meetingNextMonthBtn { grid-column: 3; grid-row: 1; }
   .workspace .period-calendar-icon { display: inline-block; }
 }
 @media (max-width: 900px) {
@@ -443,7 +450,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .head.with-search { display: grid; gap: 14px; }
   .workspace .owner-search-control { width: 100%; }
   .workspace .owner-search-control input { font-size: 16px !important; }
-  .workspace .month-main input { width: 148px; font-size: 15px !important; }
+  .workspace .month-picker-label { font-size: 15px; }
   .workspace .month-actions .btn { font-size: 12px; min-height: 34px; padding: 0 9px; }
   .workspace .month-actions .icon-only { width: 30px; padding: 0; }
   .workspace .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
@@ -473,6 +480,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .month-nav { display: grid; grid-template-columns: 1fr; gap: 8px; }
   .workspace .dashboard .month-main { grid-column: auto; width: 100%; }
   .workspace .dashboard .month-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
+  .workspace .meeting-month-nav { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .workspace .meeting-month-nav .month-main { grid-column: auto; width: 100%; }
+  .workspace .meeting-month-nav .month-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
   .workspace .period-control-row { display: contents; }
   .workspace .period-calendar-icon { display: none; }
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }

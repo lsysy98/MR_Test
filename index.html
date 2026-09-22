@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260923-monthly-top-8">
+  <link rel="stylesheet" href="workspace.css?v=20260923-monthly-calendar-10">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2597,10 +2597,11 @@
             <input class="owner-search" id="ownerSearchInput" type="search" placeholder="치과명/코드/지점명 검색" autocomplete="off" aria-label="담당자별 치과명, 거래처코드 또는 지점명 검색">
             <button class="btn owner-search-btn" id="ownerSearchBtn" type="button">검색</button>
           </div>
-        </div>
-        <div class="month-nav">
-          <div class="month-main">
-            <input id="monthPicker" type="month" aria-label="월 선택">
+          </div>
+          <div class="month-nav">
+          <div class="month-main month-picker-shell">
+            <button class="month-picker-label" id="monthPickerLabel" type="button" aria-label="월 선택"><span>2026. 09</span><i data-icon="calendar-days" aria-hidden="true"></i></button>
+            <input class="month-picker-input" id="monthPicker" type="month" aria-label="월 선택">
           </div>
           <div class="month-actions">
             <button class="btn" type="button" id="prevMonthBtn">전 달</button>
@@ -2693,10 +2694,10 @@
       <section>
         <div class="head"><h2>회의자료</h2></div>
         <div class="body">
-          <div class="summary-title" id="meetingMonthLabel">이번 달 실적</div>
           <div class="month-nav meeting-month-nav">
-            <div class="month-main">
-              <input id="meetingMonthPicker" type="month" aria-label="회의자료 월 선택">
+            <div class="month-main month-picker-shell">
+              <button class="month-picker-label" id="meetingMonthPickerLabel" type="button" aria-label="회의자료 월 선택"><span>2026. 09</span><i data-icon="calendar-days" aria-hidden="true"></i></button>
+              <input class="month-picker-input" id="meetingMonthPicker" type="month" aria-label="회의자료 월 선택">
             </div>
             <div class="month-actions">
               <button class="btn" type="button" id="meetingPrevMonthBtn">전 월</button>
@@ -2704,6 +2705,7 @@
               <button class="btn" type="button" id="meetingNextMonthBtn">다음 월</button>
             </div>
           </div>
+          <div class="summary-title" id="meetingMonthLabel">이번 달 실적</div>
           <div class="meeting-grid" id="meetingCards"></div>
         </div>
       </section>

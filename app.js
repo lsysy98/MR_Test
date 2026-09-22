@@ -96,6 +96,8 @@ var codeReviewSummary = document.getElementById("codeReviewSummary");
 var codeReviewEmpty = document.getElementById("codeReviewEmpty");
 var meetingMonthLabel = document.getElementById("meetingMonthLabel");
 var meetingMonthPicker = document.getElementById("meetingMonthPicker");
+var monthPickerLabel = document.getElementById("monthPickerLabel");
+var meetingMonthPickerLabel = document.getElementById("meetingMonthPickerLabel");
 var meetingPrevMonthBtn = document.getElementById("meetingPrevMonthBtn");
 var meetingCurrentMonthBtn = document.getElementById("meetingCurrentMonthBtn");
 var meetingNextMonthBtn = document.getElementById("meetingNextMonthBtn");
@@ -1510,8 +1512,12 @@ function updateTypeButtons() {
   });
 }
 function syncMonthPicker() {
-  if (monthPicker) monthPicker.value = monthValue();
-  if (meetingMonthPicker) meetingMonthPicker.value = monthValue();
+  var value = monthValue();
+  var label = selectedYear + ". " + String(selectedMonth).padStart(2, "0");
+  if (monthPicker) monthPicker.value = value;
+  if (meetingMonthPicker) meetingMonthPicker.value = value;
+  if (monthPickerLabel) monthPickerLabel.querySelector("span").textContent = label;
+  if (meetingMonthPickerLabel) meetingMonthPickerLabel.querySelector("span").textContent = label;
 }
 function syncCollectionButtons() {
   if (collectionLabel) {
@@ -5114,11 +5120,22 @@ document.getElementById("nextWeekBtn").addEventListener("click", function() {
 monthPicker.addEventListener("change", function() {
   setSelectedMonthFromValue(monthPicker.value);
 });
+function openMonthPicker(input) {
+  if (!input) return;
+  try {
+    if (typeof input.showPicker === "function") input.showPicker();
+    else input.click();
+  } catch (error) {
+    input.click();
+  }
+}
+if (monthPickerLabel) monthPickerLabel.addEventListener("click", function() { openMonthPicker(monthPicker); });
 if (meetingMonthPicker) {
   meetingMonthPicker.addEventListener("change", function() {
     setSelectedMonthFromValue(meetingMonthPicker.value);
   });
 }
+if (meetingMonthPickerLabel) meetingMonthPickerLabel.addEventListener("click", function() { openMonthPicker(meetingMonthPicker); });
 
 form.addEventListener("submit", async function(e) {
   e.preventDefault();

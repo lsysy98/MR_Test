@@ -128,11 +128,11 @@
     return date.getFullYear() + '년 ' + (date.getMonth() + 1) + '월 ' + date.getDate() + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][date.getDay()] + '요일';
   }
   function positionWritingControls(desktop) {
-    var host = byId(desktop ? 'inputContext' : 'workspaceContext');
+    var host = byId('workspaceContext');
     var profile = byId('workspaceProfile');
     if (profile.parentElement === host) return;
     // Reparent the original controls to keep their values, listeners and form association.
-    var before = desktop ? null : byId('workspaceViewDate');
+    var before = byId('workspaceViewDate');
     host.insertBefore(profile, before);
     host.insertBefore(byId('workspaceReportDate'), before);
   }

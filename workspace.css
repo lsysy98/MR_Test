@@ -364,10 +364,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .metric:nth-child(2) { border-right: 0; }
 }
 @media (min-width: 901px) {
-  .workspace-main { display: grid; grid-template-columns: minmax(0,340px) minmax(0,1fr); gap: 30px; align-items: start; }
-  .workspace-heading { grid-column: 1 / -1; grid-row: 1; width: 100%; justify-self: center; margin-bottom: 0; z-index: 2; }
-  .workspace main { grid-column: 1 / -1; grid-row: 1; width: 100%; justify-self: center; margin-top: 0; }
-  .workspace main > .input-column { margin-top: 70px; }
   .workspace-heading-main { width: 340px; }
   .workspace-context { display: grid; grid-template-rows: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 0; }
   .workspace .workspace-profile, .workspace .workspace-report-date { min-height: 0; height: auto; }
@@ -491,8 +487,6 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }
 }
 @media (min-width: 901px) and (max-width: 1200px) {
-  .workspace-main { grid-template-columns: minmax(0,314px) minmax(0,1fr); gap: 22px; }
-  .workspace main > .input-column { margin-top: 70px; }
   .workspace-heading-main { width: 314px; }
   .workspace-sidebar { padding: 24px 8px 16px; }
   .workspace-sidebar .sidebar-caption, .workspace-sidebar .sidebar-team { display: none; }

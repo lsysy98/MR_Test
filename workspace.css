@@ -64,7 +64,11 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .sidebar-team strong { display: block; color: #58666d; font-size: 13px; font-weight: 650; }
 .sidebar-team span { display: block; font-size: 12px; margin-top: 3px; word-break: keep-all; }
 .workspace-main { margin-left: var(--sidebar); padding: 28px 32px 16px; }
-.workspace-heading { max-width: 1180px; margin: 0 auto 27px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.workspace-heading { max-width: 1180px; margin: 0 auto 27px; display: block; }
+.workspace-heading-main { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: auto auto; align-items: center; width: 100%; }
+.workspace-heading-main > .workspace-eyebrow { grid-column: 1; grid-row: 1; }
+.workspace-heading-main > h2 { grid-column: 1; grid-row: 2; }
+.workspace-heading-main > .workspace-context { grid-column: 2; grid-row: 1 / span 2; }
 .workspace-eyebrow { font-size: 13px; color: #717d84; margin-bottom: 7px; }
 .workspace-eyebrow > span:first-child { padding: 0 8px; color: #b1b9bd; }
 .workspace .workspace-heading h2 { font-size: 28px; font-weight: 750; line-height: 1.3; color: #202c32; margin: 0; }
@@ -358,7 +362,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .metric:nth-child(2) { border-right: 0; }
 }
 @media (min-width: 901px) {
-  .workspace-heading { align-items: stretch; }
+  .workspace-heading-main { width: 340px; }
   .workspace-context { display: grid; grid-template-rows: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 0; }
   .workspace .workspace-profile, .workspace .workspace-report-date { min-height: 0; height: auto; }
   .workspace .input-context { display: none; }
@@ -479,6 +483,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }
 }
 @media (min-width: 901px) and (max-width: 1200px) {
+  .workspace-heading-main { width: 314px; }
   .workspace-sidebar { padding: 24px 8px 16px; }
   .workspace-sidebar .sidebar-caption, .workspace-sidebar .sidebar-team { display: none; }
   .workspace .desktop-tabs .mobile-tab { justify-content: center; padding: 0; }

@@ -36,9 +36,10 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .workspace-topbar { height: 64px; padding: 0 28px 0 24px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: none; position: sticky; top: 0; z-index: 30; }
 .workspace .header-top { height: 64px; width: 100%; max-width: none; display: flex; gap: 26px; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; width: 160px; }
-.brand-mark { background: #f35b16; color: #fff; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; box-shadow: 0 3px 8px #f35b1630; }
-.brand-symbol { width: 24px; height: 24px; display: grid; place-items: center; }
-.brand-symbol .ui-icon { width: 21px; height: 21px; stroke-width: 2.4; }
+.brand-mark { background: #f1f3f4; color: #26343b; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; }
+.brand-app-icon { width: 25px; height: 25px; border-radius: 5px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 1px 3px #26343b1a; }
+.brand-app-label { font-size: 9px; line-height: 10px; font-weight: 850; letter-spacing: 0; }
+.brand-app-line { width: 14px; height: 2px; margin-top: 2px; border-radius: 2px; background: #f06418; }
 .workspace .workspace-brand h1 { display: flex; gap: 5px; align-items: baseline; font-size: 19px; font-weight: 800; color: #18282b; white-space: nowrap; }
 .workspace-brand h1 span { font-size: 16px; font-weight: 650; }
 .workspace-team { display: flex; align-items: center; gap: 12px; color: #48565e; font-size: 15px; margin-right: auto; }
@@ -363,6 +364,10 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .metric:nth-child(2) { border-right: 0; }
 }
 @media (min-width: 901px) {
+  .workspace-main { display: grid; grid-template-columns: minmax(0,340px) minmax(0,1fr); gap: 30px; align-items: start; }
+  .workspace-heading { grid-column: 1 / -1; grid-row: 1; width: 100%; justify-self: center; margin-bottom: 0; z-index: 2; }
+  .workspace main { grid-column: 1 / -1; grid-row: 1; width: 100%; justify-self: center; margin-top: 0; }
+  .workspace main > .input-column { margin-top: 70px; }
   .workspace-heading-main { width: 340px; }
   .workspace-context { display: grid; grid-template-rows: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 0; }
   .workspace .workspace-profile, .workspace .workspace-report-date { min-height: 0; height: auto; }
@@ -386,6 +391,8 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .today-panel > section > .head.with-search { display: flex; margin-bottom: 18px; }
 }
 @media (max-width: 900px) {
+  .workspace-main { display: block; }
+  .workspace main > .input-column { margin-top: 0; }
   .workspace .workspace-topbar { height: 58px; padding: 0 18px; }
   .workspace .header-top { height: 58px; gap: 12px; }
   .workspace-brand { width: auto; margin-right: auto; }
@@ -484,6 +491,8 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .summary .metric:nth-child(n+3) { border-top: 1px solid var(--line); padding-top: 20px; }
 }
 @media (min-width: 901px) and (max-width: 1200px) {
+  .workspace-main { grid-template-columns: minmax(0,314px) minmax(0,1fr); gap: 22px; }
+  .workspace main > .input-column { margin-top: 70px; }
   .workspace-heading-main { width: 314px; }
   .workspace-sidebar { padding: 24px 8px 16px; }
   .workspace-sidebar .sidebar-caption, .workspace-sidebar .sidebar-team { display: none; }

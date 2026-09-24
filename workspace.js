@@ -30,6 +30,7 @@
   ['nextCollectionBtn', 'nextMonthBtn', 'meetingNextMonthBtn', 'nextDayBtn', 'nextWeekBtn', 'calendarNextBtn'].forEach(function (id) { replaceWithIcon(id, 'chevron-right'); });
   ['manualClientCloseBtn', 'exhibitionDetailCloseBtn', 'exhibitionCloseBtn'].forEach(function (id) { replaceWithIcon(id, 'x'); });
   replaceWithIcon('ownerSearchBtn', 'search');
+  replaceWithIcon('desktopOwnerSearchBtn', 'search');
   replaceWithIcon('cancelEditBtn', 'rotate-ccw');
 
   function decorateCommand(id, name) {

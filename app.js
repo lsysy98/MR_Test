@@ -195,12 +195,9 @@ var noticeActionRequired = false;
 var ownerLeaveRows = [];
 var clientLookupTimer = null;
 var clientLookupSeq = 0;
-var clientLookupController = null;
 function cancelClientLookup() {
   clientLookupSeq += 1;
   if (clientLookupTimer) clearTimeout(clientLookupTimer);
-  if (clientLookupController) clientLookupController.abort();
-  clientLookupController = null;
 }
 var manualClientLookupTimer = null;
 var manualClientLookupSeq = 0;
@@ -541,7 +538,7 @@ function renderClientSuggestionMessage(box, message) {
   if (!box) return;
   box.textContent = "";
   var row = document.createElement("div");
-  row.className = "client-suggestion empty";
+  row.className = "client-suggestion empty" + (message === "검색 중입니다." ? " is-loading" : "");
   row.textContent = message;
   box.appendChild(row);
   box.classList.add("active");
@@ -682,16 +679,11 @@ async function loadClientSuggestions(mode) {
     hideClientSuggestions(box);
     return;
   }
-  clientLookupController = new AbortController();
   renderClientSuggestionMessage(box, "검색 중입니다.");
   try {
-    var params = new URLSearchParams();
-    params.set("q", term);
-    params.set("limit", "20");
-    applyClientLookupParams(params);
-    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET", signal: clientLookupController.signal }, 10000);
+    var result = await searchClientDirectory(term);
     if (seq !== clientLookupSeq) return;
-    var items = result.items || [];
+    var items = (result.items || []).slice(0, 20);
     if (!items.length) renderClientNoResultMessage(box, term);
     else renderClientSuggestions(box, items, mode);
   } catch (error) {
@@ -702,9 +694,11 @@ async function loadClientSuggestions(mode) {
 function scheduleClientLookup(mode) {
   cancelClientLookup();
   hideAllClientSuggestions();
+  if (clientLookupTerm(clientInput.value).length < 2) return;
+  renderClientSuggestionMessage(clientSuggestions, "검색 중입니다.");
   clientLookupTimer = setTimeout(function() {
     loadClientSuggestions(mode);
-  }, 300);
+  }, 180);
 }
 function clearClientCode() {
   cancelClientLookup();
@@ -720,11 +714,7 @@ async function autoApplyExactClientMatch() {
   var term = clientLookupTerm(clientInput.value);
   if (term.length < 2) return false;
   try {
-    var params = new URLSearchParams();
-    params.set("q", term);
-    params.set("limit", "8");
-    applyClientLookupParams(params);
-    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
+    var result = await searchClientDirectory(term);
     var normalized = lookupKey(term);
     var items = result.items || [];
     var exactCode = items.find(function(item) {
@@ -822,7 +812,7 @@ function renderManualClientResultMessage(message) {
   if (!manualClientResults) return;
   manualClientResults.textContent = "";
   var row = document.createElement("div");
-  row.className = "client-suggestion empty";
+  row.className = "client-suggestion empty" + (message === "검색 중입니다." ? " is-loading" : "");
   row.textContent = message;
   manualClientResults.appendChild(row);
 }
@@ -882,11 +872,7 @@ async function loadManualClientResults() {
   }
   renderManualClientResultMessage("검색 중입니다.");
   try {
-    var params = new URLSearchParams();
-    params.set("q", term);
-    params.set("limit", "30");
-    applyClientLookupParams(params);
-    var result = await requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000);
+    var result = await searchClientDirectory(term);
     if (seq !== manualClientLookupSeq) return;
     renderManualClientResults(result.items || []);
   } catch (error) {
@@ -897,6 +883,11 @@ async function loadManualClientResults() {
 function scheduleManualClientLookup() {
   manualClientLookupSeq += 1;
   if (manualClientLookupTimer) clearTimeout(manualClientLookupTimer);
+  if (clientLookupTerm(manualClientSearch.value).length < 2) {
+    renderManualClientResultMessage("두 글자 이상 입력하면 검색합니다.");
+    return;
+  }
+  renderManualClientResultMessage("검색 중입니다.");
   manualClientLookupTimer = setTimeout(function() {
     loadManualClientResults();
   }, 180);
@@ -1002,6 +993,7 @@ async function saveManualClient() {
     body: JSON.stringify({ client: client, branch: branch, code: code })
   }, 10000);
   var item = result.item || { client: client, branch: branch, code: code, existing: false };
+  clientSearchCache.clear();
   clientDirectory = [];
   clientDirectoryPromise = null;
   selectManualClient(item);
@@ -1419,7 +1411,9 @@ function productShortLabel(value) {
   var representative = "";
   productRepresentativeOrder.some(function(groupName) {
     if (grouped[groupName] && grouped[groupName].length) {
-      representative = grouped[groupName][0];
+      representative = groupName === "항생제"
+        ? ["세파클리", "아목시클라", "아목시스"].find(function(name) { return grouped[groupName].indexOf(name) >= 0; })
+        : grouped[groupName][0];
       return true;
     }
     return false;
@@ -1575,7 +1569,66 @@ function resetToCurrentMonth() {
   render();
 }
 
+var clientSearchCache = new Map();
+function searchClientDirectory(term) {
+  var owner = ownerInput ? ownerInput.value.trim() : "";
+  var key = JSON.stringify([owner, lookupKey(term)]);
+  var cached = clientSearchCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.promise;
+  var params = new URLSearchParams({ q: term, limit: "30" });
+  if (owner) params.set("owner", owner);
+  var entry = { expiresAt: Infinity, promise: null };
+  entry.promise = requestJson("/api/clients?" + params.toString(), { method: "GET" }, 10000)
+    .then(function(result) {
+      entry.expiresAt = Date.now() + 60000;
+      return result;
+    })
+    .catch(function(error) {
+      if (clientSearchCache.get(key) === entry) clientSearchCache.delete(key);
+      throw error;
+    });
+  clientSearchCache.set(key, entry);
+  // Keep only recent, owner-scoped searches, never the entire CIMS directory.
+  while (clientSearchCache.size > 60) clientSearchCache.delete(clientSearchCache.keys().next().value);
+  return entry.promise;
+}
+var pendingNetworkActivities = new Map();
+var networkActivityId = 0;
+var networkActivityTimer = null;
+function beginNetworkActivity(url, method) {
+  var id = ++networkActivityId;
+  var label = method === "DELETE" ? "삭제 중..." : method && method !== "GET" ? "저장 중..." :
+    url.indexOf("/api/clients?") === 0 ? "거래처 검색 중..." : "로딩 중...";
+  pendingNetworkActivities.set(id, label);
+  function update() {
+    var indicator = document.getElementById("networkActivity");
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.id = "networkActivity";
+      indicator.className = "network-activity";
+      indicator.setAttribute("role", "status");
+      indicator.setAttribute("aria-live", "polite");
+      document.body.appendChild(indicator);
+    }
+    indicator.hidden = !pendingNetworkActivities.size;
+    indicator.textContent = Array.from(pendingNetworkActivities.values()).pop() || "";
+  }
+  if (!networkActivityTimer) networkActivityTimer = setTimeout(function() {
+    networkActivityTimer = null;
+    update();
+  }, 350);
+  return function() {
+    pendingNetworkActivities.delete(id);
+    if (!pendingNetworkActivities.size) {
+      clearTimeout(networkActivityTimer);
+      networkActivityTimer = null;
+    }
+    var indicator = document.getElementById("networkActivity");
+    if (indicator && !indicator.hidden) update();
+  };
+}
 async function requestJson(url, options, timeoutMs) {
+  var finishActivity = beginNetworkActivity(url, options && options.method);
   var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   var timer = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 12000) : null;
   if (controller) {
@@ -1602,6 +1655,7 @@ async function requestJson(url, options, timeoutMs) {
     throw error;
   } finally {
     if (timer) clearTimeout(timer);
+    finishActivity();
   }
 }
 async function api(method, body, query) {
@@ -3777,6 +3831,10 @@ function renderTeamCards(items) {
   var statusMap = dailyStatusMap();
 
   groupByOwner(items).sort(function(a, b) {
+    if (selectedTeamPeriod === "day") {
+      var leaveDiff = Number(statusMap[a.owner] === "leave") - Number(statusMap[b.owner] === "leave");
+      if (leaveDiff !== 0) return leaveDiff;
+    }
     var amountDiff = b.summary.total.amount - a.summary.total.amount;
     if (amountDiff !== 0) return amountDiff;
     return ownerNames.indexOf(a.owner) - ownerNames.indexOf(b.owner);

@@ -1679,7 +1679,7 @@ var exhibitionVersion = null;
 var exhibitionSaving = false;
 var calendarLoading = true;
 function disableControls(container) {
-  var controls = Array.from(container.querySelectorAll("input, select, textarea, button")).map(function(control) {
+  var controls = Array.from(container.elements || container.querySelectorAll("input, select, textarea, button")).map(function(control) {
     var wasDisabled = control.disabled;
     control.disabled = true;
     return { control: control, disabled: wasDisabled };

@@ -136,8 +136,13 @@
     if (view === 'today' && selectedTeamPeriod === 'week') rangeText = weekLabelFromStart(selectedWeekStart);
     if (view === 'form' || view === 'codes') rangeText = dateLabel(todayText);
     byId('workspaceDate').textContent = rangeText;
+    var writingVisible = view === 'form' || isDesktopLayout();
+    byId('workspaceProfile').hidden = !writingVisible;
+    byId('workspaceReportDate').hidden = !writingVisible;
+    byId('workspaceViewDate').hidden = writingVisible;
+    byId('workspaceReportDate').textContent = dayLabel(leaveDateValue(dateInput) || todayText);
     var owner = ownerInput.value || '';
-    byId('workspaceOwner').textContent = owner || '담당자 미선택';
+    byId('workspaceOwner').textContent = owner || '담당자 선택';
     byId('workspaceProfile').querySelector('.profile-avatar').textContent = owner ? owner.slice(0, 1) : 'MR';
     byId('workspaceDraftMode').textContent = editingId ? '수정 중' : '새 보고';
     document.querySelectorAll('[data-view]').forEach(function (button) {
@@ -180,6 +185,11 @@
     new MutationObserver(scheduleRefresh).observe(byId(id), { childList: true });
   });
   new MutationObserver(scheduleRefresh).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(scheduleRefresh).observe(dateInput, { attributes: true, attributeFilter: ['data-date'] });
+  byId('workspaceReportDate').addEventListener('click', function () {
+    if (!reportSaving) openCalendar('formDate', leaveDateValue(dateInput) || todayText);
+  });
+  window.matchMedia('(min-width: 901px)').addEventListener('change', scheduleRefresh);
   ownerInput.addEventListener('change', scheduleRefresh);
   refresh();
 })();

@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260924-usability-13">
+  <link rel="stylesheet" href="workspace.css?v=20260924-profile-date-14">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2487,7 +2487,6 @@
         <h1 id="appTitle">MR <span>일일보고</span></h1>
       </div>
       <div class="workspace-team"><span>수도권팀</span><span class="environment-label">테스트</span></div>
-      <div class="workspace-profile" id="workspaceProfile"><span class="profile-avatar" aria-hidden="true">MR</span><span id="workspaceOwner">담당자 미선택</span></div>
       <div class="admin-menu-wrap">
         <button class="header-settings header-menu-toggle" type="button" id="adminMenuBtn" aria-label="메뉴" aria-expanded="false" title="메뉴">
           <i data-icon="menu" aria-hidden="true"></i>
@@ -2519,27 +2518,29 @@
   <div class="workspace-main">
   <div class="workspace-heading">
     <div><div class="workspace-eyebrow">수도권팀 <span>/</span> <span id="workspaceSection">보고 현황</span></div><h2 id="workspaceTitle">일일현황</h2></div>
-    <div class="workspace-date"><i data-icon="calendar-days" aria-hidden="true"></i><span id="workspaceDate"></span></div>
+    <div class="workspace-context">
+      <label class="workspace-profile" id="workspaceProfile" title="담당자 선택">
+        <span class="profile-avatar" aria-hidden="true">MR</span><span id="workspaceOwner" aria-hidden="true">담당자 선택</span>
+        <select id="owner" form="reportForm" required aria-label="담당자 선택">
+          <option value="">선택</option>
+          <option value="성진욱">성진욱</option>
+          <option value="김무영">김무영</option>
+          <option value="김태홍">김태홍</option>
+          <option value="이승엽">이승엽</option>
+          <option value="제성규">제성규</option>
+          <option value="송진영">송진영</option>
+          <option value="이현욱">이현욱</option>
+        </select>
+      </label>
+      <button class="workspace-report-date" id="workspaceReportDate" type="button" form="reportForm" aria-label="보고 날짜 변경" aria-haspopup="dialog" title="보고 날짜 변경"></button>
+      <div class="workspace-date" id="workspaceViewDate"><i data-icon="calendar-days" aria-hidden="true"></i><span id="workspaceDate"></span></div>
+    </div>
   </div>
   <main>
     <section class="input-panel">
       <div class="head input-head"><div class="input-heading-icon"><i data-icon="pen-line" aria-hidden="true"></i></div><h2>보고 작성</h2><span class="draft-mode" id="workspaceDraftMode">새 보고</span></div>
       <form class="form" id="reportForm">
-        <div class="form-identity">
-        <label><span class="sr-only">담당자</span>
-          <select id="owner" required>
-            <option value="">선택</option>
-            <option value="성진욱">성진욱</option>
-            <option value="김무영">김무영</option>
-            <option value="김태홍">김태홍</option>
-            <option value="이승엽">이승엽</option>
-            <option value="제성규">제성규</option>
-            <option value="송진영">송진영</option>
-            <option value="이현욱">이현욱</option>
-          </select>
-        </label>
-        <label><span class="sr-only">날짜</span><span class="date-input-wrap"><input id="date" type="text" readonly required></span></label>
-        </div>
+        <input id="date" type="hidden">
         <label class="autocomplete-field">거래처
           <input id="client" type="text" required autocomplete="off" placeholder="치과명 또는 거래처코드">
           <input id="clientCode" type="hidden">
@@ -2691,8 +2692,7 @@
 
     <section class="meeting-panel" id="meetingPanel">
       <section>
-        <div class="head"><h2>회의자료</h2></div>
-        <div class="body">
+        <div class="head meeting-head"><h2>회의자료</h2>
           <div class="month-nav meeting-month-nav">
             <div class="period-navigation month-control">
               <button class="btn" type="button" id="meetingPrevMonthBtn">전 월</button>
@@ -2703,7 +2703,9 @@
               <button class="btn" type="button" id="meetingNextMonthBtn">다음 월</button>
             </div>
           </div>
-          <div class="summary-title" id="meetingMonthLabel">이번 달 실적</div>
+        </div>
+        <div class="body">
+          <div class="summary-title" id="meetingMonthLabel" hidden>이번 달 실적</div>
           <div class="meeting-grid" id="meetingCards"></div>
         </div>
       </section>
@@ -2963,9 +2965,9 @@
       <footer><button class="btn primary" type="button" id="notificationEnable" disabled>알림 받기</button><div class="tools-actions"><button class="btn" type="button" id="notificationTest" disabled>시험 알림</button><button class="btn" type="button" id="notificationDisable" disabled>이 기기 알림 해제</button></div></footer>
     </section>
   </div>
-  <script src="app.js?v=20260924-usability-13"></script>
+  <script src="app.js?v=20260924-profile-date-14"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="workspace.js?v=20260924-usability-13"></script>
+  <script src="workspace.js?v=20260924-profile-date-14"></script>
 </body>
 </html>
 

@@ -42,7 +42,12 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace-brand h1 span { font-size: 16px; font-weight: 650; }
 .workspace-team { display: flex; align-items: center; gap: 12px; color: #48565e; font-size: 15px; margin-right: auto; }
 .environment-label { padding: 2px 7px; color: #946514; background: #fff6e0; border: 1px solid #f3e7be; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-.workspace-profile { display: flex; align-items: center; gap: 9px; font-size: 14px; color: #4c5a61; white-space: nowrap; }
+.workspace-context { display: grid; justify-items: end; gap: 2px; flex: 0 0 auto; }
+.workspace .workspace-profile { position: relative; display: flex; align-items: center; gap: 9px; margin: 0; min-height: 36px; font-size: 15px; color: #34454d; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.workspace .workspace-profile select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; padding: 0; cursor: pointer; }
+.workspace-profile:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.workspace .workspace-report-date { display: inline-flex; align-items: center; min-height: 36px; padding: 0; background: transparent; border: 0; border-radius: 4px; font-size: 14px; font-weight: 600; color: #52616a; white-space: nowrap; cursor: pointer; }
+.workspace .workspace-report-date:hover { color: var(--accent); }
 .profile-avatar { display: grid; place-items: center; width: 29px; height: 29px; background: #eef2f4; color: #52656f; border-radius: 50%; font-size: 13px; font-weight: 700; }
 .workspace .header-menu-toggle { width: 34px; height: 34px; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: #52616a; }
 .workspace .header-menu-toggle:hover { background: #f2f5f6; }
@@ -78,12 +83,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace input::placeholder, .workspace textarea::placeholder { color: #9ca7ad; font-weight: 400; }
 .workspace input:focus, .workspace select:focus, .workspace textarea:focus { border-color: var(--accent-line); }
 .workspace input[type="checkbox"] { accent-color: var(--green); }
-.workspace .form-identity { display: grid; grid-template-columns: minmax(76px,.8fr) minmax(0,1.4fr); gap: 0; border: 1px solid #dce2e5; border-radius: 6px; background: #f7f9fa; }
-.workspace .form-identity label { display: block; }
-.workspace .form-identity label + label { border-left: 1px solid #dce2e5; }
-.workspace .form-identity select, .workspace .form-identity input { border: 0 !important; background: transparent !important; min-height: 40px; font-size: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.workspace .form-identity input { font-size: 13px !important; padding-right: 25px !important; }
 .workspace .date-input-wrap::after, .workspace .date-input-wrap::before { display: none; }
 .date-input-icon { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: #7c8d95; pointer-events: none; width: 15px; height: 15px; }
 .workspace .btn { border: 1px solid #dfe5e8; background: #fff; color: #586870; min-height: 38px; padding: 0 12px; font-size: 14px; font-weight: 600; border-radius: 6px; white-space: nowrap; line-height: 1.4; transition: background .15s, border-color .15s; }
@@ -237,6 +237,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .status { border-color: #dce7e7; background: #eef5f5; font-size: 14px; }
 .workspace .status.error { border-color: #f0cfd5; background: var(--red-soft); }
 .workspace .meeting-month-nav { margin: 0; }
+.workspace .meeting-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workspace .meeting-head h2 { margin: 0; white-space: nowrap; }
+.workspace .meeting-head .meeting-month-nav { margin-left: auto; }
 .workspace .meeting-grid:not(.meeting-slide-mode) { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .workspace .meeting-owner-button { border: 1px solid var(--line); box-shadow: none; background: #fff; padding: 20px; border-radius: 7px; text-align: left; gap: 16px; }
 .workspace .meeting-owner-button:hover { background: #fbfdfc; border-color: var(--accent-line); }
@@ -378,7 +381,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace-brand h1 span { font-size: 16px; }
   .brand-mark { width: 27px; height: 29px; }
   .workspace-team { margin-right: 0; gap: 0; }
-  .workspace-team > span:first-child, .workspace-profile, .workspace-sidebar { display: none; }
+  .workspace-team > span:first-child, .workspace-sidebar { display: none; }
   .workspace .header-menu-toggle { width: 32px; min-height: 32px; height: 32px; }
   .workspace .mobile-tabs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); background: #fff; border: 0; border-top: 1px solid var(--line); border-radius: 0; margin: 0; padding: 7px 12px calc(7px + env(safe-area-inset-bottom)); gap: 4px; box-shadow: 0 -5px 20px #182e3705; }
   .workspace .mobile-tabs .mobile-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 46px; color: #727d84; font-size: 12px; font-weight: 500; background: none; }
@@ -396,7 +399,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .form { padding: 20px 18px; gap: 20px; }
   .workspace label { font-size: 14px; gap: 7px; }
   .workspace input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .workspace select, .workspace textarea { min-height: 44px; font-size: 16px; }
-  .workspace .form-identity input { font-size: 14px !important; }
+  .workspace .workspace-report-date { font-size: 13px; min-height: 36px; }
   .workspace .btn { min-height: 40px; }
   .workspace .quick-row .btn { min-height: 34px; font-size: 13px; }
   .workspace .form-actions .btn { min-height: 46px; }

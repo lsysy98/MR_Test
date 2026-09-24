@@ -127,7 +127,18 @@
     var date = parseDateText(value);
     return date.getFullYear() + '년 ' + (date.getMonth() + 1) + '월 ' + date.getDate() + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][date.getDay()] + '요일';
   }
+  function positionWritingControls(desktop) {
+    var host = byId(desktop ? 'inputContext' : 'workspaceContext');
+    var profile = byId('workspaceProfile');
+    if (profile.parentElement === host) return;
+    // Reparent the original controls to keep their values, listeners and form association.
+    var before = desktop ? null : byId('workspaceViewDate');
+    host.insertBefore(profile, before);
+    host.insertBefore(byId('workspaceReportDate'), before);
+  }
   function refresh() {
+    var desktop = isDesktopLayout();
+    positionWritingControls(desktop);
     var view = activeViewName();
     var titles = { form: '보고 작성', today: '일일현황', dashboard: '월간현황', meeting: '회의자료', codes: '코드 확인' };
     byId('workspaceTitle').textContent = titles[view] || '일일현황';
@@ -136,7 +147,7 @@
     if (view === 'today' && selectedTeamPeriod === 'week') rangeText = weekLabelFromStart(selectedWeekStart);
     if (view === 'form' || view === 'codes') rangeText = dateLabel(todayText);
     byId('workspaceDate').textContent = rangeText;
-    var writingVisible = view === 'form' || isDesktopLayout();
+    var writingVisible = view === 'form' || desktop;
     byId('workspaceProfile').hidden = !writingVisible;
     byId('workspaceReportDate').hidden = !writingVisible;
     byId('workspaceViewDate').hidden = writingVisible;

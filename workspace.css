@@ -72,7 +72,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace-date .ui-icon { width: 15px; height: 15px; }
 .workspace main, body.workspace[class*="view-"] main { margin: 0 auto; max-width: 1180px; width: 100%; padding: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 30px; align-items: start; }
 .workspace main > :is(.dashboard, .today-panel, .meeting-panel, .code-panel) { max-width: none; width: 100%; min-width: 0; grid-column: 2; }
-.workspace .input-panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 3px 12px #24394704; position: sticky; top: 88px; min-width: 0; }
+.workspace .input-column { grid-column: 1; min-width: 0; position: sticky; top: 88px; }
+.workspace .input-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.workspace .input-panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 3px 12px #24394704; min-width: 0; }
 .workspace .input-panel .input-head { padding: 18px 18px 16px; border-bottom: 1px solid #edf0f1; display: flex; align-items: center; gap: 9px; }
 .workspace .input-head h2 { font-size: 16px; }
 .input-heading-icon { color: var(--green); display: flex; }
@@ -121,7 +123,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .toast:empty { display: none; }
 .workspace .head { padding: 0; }
 .workspace .body { padding: 0; gap: 20px; }
-.workspace main > :not(.input-panel) > section > .head { margin-bottom: 18px; }
+.workspace main > :not(.input-column) > section > .head { margin-bottom: 18px; }
 .workspace .today-panel > section > .head { display: none; }
 .workspace .head.with-search { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .workspace .head.with-search h2 { flex: 0 0 auto; white-space: nowrap; }
@@ -356,6 +358,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .dashboard .metric:nth-child(2) { border-right: 0; }
 }
 @media (min-width: 901px) {
+  .workspace-context { display: none; }
   .workspace-sidebar { top: 64px; left: 0; bottom: 0; width: var(--sidebar); height: auto; padding: 30px 12px 20px; border-right: 1px solid var(--line); border-bottom: 0; flex-direction: column; align-items: stretch; box-sizing: border-box; }
   .sidebar-caption { padding: 0 15px 13px; white-space: normal; }
   .workspace .desktop-tabs { width: auto; flex: 0; grid-template-columns: 1fr; gap: 5px; padding: 0; }
@@ -394,7 +397,8 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace-date .ui-icon { display: none; }
   .workspace main, body.workspace[class*="view-"] main { display: block; max-width: 620px; width: 100%; padding: 0; }
   .workspace-heading { max-width: 620px; }
-  .workspace .input-panel { position: static; top: auto; }
+  .workspace .input-column { display: contents; }
+  .workspace .input-context { display: none; }
   .workspace .input-panel .input-head { padding: 17px 18px; }
   .workspace .form { padding: 20px 18px; gap: 20px; }
   .workspace label { font-size: 14px; gap: 7px; }

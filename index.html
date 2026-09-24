@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260924-profile-hints-15">
+  <link rel="stylesheet" href="workspace.css?v=20260924-input-context-16">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2518,7 +2518,7 @@
   <div class="workspace-main">
   <div class="workspace-heading">
     <div><div class="workspace-eyebrow">수도권팀 <span>/</span> <span id="workspaceSection">보고 현황</span></div><h2 id="workspaceTitle">일일현황</h2></div>
-    <div class="workspace-context">
+    <div class="workspace-context" id="workspaceContext">
       <label class="workspace-profile" id="workspaceProfile" title="담당자 선택">
         <span id="workspaceOwner" aria-hidden="true">담당자 선택</span><i data-icon="chevron-down" aria-hidden="true"></i>
         <select id="owner" form="reportForm" required aria-label="담당자 선택">
@@ -2537,6 +2537,8 @@
     </div>
   </div>
   <main>
+    <div class="input-column">
+    <div class="input-context" id="inputContext"></div>
     <section class="input-panel">
       <div class="head input-head"><div class="input-heading-icon"><i data-icon="pen-line" aria-hidden="true"></i></div><h2>보고 작성</h2><span class="draft-mode" id="workspaceDraftMode">새 보고</span></div>
       <form class="form" id="reportForm">
@@ -2589,6 +2591,7 @@
         <div class="toast" id="toast"></div>
       </form>
     </section>
+    </div>
 
     <section class="dashboard" id="dashboard">
       <section class="dashboard-toolbar">
@@ -2967,7 +2970,7 @@
   </div>
   <script src="app.js?v=20260924-profile-date-14"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="workspace.js?v=20260924-profile-hints-15"></script>
+  <script src="workspace.js?v=20260924-input-context-16"></script>
 </body>
 </html>
 

@@ -36,8 +36,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .workspace-topbar { height: 64px; padding: 0 28px 0 24px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: none; position: sticky; top: 0; z-index: 30; }
 .workspace .header-top { height: 64px; width: 100%; max-width: none; display: flex; gap: 26px; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; width: 160px; }
-.brand-mark { background: var(--green); color: white; width: 30px; height: 32px; border-radius: 7px; display: grid; place-items: center; }
-.brand-mark .ui-icon { width: 22px; height: 22px; stroke-width: 2; }
+.brand-mark { background: #f35b16; color: #fff; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; box-shadow: 0 3px 8px #f35b1630; }
+.brand-symbol { width: 24px; height: 24px; display: grid; place-items: center; }
+.brand-symbol .ui-icon { width: 21px; height: 21px; stroke-width: 2.4; }
 .workspace .workspace-brand h1 { display: flex; gap: 5px; align-items: baseline; font-size: 19px; font-weight: 800; color: #18282b; white-space: nowrap; }
 .workspace-brand h1 span { font-size: 16px; font-weight: 650; }
 .workspace-team { display: flex; align-items: center; gap: 12px; color: #48565e; font-size: 15px; margin-right: auto; }
@@ -63,7 +64,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .sidebar-team { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 9px 0; display: flex; gap: 8px; align-items: center; color: #7f8c93; }
 .sidebar-team strong { display: block; color: #58666d; font-size: 13px; font-weight: 650; }
 .sidebar-team span { display: block; font-size: 12px; margin-top: 3px; word-break: keep-all; }
-.workspace-main { margin-left: var(--sidebar); padding: 28px 32px 16px; }
+.workspace-main { margin-left: var(--sidebar); padding: 8px 32px 16px; }
 .workspace-heading { max-width: 1180px; margin: 0 auto 27px; display: block; }
 .workspace-heading-main { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: auto auto; align-items: center; width: 100%; }
 .workspace-heading-main > .workspace-eyebrow { grid-column: 1; grid-row: 1; }
@@ -372,7 +373,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .desktop-tabs { width: auto; flex: 0; grid-template-columns: 1fr; gap: 5px; padding: 0; }
   .workspace .desktop-tabs .mobile-tab { min-height: 44px; justify-content: flex-start; padding: 0 14px; }
   .sidebar-team { margin: auto 0 0; padding: 18px 9px 0; border-top: 1px solid var(--line); }
-  .workspace-main { margin-left: var(--sidebar); padding-top: 28px; }
+  .workspace-main { margin-left: var(--sidebar); padding-top: 8px; }
   .workspace .today-panel .desktop-daily-search-results.active { display: grid; }
   .workspace .today-panel .body > .completion-panel { order: 6; }
   .workspace .today-panel .body > .weekly-report-tools { order: 7; }

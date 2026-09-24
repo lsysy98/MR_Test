@@ -36,10 +36,10 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .workspace-topbar { height: 64px; padding: 0 28px 0 24px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: none; position: sticky; top: 0; z-index: 30; }
 .workspace .header-top { height: 64px; width: 100%; max-width: none; display: flex; gap: 26px; }
 .workspace-brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; width: 160px; }
-.brand-mark { background: #f1f3f4; color: #26343b; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; }
-.brand-app-icon { width: 25px; height: 25px; border-radius: 5px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 1px 3px #26343b1a; }
-.brand-app-label { font-size: 9px; line-height: 10px; font-weight: 850; letter-spacing: 0; }
-.brand-app-line { width: 14px; height: 2px; margin-top: 2px; border-radius: 2px; background: #f06418; }
+.brand-mark { background: #f06418; color: #f06418; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; box-shadow: 0 3px 8px #f0641830; }
+.brand-doc { position: relative; width: 18px; height: 21px; display: grid; place-items: end center; padding-bottom: 2px; box-sizing: border-box; background: #fff; border-radius: 3px; }
+.brand-doc::before { content: ''; position: absolute; right: 0; top: 0; border-top: 5px solid #f06418; border-left: 5px solid transparent; }
+.brand-doc .ui-icon { width: 11px; height: 11px; stroke-width: 3; }
 .workspace .workspace-brand h1 { display: flex; gap: 5px; align-items: baseline; font-size: 19px; font-weight: 800; color: #18282b; white-space: nowrap; }
 .workspace-brand h1 span { font-size: 16px; font-weight: 650; }
 .workspace-team { display: flex; align-items: center; gap: 12px; color: #48565e; font-size: 15px; margin-right: auto; }

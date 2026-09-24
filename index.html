@@ -2477,7 +2477,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260924-profile-date-14">
+  <link rel="stylesheet" href="workspace.css?v=20260924-profile-hints-15">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2520,7 +2520,7 @@
     <div><div class="workspace-eyebrow">수도권팀 <span>/</span> <span id="workspaceSection">보고 현황</span></div><h2 id="workspaceTitle">일일현황</h2></div>
     <div class="workspace-context">
       <label class="workspace-profile" id="workspaceProfile" title="담당자 선택">
-        <span class="profile-avatar" aria-hidden="true">MR</span><span id="workspaceOwner" aria-hidden="true">담당자 선택</span>
+        <span id="workspaceOwner" aria-hidden="true">담당자 선택</span><i data-icon="chevron-down" aria-hidden="true"></i>
         <select id="owner" form="reportForm" required aria-label="담당자 선택">
           <option value="">선택</option>
           <option value="성진욱">성진욱</option>
@@ -2532,7 +2532,7 @@
           <option value="이현욱">이현욱</option>
         </select>
       </label>
-      <button class="workspace-report-date" id="workspaceReportDate" type="button" form="reportForm" aria-label="보고 날짜 변경" aria-haspopup="dialog" title="보고 날짜 변경"></button>
+      <button class="workspace-report-date" id="workspaceReportDate" type="button" form="reportForm" aria-label="보고 날짜 변경" aria-haspopup="dialog" title="보고 날짜 변경"><span id="workspaceReportDateText"></span><i data-icon="chevron-down" aria-hidden="true"></i></button>
       <div class="workspace-date" id="workspaceViewDate"><i data-icon="calendar-days" aria-hidden="true"></i><span id="workspaceDate"></span></div>
     </div>
   </div>
@@ -2967,7 +2967,7 @@
   </div>
   <script src="app.js?v=20260924-profile-date-14"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="workspace.js?v=20260924-profile-date-14"></script>
+  <script src="workspace.js?v=20260924-profile-hints-15"></script>
 </body>
 </html>
 

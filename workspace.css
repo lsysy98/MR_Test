@@ -43,12 +43,12 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace-team { display: flex; align-items: center; gap: 12px; color: #48565e; font-size: 15px; margin-right: auto; }
 .environment-label { padding: 2px 7px; color: #946514; background: #fff6e0; border: 1px solid #f3e7be; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .workspace-context { display: grid; justify-items: end; gap: 2px; flex: 0 0 auto; }
-.workspace .workspace-profile { position: relative; display: flex; align-items: center; gap: 9px; margin: 0; min-height: 36px; font-size: 15px; color: #34454d; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.workspace .workspace-profile { position: relative; display: flex; align-items: center; gap: 6px; margin: 0; min-height: 36px; font-size: 15px; color: #34454d; font-weight: 650; white-space: nowrap; cursor: pointer; }
 .workspace .workspace-profile select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; padding: 0; cursor: pointer; }
 .workspace-profile:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-.workspace .workspace-report-date { display: inline-flex; align-items: center; min-height: 36px; padding: 0; background: transparent; border: 0; border-radius: 4px; font-size: 14px; font-weight: 600; color: #52616a; white-space: nowrap; cursor: pointer; }
-.workspace .workspace-report-date:hover { color: var(--accent); }
-.profile-avatar { display: grid; place-items: center; width: 29px; height: 29px; background: #eef2f4; color: #52656f; border-radius: 50%; font-size: 13px; font-weight: 700; }
+.workspace .workspace-report-date { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; background: transparent; border: 0; border-radius: 4px; font-size: 14px; font-weight: 600; color: #52616a; white-space: nowrap; cursor: pointer; }
+.workspace .workspace-profile:hover, .workspace .workspace-profile:focus-within, .workspace .workspace-report-date:hover { color: var(--accent); }
+.workspace-profile > .ui-icon, .workspace-report-date > .ui-icon { width: 14px; height: 14px; color: #7b878e; }
 .workspace .header-menu-toggle { width: 34px; height: 34px; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: #52616a; }
 .workspace .header-menu-toggle:hover { background: #f2f5f6; }
 .workspace .admin-menu { width: 184px; padding: 6px; border-color: var(--line); box-shadow: 0 12px 36px #192a3520; }

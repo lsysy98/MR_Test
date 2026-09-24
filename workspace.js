@@ -140,10 +140,9 @@
     byId('workspaceProfile').hidden = !writingVisible;
     byId('workspaceReportDate').hidden = !writingVisible;
     byId('workspaceViewDate').hidden = writingVisible;
-    byId('workspaceReportDate').textContent = dayLabel(leaveDateValue(dateInput) || todayText);
+    byId('workspaceReportDateText').textContent = dayLabel(leaveDateValue(dateInput) || todayText);
     var owner = ownerInput.value || '';
     byId('workspaceOwner').textContent = owner || '담당자 선택';
-    byId('workspaceProfile').querySelector('.profile-avatar').textContent = owner ? owner.slice(0, 1) : 'MR';
     byId('workspaceDraftMode').textContent = editingId ? '수정 중' : '새 보고';
     document.querySelectorAll('[data-view]').forEach(function (button) {
       if (button.classList.contains('active')) button.setAttribute('aria-current', 'page');

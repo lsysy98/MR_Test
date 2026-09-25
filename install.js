@@ -46,6 +46,7 @@
     refresh();
   });
   button.addEventListener('click', async function () {
+    setAdminMenuOpen(false);
     if (isInstalled()) { refresh(); return; }
     if (!pendingPrompt) { showInstructions(); return; }
     var prompt = pendingPrompt;

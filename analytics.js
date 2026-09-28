@@ -17,18 +17,35 @@ function performanceGroups(items, grouping) {
     .sort(function(a, b) { return b.summary.new.count - a.summary.new.count || b.summary.new.amount - a.summary.new.amount || a.name.localeCompare(b.name, 'ko'); });
 }
 
-function performanceHeadquartersGroups(items) {
-  var groups = new Map();
+function performanceHeadquartersGroups(items, owner) {
+  var branches = new Map();
+  var assigned = owner ? (analyticsOwnerBranches[owner] || []) : Object.keys(analyticsOwnerBranches).reduce(function(all, name) {
+    return all.concat(analyticsOwnerBranches[name]);
+  }, []);
+  assigned.forEach(function(branch) { branches.set(branch, []); });
   items.forEach(function(item) {
-    var name = branchHeadquarters[performanceBranchName(item)] || '본부 미지정';
-    if (!groups.has(name)) groups.set(name, []);
-    groups.get(name).push(item);
+    var branch = performanceBranchName(item);
+    if (!branches.has(branch)) branches.set(branch, []);
+    branches.get(branch).push(item);
   });
+  var groups = new Map();
+  branches.forEach(function(branchItems, branch) {
+    var name = branchHeadquarters[branch] || '본부 미지정';
+    if (!groups.has(name)) groups.set(name, { name: name, items: [], branches: [] });
+    var group = groups.get(name);
+    group.items = group.items.concat(branchItems);
+    group.branches.push({ name: branch, summary: summarize(branchItems) });
+  });
+  var headquartersOrder = Array.from(new Set(assigned.map(function(branch) { return branchHeadquarters[branch]; })));
   return Array.from(groups, function(entry) {
-    return { name: entry[0], summary: summarize(entry[1]), branches: performanceGroups(entry[1], 'branch') };
+    var group = entry[1];
+    return { name: group.name, summary: summarize(group.items), branches: group.branches };
   }).sort(function(a, b) {
     if (a.name === '본부 미지정') return 1;
     if (b.name === '본부 미지정') return -1;
+    var ai = headquartersOrder.indexOf(a.name);
+    var bi = headquartersOrder.indexOf(b.name);
+    if (ai >= 0 || bi >= 0) return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi);
     return a.name.localeCompare(b.name, 'ko');
   });
 }
@@ -98,7 +115,7 @@ function renderPerformanceAnalysis() {
   if (byOwner) {
     performanceGroups(items, 'owner').forEach(function(group) { addRow(body, group.name, group.summary, 'owner'); });
   } else {
-    performanceHeadquartersGroups(items).forEach(function(group) {
+    performanceHeadquartersGroups(items, performanceOwner).forEach(function(group) {
       addRow(body, group.name, group.summary, 'headquarters');
       group.branches.forEach(function(branch) { addRow(body, branch.name, branch.summary, 'branch'); });
     });

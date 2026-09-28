@@ -1,5 +1,10 @@
 // Source: [MR팀] 2_26년 처방통계입력&매출관리의 사본, 지점+본부!B2:C180.
 // Branch affiliations only; report owners always come from the reports themselves.
+// Confirmed by the user; used to retain zero-result branches, never to reassign reports.
+var analyticsOwnerBranches = {
+  "이승엽": ["서초지점", "관악지점", "동작지점", "반포지점", "광명지점", "안산지점", "시흥지점"]
+};
+
 var branchHeadquarters = {
   "서울광진지점": "서울동부영업본부",
   "서울강동지점": "서울동부영업본부",

@@ -4625,6 +4625,7 @@ function render() {
   renderOwnerCards(items);
   renderMeetingCards(items);
   renderCodeReviewPanel();
+  if (typeof renderPerformanceAnalysis === "function") renderPerformanceAnalysis();
 
   document.getElementById("todayTotalAmount").textContent = wonMan(teamSummary.total.amount);
   document.getElementById("todayTotalCount").textContent = teamSummary.total.count + "건";

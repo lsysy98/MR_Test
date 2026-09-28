@@ -177,7 +177,9 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .period-navigation > .btn { width: 32px; height: 36px; min-height: 36px; padding: 0; border-color: transparent; background: transparent; }
 .workspace .date-label, .workspace .week-label, .workspace .month-picker-label { border: 0; border-radius: 4px; font-size: 15px; font-weight: 650; background: transparent; color: #485962; padding: 0 5px; min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
 .workspace .month-picker-label { min-width: 90px; }
-.workspace .month-picker-label:hover { background: #f4f6f7; }
+.workspace :is(.date-label, .week-label, .month-picker-label) { cursor: pointer; }
+.workspace :is(.date-label, .week-label, .month-picker-label, .workspace-report-date):is(:hover, :focus-visible) { color: var(--accent); background: var(--accent-soft); }
+.workspace .workspace-report-date:is(:hover, :focus-visible) > .ui-icon { color: currentColor; }
 .workspace .date-label::before, .workspace .date-label::after, .workspace .week-label::before, .workspace .week-label::after { display: none; }
 .team-list-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 4px; margin-bottom: -8px; }
 .workspace .team-list-heading h3 { margin: 0; font-size: 16px; font-weight: 650; }
@@ -275,17 +277,19 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .meeting-kpi strong { font-size: 18px; }
 .workspace .meeting-section { border: 0; border-radius: 0; padding: 16px 0 0; background: transparent; border-top: 1px solid var(--line); }
 .workspace .meeting-product-grid { background: transparent; border: 0; }
-.workspace .meeting-product-item { padding: 10px 0; border-color: var(--line); }
-.workspace .meeting-product-item span { font-weight: 600; color: #5e727b; }
+.workspace .meeting-product-item { padding: 12px 14px; border-color: var(--line); }
+.workspace .meeting-product-item span { min-width: 0; overflow-wrap: anywhere; font-weight: 600; color: #5e727b; }
 .workspace .meeting-case-item { border: 0; border-left: 0; background: #f3f5f6; border-radius: 6px; padding: 16px; }
 .workspace .meeting-case-item span { line-height: 1.8; }
 .workspace .meeting-client-item { border: 1px solid var(--line); background: #fff; border-radius: 6px; box-shadow: none; padding: 13px; }
 .workspace .meeting-client-item.new, .workspace .meeting-client-item.growth { border-left: 1px solid var(--line); }
-.workspace .client-suggestions, .workspace .manual-client-results { padding: 5px; gap: 4px; border: 1px solid #dce2e5; border-radius: 6px; background: #f5f7f8; box-shadow: 0 8px 24px #192a3510; }
-.workspace .client-suggestion { min-height: 64px; padding: 12px; row-gap: 5px; border-radius: 4px; grid-template-columns: minmax(0,1fr) 62px; background: #fff; line-height: 1.4; }
+.workspace .client-suggestions, .workspace .manual-client-results { padding: 5px; gap: 4px; grid-auto-rows: max-content; align-content: start; border: 1px solid #dce2e5; border-radius: 6px; background: #f5f7f8; box-shadow: 0 8px 24px #192a3510; }
+.workspace .client-suggestion { min-height: 64px; height: auto; padding: 12px; row-gap: 5px; border-radius: 4px; grid-template-columns: minmax(0,1fr) 62px; grid-template-rows: max-content max-content; align-content: start; background: #fff; line-height: 1.4; }
+.workspace .client-suggestion-title { max-width: 100%; }
+.workspace .client-suggestion-title strong { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .workspace .client-suggestion strong, .workspace .client-suggestion.is-existing strong { color: #1d343c; font-weight: 750; font-size: 15px; line-height: 1.4; }
 .workspace .client-suggestion small { color: #667780; font-size: 13px; line-height: 1.4; }
-.workspace .client-suggestion code { color: #7e9499; font-weight: 500; font-size: 12px; }
+.workspace .client-suggestion code { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; color: #7e9499; font-weight: 500; font-size: 12px; }
 .workspace .client-suggestion.is-existing { background: var(--accent-soft); border-color: var(--accent-line); }
 .workspace .client-suggestion.empty { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: 48px; }
 .workspace .client-suggestion.no-result { justify-content: space-between; }
@@ -508,6 +512,24 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .desktop-tabs .mobile-tab { justify-content: center; padding: 0; }
   .workspace .desktop-tabs .mobile-tab span { display: none; }
 }
+.workspace .analytics-panel { display: none; min-width: 0; grid-column: 2; }
+.workspace.view-analytics .analytics-panel { display: block; }
+.workspace.view-analytics main > :is(.dashboard, .today-panel, .meeting-panel, .code-panel) { display: none; }
+.analytics-toolbar, .analytics-controls { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.analytics-toolbar { margin-bottom: 18px; }
+.analytics-controls .seg { display: flex; }
+.analytics-controls .seg button { padding: 0 12px; }
+.analytics-basis, .analytics-pending { color: #647078; font-size: 12px; }
+.analytics-pending { margin: 12px 0; }
+.analytics-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.analytics-table { width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.analytics-table th, .analytics-table td { padding: 13px 12px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.analytics-table th:first-child { text-align: left; min-width: 110px; max-width: 190px; white-space: normal; overflow-wrap: anywhere; }
+.analytics-table thead, .analytics-table tfoot { background: #f0f3f4; }
+.analytics-table tfoot { font-weight: 700; }
+.analytics-table tfoot th, .analytics-table tfoot td { border-bottom: 0; }
+.analytics-empty { color: var(--muted); text-align: center; padding: 18px; }
+@media (max-width: 900px) { .workspace.view-analytics .input-column { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .client-suggestion.is-loading::before { animation: none; }
   .network-activity-title { animation: none; background: none; color: #303030; }

@@ -1648,13 +1648,16 @@ function updateNetworkActivity() {
   var current = activities[0];
   var otherLabels = Array.from(new Set(activities.map(function(item) { return item.label; }))).filter(function(label) { return label !== current.label; });
   var seconds = Math.floor((Date.now() - current.started) / 1000);
-  var detailText = otherLabels.length ? "함께 처리 중: " + otherLabels.join(" · ") : "서버 응답을 기다리고 있어요.";
-  if (seconds >= 5) detailText += "\n응답 대기가 길어지고 있어요.";
+  var detailText = current.label;
+  if (otherLabels.length) detailText += "\n함께 처리 중: " + otherLabels.join(" · ");
+  if (seconds >= 5) detailText += "\n서버 응답을 기다리는 중";
   var titleNode = indicator.querySelector(".network-activity-title");
   var detailNode = indicator.querySelector(".network-activity-detail");
-  if (titleNode.textContent !== current.label) titleNode.textContent = current.label;
+  if (titleNode.textContent !== "로딩 중") titleNode.textContent = "로딩 중";
   if (detailNode.textContent !== detailText) detailNode.textContent = detailText;
-  indicator.querySelector(".network-activity-elapsed").textContent = seconds + "초 경과";
+  var elapsedNode = indicator.querySelector(".network-activity-elapsed");
+  elapsedNode.textContent = seconds + "초 경과";
+  elapsedNode.hidden = seconds < 5;
   indicator.hidden = false;
 }
 function beginNetworkActivity(url, method) {

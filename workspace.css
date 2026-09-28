@@ -291,14 +291,14 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .client-suggestion.no-result { justify-content: space-between; }
 .workspace .client-suggestion .client-register-btn { width: auto; min-width: 104px; flex: 0 0 auto; padding: 8px 12px; }
 .workspace #manualClientAddToggleBtn { width: 100%; min-width: 0; padding: 8px 12px; }
-.network-activity { position: fixed; z-index: 10000; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 7px; width: max-content; min-width: 200px; max-width: min(300px, calc(100% - 32px)); padding: 16px 20px; color: #293139; background: rgba(255, 255, 255, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 0; border-radius: 8px; box-shadow: 0 3px 20px #182e3712; text-align: center; pointer-events: none; }
-.network-activity-title { position: relative; display: inline-block; padding-left: 23px; color: #293139; font-size: 16px; font-weight: 650; line-height: 24px; white-space: nowrap; }
-.network-activity-title::before { content: ""; position: absolute; left: 0; top: 5px; width: 14px; height: 14px; border: 2px solid #f5dfd0; border-top-color: #de5a13; border-radius: 50%; animation: request-spin .85s linear infinite; }
+.network-activity { position: fixed; z-index: 10000; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 7px; width: max-content; min-width: 200px; max-width: min(300px, calc(100% - 32px)); padding: 16px 20px; color: #303030; background: #eeefef; border: 1px solid #d9dbdc; border-radius: 8px; box-shadow: 0 4px 18px #00000012; text-align: center; pointer-events: none; }
+.network-activity-title { position: relative; display: inline-block; padding-left: 23px; color: #303030; font-size: 16px; font-weight: 650; line-height: 24px; white-space: nowrap; }
+.network-activity-title::before { content: ""; position: absolute; left: 0; top: 5px; width: 14px; height: 14px; border: 2px solid #ced0d1; border-top-color: #555; border-radius: 50%; animation: request-spin 1.1s linear infinite; }
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
-  .network-activity-title { background-image: linear-gradient(105deg, #293139 0%, #293139 30%, #a8adb1 47%, #bd622c 53%, #293139 70%, #293139 100%); background-size: 240% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: activity-shimmer 2.8s linear infinite; }
+  .network-activity-title { background-image: linear-gradient(105deg, #303030 0%, #303030 30%, #999 50%, #303030 70%, #303030 100%); background-size: 240% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: activity-shimmer 2.8s linear infinite; }
 }
-.network-activity-detail { margin-top: 5px; color: #647079; font-size: 12px; font-weight: 400; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
-.network-activity-elapsed { color: #7c858c; font-size: 11px; font-variant-numeric: tabular-nums; }
+.network-activity-detail { margin-top: 5px; color: #656565; font-size: 12px; font-weight: 400; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+.network-activity-elapsed { color: #777; font-size: 11px; font-variant-numeric: tabular-nums; }
 @keyframes activity-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 .client-suggestion.is-loading::before { content: ""; width: 16px; height: 16px; flex: 0 0 16px; border: 2px solid #e2e7e9; border-top-color: var(--accent); border-radius: 50%; animation: request-spin .8s linear infinite; }
 @keyframes request-spin { to { transform: rotate(360deg); } }
@@ -510,7 +510,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 }
 @media (prefers-reduced-motion: reduce) {
   .client-suggestion.is-loading::before { animation: none; }
-  .network-activity-title { animation: none; background: none; color: #293139; }
+  .network-activity-title { animation: none; background: none; color: #303030; }
   .network-activity-title::before { animation: none; }
   .workspace *, .workspace *::before, .workspace *::after { scroll-behavior: auto !important; transition: none !important; }
 }

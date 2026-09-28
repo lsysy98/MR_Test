@@ -2478,7 +2478,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="workspace.css?v=20260928-spacing-hover">
+  <link rel="stylesheet" href="workspace.css?v=20260929-headquarters">
 </head>
 <body class="view-form workspace">
   <header class="workspace-topbar">
@@ -2496,7 +2496,6 @@
           <button type="button" id="menuHolidayBtn"><i data-icon="calendar-off" aria-hidden="true"></i>휴일 설정</button>
           <button type="button" id="menuExhibitionBtn"><i data-icon="users" aria-hidden="true"></i>전시회 참석</button>
           <button type="button" id="menuCodeReviewBtn"><i data-icon="scan-line" aria-hidden="true"></i>코드 확인</button>
-          <button type="button" id="menuAnalyticsBtn"><i data-icon="chart-no-axes-combined" aria-hidden="true"></i>실적 분석</button>
           <button type="button" id="menuNotificationsBtn"><i data-icon="bell" aria-hidden="true"></i>알림 설정</button>
         </div>
       </div>
@@ -2506,6 +2505,7 @@
       <button class="mobile-tab" type="button" data-view="today"><i data-icon="calendar-days" aria-hidden="true"></i><span>일일현황</span></button>
       <button class="mobile-tab" type="button" data-view="dashboard"><i data-icon="chart-no-axes-combined" aria-hidden="true"></i><span>월간현황</span></button>
       <button class="mobile-tab" type="button" data-view="meeting"><i data-icon="presentation" aria-hidden="true"></i><span>회의자료</span></button>
+      <button class="mobile-tab" type="button" data-view="analytics"><i data-icon="chart-no-axes-combined" aria-hidden="true"></i><span>실적 분석</span></button>
     </div>
   </header>
   <aside class="workspace-sidebar" aria-label="주 메뉴">
@@ -2514,6 +2514,9 @@
       <button class="mobile-tab active" type="button" data-view="today" title="일일현황"><i data-icon="calendar-days" aria-hidden="true"></i><span>일일현황</span></button>
       <button class="mobile-tab" type="button" data-view="dashboard" title="월간현황"><i data-icon="chart-no-axes-combined" aria-hidden="true"></i><span>월간현황</span></button>
       <button class="mobile-tab" type="button" data-view="meeting" title="회의자료"><i data-icon="presentation" aria-hidden="true"></i><span>회의자료</span></button>
+    </nav>
+    <nav class="desktop-tabs analytics-nav" aria-label="실적 분석">
+      <button class="mobile-tab" type="button" data-view="analytics" title="실적 분석"><i data-icon="chart-no-axes-combined" aria-hidden="true"></i><span>실적 분석</span></button>
     </nav>
     <div class="sidebar-team"><i data-icon="briefcase-business" aria-hidden="true"></i><div><strong>MR 수도권팀</strong><span>일일보고 워크스페이스</span></div></div>
   </aside>
@@ -2748,11 +2751,13 @@
         <div class="seg" role="group" aria-label="실적 집계 기준">
           <button type="button" data-analytics-group="owner" class="active" aria-pressed="true">개인별</button>
           <button type="button" data-analytics-group="branch" aria-pressed="false">지점별</button>
-          <button type="button" disabled title="지점별 본부 소속 정보가 필요합니다">본부별</button>
         </div>
         <span class="analytics-basis">통계 수거 월 기준</span>
       </div>
-      <p class="analytics-pending">본부 소속 정보 미등록</p>
+      <label class="analytics-owner-filter" id="analyticsOwnerFilter" hidden>
+        <span>담당자</span>
+        <select id="analyticsOwner" aria-label="분석 담당자"><option value="">전체 담당자</option></select>
+      </label>
       <div class="analytics-table-wrap" tabindex="0" role="region" aria-label="월별 실적 집계표">
         <table class="analytics-table">
           <caption class="sr-only" id="analyticsCaption">월별 실적</caption>
@@ -3004,7 +3009,8 @@
   </div>
   <script src="app.js?v=20260928-analytics"></script>
   <script src="test-tools.js?v=20260918-notifications-2"></script>
-  <script src="analytics.js?v=20260928"></script>
+  <script src="branch-headquarters.js?v=20260929"></script>
+  <script src="analytics.js?v=20260929-headquarters"></script>
   <script src="workspace.js?v=20260928-analytics"></script>
 </body>
 </html>

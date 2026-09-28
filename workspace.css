@@ -291,8 +291,16 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .workspace .client-suggestion.no-result { justify-content: space-between; }
 .workspace .client-suggestion .client-register-btn { width: auto; min-width: 104px; flex: 0 0 auto; padding: 8px 12px; }
 .workspace #manualClientAddToggleBtn { width: 100%; min-width: 0; padding: 8px 12px; }
-.network-activity { position: fixed; z-index: 10000; top: 72px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; max-width: calc(100% - 32px); padding: 10px 16px; color: #26353c; background: #fff; border: 1px solid #dce2e5; border-radius: 6px; box-shadow: 0 4px 16px #182e3720; font-size: 14px; font-weight: 600; pointer-events: none; }
-.network-activity::before, .client-suggestion.is-loading::before { content: ""; width: 16px; height: 16px; flex: 0 0 16px; border: 2px solid #e2e7e9; border-top-color: var(--accent); border-radius: 50%; animation: request-spin .8s linear infinite; }
+.network-activity { position: fixed; z-index: 10000; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 14px; width: 420px; max-width: calc(100% - 32px); padding: 28px 24px; color: #26353c; background: #fff; border: 1px solid #dce2e5; border-radius: 8px; box-shadow: 0 12px 48px #182e3729; text-align: center; pointer-events: none; }
+.network-activity-title { color: #26353c; font-size: 22px; font-weight: 750; line-height: 1.45; overflow-wrap: anywhere; }
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .network-activity-title { background-image: linear-gradient(100deg, #26353c 0%, #26353c 32%, #96a1a7 48%, #26353c 64%, #26353c 100%); background-size: 240% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: activity-shimmer 2.4s linear infinite; }
+}
+.network-activity-detail { margin-top: 12px; color: #53616a; font-size: 14px; font-weight: 500; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+.network-activity-elapsed { color: #68767e; font-size: 12px; font-variant-numeric: tabular-nums; }
+@keyframes activity-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@media (max-width: 400px) { .network-activity { padding: 24px 18px; } .network-activity-title { font-size: 20px; } }
+.client-suggestion.is-loading::before { content: ""; width: 16px; height: 16px; flex: 0 0 16px; border: 2px solid #e2e7e9; border-top-color: var(--accent); border-radius: 50%; animation: request-spin .8s linear infinite; }
 @keyframes request-spin { to { transform: rotate(360deg); } }
 .workspace .client-suggestion:hover, .workspace .client-suggestion:focus-visible { background: #fff7f1; border-color: var(--accent-line); }
 .workspace .client-existing-badge { background: #ffe0ca; color: var(--accent-ink); font-size: 12px; border-radius: 3px; font-weight: 600; }
@@ -501,6 +509,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
   .workspace .desktop-tabs .mobile-tab span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .network-activity::before, .client-suggestion.is-loading::before { animation: none; }
+  .client-suggestion.is-loading::before { animation: none; }
+  .network-activity-title { animation: none; background: none; color: #26353c; }
   .workspace *, .workspace *::before, .workspace *::after { scroll-behavior: auto !important; transition: none !important; }
 }

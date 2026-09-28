@@ -1596,27 +1596,77 @@ function searchClientDirectory(term) {
 var pendingNetworkActivities = new Map();
 var networkActivityId = 0;
 var networkActivityTimer = null;
+var networkActivityClock = null;
+function networkActivityLabel(url, method) {
+  var request = new URL(url, window.location.href);
+  var resource = {
+    "/api/reports": "보고",
+    "/api/clients": "거래처",
+    "/api/completions": "보고 완료·연차",
+    "/api/holidays": "휴일",
+    "/api/exhibitions": "전시회",
+    "/api/import-clients": "거래처 연결 후보"
+  }[request.pathname] || "데이터";
+  if (method === "DELETE") return resource + " 삭제 중";
+  if (method !== "GET") return resource + " 저장 중";
+  if (request.pathname === "/api/clients") {
+    if (request.searchParams.has("q")) return "거래처 검색 중";
+    if (request.searchParams.has("branches")) return "지점 목록 불러오는 중";
+  }
+  return resource + " 불러오는 중";
+}
+function updateNetworkActivity() {
+  var indicator = document.getElementById("networkActivity");
+  var activities = Array.from(pendingNetworkActivities.values());
+  if (!activities.length) {
+    if (indicator) indicator.hidden = true;
+    clearInterval(networkActivityClock);
+    networkActivityClock = null;
+    return;
+  }
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = "networkActivity";
+    indicator.className = "network-activity";
+    var status = document.createElement("div");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("aria-atomic", "true");
+    var title = document.createElement("div");
+    title.className = "network-activity-title";
+    var detail = document.createElement("div");
+    detail.className = "network-activity-detail";
+    var elapsed = document.createElement("div");
+    elapsed.className = "network-activity-elapsed";
+    elapsed.setAttribute("aria-hidden", "true");
+    status.append(title, detail);
+    indicator.append(status, elapsed);
+    document.body.appendChild(indicator);
+  }
+  // Show writes first, then the oldest pending read; never invent backend progress.
+  activities.sort(function(a, b) { return Number(b.write) - Number(a.write) || a.started - b.started; });
+  var current = activities[0];
+  var otherLabels = Array.from(new Set(activities.map(function(item) { return item.label; }))).filter(function(label) { return label !== current.label; });
+  var seconds = Math.floor((Date.now() - current.started) / 1000);
+  var detailText = otherLabels.length ? "함께 처리 중: " + otherLabels.join(" · ") : "서버 응답을 기다리고 있어요.";
+  if (seconds >= 5) detailText += "\n응답 대기가 길어지고 있어요.";
+  var titleNode = indicator.querySelector(".network-activity-title");
+  var detailNode = indicator.querySelector(".network-activity-detail");
+  if (titleNode.textContent !== current.label) titleNode.textContent = current.label;
+  if (detailNode.textContent !== detailText) detailNode.textContent = detailText;
+  indicator.querySelector(".network-activity-elapsed").textContent = seconds + "초 경과";
+  indicator.hidden = false;
+}
 function beginNetworkActivity(url, method) {
   var id = ++networkActivityId;
-  var label = method === "DELETE" ? "삭제 중..." : method && method !== "GET" ? "저장 중..." :
-    url.indexOf("/api/clients?") === 0 ? "거래처 검색 중..." : "로딩 중...";
-  pendingNetworkActivities.set(id, label);
-  function update() {
-    var indicator = document.getElementById("networkActivity");
-    if (!indicator) {
-      indicator = document.createElement("div");
-      indicator.id = "networkActivity";
-      indicator.className = "network-activity";
-      indicator.setAttribute("role", "status");
-      indicator.setAttribute("aria-live", "polite");
-      document.body.appendChild(indicator);
-    }
-    indicator.hidden = !pendingNetworkActivities.size;
-    indicator.textContent = Array.from(pendingNetworkActivities.values()).pop() || "";
-  }
-  if (!networkActivityTimer) networkActivityTimer = setTimeout(function() {
+  method = String(method || "GET").toUpperCase();
+  pendingNetworkActivities.set(id, { label: networkActivityLabel(url, method), started: Date.now(), write: method !== "GET" });
+  var visible = document.getElementById("networkActivity");
+  if (visible && !visible.hidden) updateNetworkActivity();
+  else if (!networkActivityTimer) networkActivityTimer = setTimeout(function() {
     networkActivityTimer = null;
-    update();
+    updateNetworkActivity();
+    if (pendingNetworkActivities.size && !networkActivityClock) networkActivityClock = setInterval(updateNetworkActivity, 1000);
   }, 350);
   return function() {
     pendingNetworkActivities.delete(id);
@@ -1625,7 +1675,7 @@ function beginNetworkActivity(url, method) {
       networkActivityTimer = null;
     }
     var indicator = document.getElementById("networkActivity");
-    if (indicator && !indicator.hidden) update();
+    if (!pendingNetworkActivities.size || (indicator && !indicator.hidden)) updateNetworkActivity();
   };
 }
 async function requestJson(url, options, timeoutMs) {

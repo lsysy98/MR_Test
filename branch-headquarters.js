@@ -1,8 +1,15 @@
 // Source: [MR팀] 2_26년 처방통계입력&매출관리의 사본, 지점+본부!B2:C180.
 // Branch affiliations only; report owners always come from the reports themselves.
-// Confirmed by the user; used to retain zero-result branches, never to reassign reports.
+// Current app roster matched to 지점+본부!B2:E180 and 지점별 인정매출(확인)!E14:G74.
+// 이승엽's branch order was confirmed by the user. Retain zero-result branches; never reassign reports.
 var analyticsOwnerBranches = {
-  "이승엽": ["서초지점", "관악지점", "동작지점", "반포지점", "광명지점", "안산지점", "시흥지점"]
+  "성진욱": ["은평지점","서울강서지점","양천지점","구로지점","서대문지점","덕양지점","파주지점","일산지점"],
+  "김무영": ["중랑지점","서울강북지점","노원지점","의정부지점","남양주지점","포천지점","구리지점"],
+  "김태홍": ["경기광주지점","이천지점","안성지점","분당지점","평택지점","강원남부지점","강원북부지점","강원동부지점"],
+  "이승엽": ["서초지점","관악지점","동작지점","반포지점","광명지점","안산지점","시흥지점"],
+  "제성규": ["서울광진지점","서울강동지점","잠실지점","동대문지점","송파지점","판교지점","성남지점"],
+  "송진영": ["영등포지점","마포지점","종로지점","성북지점","논현지점","삼성지점","서울중구지점","역삼지점"],
+  "이현욱": ["인천남동지점","인천남부지점","인천서부지점","인천북부지점","인천지점","부천북부지점","부천남부지점","김포지점"]
 };
 
 var branchHeadquarters = {

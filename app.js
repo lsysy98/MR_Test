@@ -429,13 +429,13 @@ function downloadResolvedScreenshot() {
 function showAllResolvedNotice() {
   if (shouldCaptureWeeklyForDate(selectedTeamDate)) {
     showNotice("모든 담당자의 일일보고가 완료되었습니다. " + weeklyCaptureMessage(selectedTeamDate), "", "주간 캡쳐 저장", function() {
-      downloadWeekScreenshot();
       hideNotice();
+      downloadWeekScreenshot();
     }, true, true);
   } else {
-    showNotice("모든 담당자의 일일보고가 완료되었습니다. 스크린샷을 저장해야 넘어갈 수 있습니다.", "", "스크린샷 저장", function() {
-      downloadDayScreenshot();
+    showNotice("모든 담당자의 일일보고가 완료되었습니다.", "", "스크린샷 저장", function() {
       hideNotice();
+      downloadDayScreenshot();
     }, true, true);
   }
 }
@@ -1596,80 +1596,27 @@ function searchClientDirectory(term) {
 var pendingNetworkActivities = new Map();
 var networkActivityId = 0;
 var networkActivityTimer = null;
-var networkActivityClock = null;
-function networkActivityLabel(url, method) {
-  var request = new URL(url, window.location.href);
-  var resource = {
-    "/api/reports": "보고",
-    "/api/clients": "거래처",
-    "/api/completions": "보고 완료·연차",
-    "/api/holidays": "휴일",
-    "/api/exhibitions": "전시회",
-    "/api/import-clients": "거래처 연결 후보"
-  }[request.pathname] || "데이터";
-  if (method === "DELETE") return resource + " 삭제 중";
-  if (method !== "GET") return resource + " 저장 중";
-  if (request.pathname === "/api/clients") {
-    if (request.searchParams.has("q")) return "거래처 검색 중";
-    if (request.searchParams.has("branches")) return "지점 목록 불러오는 중";
-  }
-  return resource + " 불러오는 중";
-}
-function updateNetworkActivity() {
-  var indicator = document.getElementById("networkActivity");
-  var activities = Array.from(pendingNetworkActivities.values());
-  if (!activities.length) {
-    if (indicator) indicator.hidden = true;
-    clearInterval(networkActivityClock);
-    networkActivityClock = null;
-    return;
-  }
-  if (!indicator) {
-    indicator = document.createElement("div");
-    indicator.id = "networkActivity";
-    indicator.className = "network-activity";
-    var status = document.createElement("div");
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    status.setAttribute("aria-atomic", "true");
-    var title = document.createElement("div");
-    title.className = "network-activity-title";
-    var detail = document.createElement("div");
-    detail.className = "network-activity-detail";
-    var elapsed = document.createElement("div");
-    elapsed.className = "network-activity-elapsed";
-    elapsed.setAttribute("aria-hidden", "true");
-    status.append(title, detail);
-    indicator.append(status, elapsed);
-    document.body.appendChild(indicator);
-  }
-  // Show writes first, then the oldest pending read; never invent backend progress.
-  activities.sort(function(a, b) { return Number(b.write) - Number(a.write) || a.started - b.started; });
-  var current = activities[0];
-  var otherLabels = Array.from(new Set(activities.map(function(item) { return item.label; }))).filter(function(label) { return label !== current.label; });
-  var seconds = Math.floor((Date.now() - current.started) / 1000);
-  var detailText = current.label;
-  if (otherLabels.length) detailText += "\n함께 처리 중: " + otherLabels.join(" · ");
-  if (seconds >= 5) detailText += "\n서버 응답을 기다리는 중";
-  var titleNode = indicator.querySelector(".network-activity-title");
-  var detailNode = indicator.querySelector(".network-activity-detail");
-  if (titleNode.textContent !== "로딩 중") titleNode.textContent = "로딩 중";
-  if (detailNode.textContent !== detailText) detailNode.textContent = detailText;
-  var elapsedNode = indicator.querySelector(".network-activity-elapsed");
-  elapsedNode.textContent = seconds + "초 경과";
-  elapsedNode.hidden = seconds < 5;
-  indicator.hidden = false;
-}
 function beginNetworkActivity(url, method) {
   var id = ++networkActivityId;
-  method = String(method || "GET").toUpperCase();
-  pendingNetworkActivities.set(id, { label: networkActivityLabel(url, method), started: Date.now(), write: method !== "GET" });
-  var visible = document.getElementById("networkActivity");
-  if (visible && !visible.hidden) updateNetworkActivity();
-  else if (!networkActivityTimer) networkActivityTimer = setTimeout(function() {
+  var label = method === "DELETE" ? "삭제 중..." : method && method !== "GET" ? "저장 중..." :
+    url.indexOf("/api/clients?") === 0 ? "거래처 검색 중..." : "로딩 중...";
+  pendingNetworkActivities.set(id, label);
+  function update() {
+    var indicator = document.getElementById("networkActivity");
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.id = "networkActivity";
+      indicator.className = "network-activity";
+      indicator.setAttribute("role", "status");
+      indicator.setAttribute("aria-live", "polite");
+      document.body.appendChild(indicator);
+    }
+    indicator.hidden = !pendingNetworkActivities.size;
+    indicator.textContent = Array.from(pendingNetworkActivities.values()).pop() || "";
+  }
+  if (!networkActivityTimer) networkActivityTimer = setTimeout(function() {
     networkActivityTimer = null;
-    updateNetworkActivity();
-    if (pendingNetworkActivities.size && !networkActivityClock) networkActivityClock = setInterval(updateNetworkActivity, 1000);
+    update();
   }, 350);
   return function() {
     pendingNetworkActivities.delete(id);
@@ -1678,7 +1625,7 @@ function beginNetworkActivity(url, method) {
       networkActivityTimer = null;
     }
     var indicator = document.getElementById("networkActivity");
-    if (!pendingNetworkActivities.size || (indicator && !indicator.hidden)) updateNetworkActivity();
+    if (indicator && !indicator.hidden) update();
   };
 }
 async function requestJson(url, options, timeoutMs) {
@@ -4490,12 +4437,100 @@ function teamGroupsForScreenshot(items) {
   });
 }
 function downloadCanvas(canvas, filename) {
+  var imageUrl = canvas.toDataURL("image/png");
+  if (imageUrl.indexOf("data:image/png;base64,") !== 0) throw new Error("PNG 생성 실패");
+  openScreenshotPreview(imageUrl, filename);
+}
+function downloadScreenshotImage(imageUrl, filename) {
   var link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
+  link.href = imageUrl;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
+}
+function openScreenshotPreview(imageUrl, filename) {
+  var dialog = document.getElementById("screenshotDialog");
+  var image = document.getElementById("screenshotImage");
+  var message = document.getElementById("screenshotMessage");
+  var shareButton = document.getElementById("screenshotShareBtn");
+  var expandButton = document.getElementById("screenshotExpandBtn");
+  var file = null;
+  try {
+    if (typeof navigator.share === "function" && typeof navigator.canShare === "function") {
+      var binary = atob(imageUrl.split(",")[1]);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      var candidate = new File([bytes], filename, { type: "image/png" });
+      if (navigator.canShare({ files: [candidate] })) file = candidate;
+    }
+  } catch (error) {
+    file = null;
+  }
+  image.src = imageUrl;
+  image.alt = filename.replace(/\.png$/, "");
+  message.textContent = "";
+  shareButton.hidden = !file;
+  shareButton.disabled = false;
+  function setExpanded(expanded) {
+    dialog.classList.toggle("is-expanded", expanded);
+    if (expanded) {
+      image.tabIndex = 0;
+      image.setAttribute("role", "button");
+      image.setAttribute("aria-label", "캡처 미리보기로 돌아가기");
+      image.focus();
+    } else {
+      image.removeAttribute("tabindex");
+      image.removeAttribute("role");
+      image.removeAttribute("aria-label");
+      if (dialog.open) expandButton.focus();
+    }
+  }
+  setExpanded(false);
+  expandButton.onclick = function() { setExpanded(true); };
+  image.onclick = function() {
+    if (dialog.classList.contains("is-expanded")) setExpanded(false);
+  };
+  image.onkeydown = function(event) {
+    if (dialog.classList.contains("is-expanded") && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      setExpanded(false);
+    }
+  };
+  dialog.oncancel = function(event) {
+    if (dialog.classList.contains("is-expanded")) {
+      event.preventDefault();
+      setExpanded(false);
+    }
+  };
+  dialog.onclose = function() {
+    setExpanded(false);
+    image.removeAttribute("src");
+    shareButton.onclick = null;
+    document.getElementById("screenshotDownloadBtn").onclick = null;
+  };
+  document.getElementById("screenshotCloseBtn").onclick = function() { dialog.close(); };
+  document.getElementById("screenshotDownloadBtn").onclick = function() {
+    try {
+      downloadScreenshotImage(imageUrl, filename);
+    } catch (error) {
+      message.textContent = "이미지 다운로드를 시작하지 못했습니다.";
+    }
+  };
+  async function shareImage() {
+    if (!file || shareButton.disabled) return;
+    shareButton.disabled = true;
+    message.textContent = "";
+    try {
+      await navigator.share({ files: [file] });
+    } catch (error) {
+      message.textContent = error && error.name === "AbortError" ? "" : "공유 창을 열지 못했습니다. 캡처 이미지는 유지됩니다.";
+    } finally {
+      shareButton.disabled = false;
+    }
+  }
+  shareButton.onclick = shareImage;
+  dialog.showModal();
 }
 function drawRoundedBox(ctx, x, y, w, h, color, stroke) {
   ctx.fillStyle = color;
@@ -4597,10 +4632,20 @@ function makeTeamScreenshot(period) {
   return canvas;
 }
 function downloadDayScreenshot() {
-  downloadCanvas(makeTeamScreenshot("day"), "일일현황-" + selectedTeamDate + ".png");
+  saveTeamScreenshot("day", "일일현황-" + selectedTeamDate + ".png");
 }
 function downloadWeekScreenshot() {
-  downloadCanvas(makeTeamScreenshot("week"), "주간현황-" + weekLabelFromStart(selectedWeekStart).replace(/\s+/g, "") + ".png");
+  saveTeamScreenshot("week", "주간현황-" + weekLabelFromStart(selectedWeekStart).replace(/\s+/g, "") + ".png");
+}
+function saveTeamScreenshot(period, filename) {
+  try {
+    downloadCanvas(makeTeamScreenshot(period), filename);
+  } catch (error) {
+    showNotice("캡처 이미지를 만들지 못했습니다.", "danger", "다시 시도", function() {
+      hideNotice();
+      saveTeamScreenshot(period, filename);
+    });
+  }
 }
 function render() {
   var items = monthlyItems();

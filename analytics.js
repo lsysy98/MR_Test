@@ -14,7 +14,7 @@ function performanceGroups(items, grouping) {
     groups.get(name).push(item);
   });
   return Array.from(groups, function(entry) { return { name: entry[0], summary: summarize(entry[1]) }; })
-    .sort(function(a, b) { return b.summary.new.count - a.summary.new.count || b.summary.new.amount - a.summary.new.amount || a.name.localeCompare(b.name, 'ko'); });
+    .sort(function(a, b) { return b.summary.total.amount - a.summary.total.amount || a.name.localeCompare(b.name, 'ko'); });
 }
 
 function performanceHeadquartersGroups(items, owner) {
@@ -37,8 +37,15 @@ function performanceHeadquartersGroups(items, owner) {
     group.branches.push({ name: branch, summary: summarize(branchItems) });
   });
   var headquartersOrder = Array.from(new Set(assigned.map(function(branch) { return branchHeadquarters[branch]; })));
+  var branchOrder = Array.from(new Set(assigned.concat(Object.keys(branchHeadquarters))));
   return Array.from(groups, function(entry) {
     var group = entry[1];
+    group.branches.sort(function(a, b) {
+      var ai = branchOrder.indexOf(a.name);
+      var bi = branchOrder.indexOf(b.name);
+      if (ai >= 0 || bi >= 0) return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi);
+      return a.name.localeCompare(b.name, 'ko');
+    });
     return { name: group.name, summary: summarize(group.items), branches: group.branches };
   }).sort(function(a, b) {
     if (a.name === '본부 미지정') return 1;

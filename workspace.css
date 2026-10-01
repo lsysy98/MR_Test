@@ -581,7 +581,7 @@ body.workspace { background: var(--bg); font-family: "Segoe UI", "Malgun Gothic"
 .analytics-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-width: 0; }
 .analytics-chevron { width: 15px; height: 15px; color: #87949b; }
 .analytics-branch-row.is-expanded .analytics-chevron { transform: rotate(180deg); }
-.analytics-branch-row.is-expanded > .analytics-item-button { background: #f8fafb; }
+.analytics-branch-row.is-expanded > .analytics-item-button { margin: 4px 8px; width: calc(100% - 16px); background: #fff7f0; border: 1px solid #e99860; border-radius: 6px; }
 .analytics-headquarters-group { margin-bottom: 14px; }
 .analytics-headquarters-row > .analytics-item-button { background: transparent; padding-top: 10px; padding-bottom: 10px; min-height: 44px; }
 .analytics-headquarters-row .analytics-name { font-size: 13px; }

@@ -66,27 +66,28 @@ function selectPerformanceGrouping(grouping, owner) {
 }
 
 function performanceBranchDetails(branch, id) {
-  var items = branch.items.filter(function(item) { return item.type === '신규'; }).sort(function(a, b) {
+  var items = branch.items.slice().sort(function(a, b) {
     return String(b.date).localeCompare(String(a.date)) || String(a.client).localeCompare(String(b.client), 'ko');
   });
+  var branchSummary = summarize(items);
   var row = document.createElement('div');
   row.className = 'analytics-branch-detail';
   row.id = id;
   var panel = document.createElement('section');
   panel.className = 'analytics-client-panel';
-  panel.setAttribute('aria-label', branch.name + ' 신규 거래처');
+  panel.setAttribute('aria-label', branch.name + ' 거래처');
   var heading = document.createElement('div');
   heading.className = 'analytics-client-heading';
   var title = document.createElement('strong');
-  title.textContent = branch.name + ' 신규 거래처';
+  title.textContent = branch.name + ' 거래처';
   var summary = document.createElement('span');
-  summary.textContent = items.length + '건 · ' + won(branch.summary.new.amount);
+  summary.textContent = '신규 ' + branchSummary.new.count + '건 · 증대 ' + branchSummary.growth.count + '건 · ' + won(branchSummary.total.amount);
   heading.append(title, summary);
   panel.appendChild(heading);
   if (!items.length) {
     var empty = document.createElement('p');
     empty.className = 'analytics-client-empty';
-    empty.textContent = '선택한 월의 신규 거래처가 없습니다.';
+    empty.textContent = '선택한 월의 거래처가 없습니다.';
     panel.appendChild(empty);
   } else {
     var list = document.createElement('ul');
@@ -198,7 +199,7 @@ function performanceEntry(group, kind, index) {
   button.append(identity, metrics);
   row.appendChild(button);
   if (isHeadquarters) return row;
-  button.setAttribute('aria-label', group.name + (kind === 'owner' ? ' 지점별 실적 보기' : ' 신규 거래처 보기'));
+  button.setAttribute('aria-label', group.name + (kind === 'owner' ? ' 지점별 실적 보기' : ' 거래처 보기'));
   button.setAttribute('aria-describedby', metrics.id);
   var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   icon.setAttribute('class', 'ui-icon analytics-chevron');

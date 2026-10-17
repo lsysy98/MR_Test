@@ -146,25 +146,17 @@
       if (source.type==='증대' && source.product==='3제+클로르') source.product='3제';
       var signature = JSON.stringify(source);
       var cached = reportPlans.get(id);
-      if (!cached) { cached = { row:{status:'상담 중',followup:'미정',note:''}, signature:'' }; reportPlans.set(id,cached); }
+      if (!cached) { cached = { row:{status:'성공',followup:'미정',note:''}, signature:'' }; reportPlans.set(id,cached); }
       if (cached.signature !== signature) { Object.assign(cached.row,source); cached.signature = signature; }
       cached.row.reportAmount=Number(report.amount || 0);
+      cached.row.status='성공';
       linked.push(cached.row);
     });
     return replaceGeneratedPlans(monthRows.get(month),linked);
   }
   function node(tag, text, cls) { var n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; }
   function money(value) { return value.toLocaleString('ko-KR') + '원'; }
-  function nav(host) {
-    if (!host) return;
-    var button = node('button', undefined, 'mobile-tab'); button.type = 'button'; button.dataset.view = 'salesplan';
-    var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); icon.setAttribute('width', '18'); icon.setAttribute('height', '18'); icon.setAttribute('aria-hidden', 'true');
-    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use'); use.setAttribute('href', 'assets/workspace-icons.svg#presentation'); icon.append(use); button.append(icon, node('span', '영업계획서'));
-    button.onclick = function () { setActiveView('salesplan', true); render(); }; host.append(button);
-  }
-  nav(document.querySelector('.mobile-tabs'));
-  var desktop = document.querySelector('.desktop-tabs.analytics-nav');
-  if (desktop) { var host = node('nav', undefined, 'desktop-tabs plan-nav'); host.setAttribute('aria-label', '영업계획'); desktop.after(host); nav(host); }
+  el('menuSalesPlanBtn').onclick = function () { closeAdminMenu(); setActiveView('salesplan',true); render(); };
   names.forEach(function (name) { var option = node('option', name); option.value = name; el('planOwner').append(option); }); el('planOwner').value = selected;
   function updateSummary() {
     var all = rows().filter(function (r) { return r.owner === selected; });

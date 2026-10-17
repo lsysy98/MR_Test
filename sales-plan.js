@@ -144,6 +144,15 @@
       });
       monthRows.set(month,plans); persist();
     }
+    var today=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+    var statusesChanged=false;
+    monthRows.get(month).forEach(function (row) {
+      if (row.generated!==true || row.userEdited || row.userAdded || row.carriedFrom) return;
+      var visit=row.visit || (row.day ? month+'-'+String(row.day).padStart(2,'0') : '');
+      var status=visit && visit<today ? ['상담 중','재방문'][Math.floor(monthRandom(row.owner,visit+'|'+row.code)()*2)] : '방문 예정';
+      if (row.status!==status) { row.status=status; statusesChanged=true; }
+    });
+    if (statusesChanged) persist();
     var alive = new Set();
     var linked = [];
     reports.forEach(function (report) {
@@ -293,4 +302,11 @@
   });
   persist();
   render();
+  var lastPlanDate=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+  function refreshPlanDate() {
+    var today=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+    if (today!==lastPlanDate) { lastPlanDate=today; render(); }
+  }
+  setInterval(refreshPlanDate,60000);
+  document.addEventListener('visibilitychange',function () { if (!document.hidden) refreshPlanDate(); });
 })();

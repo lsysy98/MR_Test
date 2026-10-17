@@ -6,8 +6,10 @@
   var selected = names.includes(ownerInput.value) ? ownerInput.value : '이승엽';
   var el = function (id) { return document.getElementById(id); };
   var monthRows = new Map();
-  var storageKey = 'test-sales-plan-drafts-v1';
-  try { var saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); Object.keys(saved).forEach(function (month) { if (Array.isArray(saved[month])) monthRows.set(month,saved[month]); }); } catch (_) {}
+  var storageKey = 'test-sales-plan-drafts-v3';
+  var migrateDrafts = false;
+  var previousVersion = 1;
+  try { var stored = localStorage.getItem(storageKey); var v2 = localStorage.getItem('test-sales-plan-drafts-v2'); previousVersion = v2 ? 2 : 1; migrateDrafts = !stored; var saved = JSON.parse(stored || v2 || localStorage.getItem('test-sales-plan-drafts-v1') || '{}'); Object.keys(saved).forEach(function (month) { if (Array.isArray(saved[month])) monthRows.set(month,saved[month]); }); } catch (_) {}
   function persist() { try { localStorage.setItem(storageKey,JSON.stringify(Object.fromEntries(monthRows))); } catch (_) {} }
   var fixtureMonths = ['2026-10'];
   var reportPlans = new Map();
@@ -19,24 +21,68 @@
     return chlor ? (other ? '3제+클로르' : '클로르') : '3제';
   }
   // Fictional clients; amount patterns informed by 410 read-only reports (2026-10-18).
-  function createRows(fixtureMonth) {
+  function monthRandom(owner, month) {
+    var seed = 2166136261;
+    (owner + '|' + month).split('').forEach(function (char) { seed = Math.imul(seed ^ char.charCodeAt(0),16777619); });
+    return function () { seed += 0x6D2B79F5; var value = seed; value = Math.imul(value ^ value >>> 15,value | 1); value ^= value + Math.imul(value ^ value >>> 7,value | 61); return ((value ^ value >>> 14) >>> 0) / 4294967296; };
+  }
+  function monthSettings(owner, month) {
+    var random = monthRandom(owner,month);
+    var count = 15 + Math.floor(random()*11);
+    var target = 350 + Math.floor(random()*111);
+    return {count:count,target:target,random:random};
+  }
+  function planCount(owner, month) { return monthSettings(owner,month).count; }
+  function createRows(fixtureMonth, legacy, newOnly) {
     return names.flatMap(function (owner, oi) {
       var branches = typeof analyticsOwnerBranches !== 'undefined' ? analyticsOwnerBranches[owner] || [] : [];
+      var settings = monthSettings(owner,fixtureMonth);
+      var random = settings.random;
       var profiles = [
         [[1,1,1,1,2,2,2,3,3,4], [10,10,20,30,50], [20,30,40,70,100]],
         [[1,1,2,2,3,3,3,4,5,6], [10,20,20,40,50], [20,30,40,60,80]],
         [[1,1,2,2,3,3,4,5,9,10], [10,20,30,40,60], [20,20,30,50,80]]
       ];
-      var profile = profiles[(oi + Number(fixtureMonth.slice(5))) % profiles.length];
+      var profile = profiles[legacy ? (oi + Number(fixtureMonth.slice(5))) % profiles.length : Math.floor(random()*profiles.length)];
       var distribution = [];
       [2,0,1].forEach(function (group,index) {
         profile[index].forEach(function (amount) { distribution.push({group:group,amount:amount * 10000}); });
       });
-      var plans = Array.from({ length: 20 }, function (_, i) {
-        var fixture = distribution[(i * 7 + oi * 3 + Number(fixtureMonth.slice(5))) % distribution.length];
-        var actual = typeof salesPlanClients !== 'undefined' && salesPlanClients[owner] && salesPlanClients[owner][i];
-        return { owner: owner, client: actual ? actual.client : clinics[(i + oi * 3) % clinics.length] + '치과의원', branch: actual ? actual.branch : branches[i % (branches.length || 1)] || '지점 미지정', code: actual ? actual.code : 'D' + (oi + 1) + String(i + 1).padStart(3, '0'), type: '신규', product: productGroups[fixture.group], amount: fixture.amount, day: 1 + (i * 3 + oi) % 28, status: ['방문 예정', '재방문', '성공', '방문 예정', '상담 중'][(i + oi) % 5], followup: i % 7 === 6 ? '다음 달 이월' : i % 5 === 1 ? '이번 달 재방문' : '미정', note: '' };
+      var allCandidates = typeof salesPlanClients !== 'undefined' ? (salesPlanClients[owner] || []) : [];
+      var candidates = allCandidates.filter(function (r) { return !r.existing; });
+      if (!legacy) for (var j = candidates.length-1; j>0; j--) { var k = Math.floor(random()*(j+1)); var swap = candidates[j]; candidates[j]=candidates[k]; candidates[k]=swap; }
+      var existing = allCandidates.filter(function (r) { return r.existing; });
+      if (!legacy && !newOnly) for (var j = existing.length-1; j>0; j--) { var k = Math.floor(random()*(j+1)); var swap=existing[j];existing[j]=existing[k];existing[k]=swap; }
+      var newIndex=0, growthIndex=0;
+      var growthCount=Math.round(settings.count/3);
+      var plans = Array.from({ length: legacy ? 20 : settings.count }, function (_, i) {
+        var group = [2,2,0,1][(i+oi)%4];
+        var pool = distribution.filter(function (r) { return r.group===group; });
+        var fixture = legacy ? distribution[(i * 7 + oi * 3 + Number(fixtureMonth.slice(5))) % distribution.length] : pool[Math.floor(random()*pool.length)];
+        var isGrowth = !legacy && !newOnly && Math.floor((i+1)*growthCount/settings.count)>Math.floor(i*growthCount/settings.count);
+        var actual = isGrowth ? existing[growthIndex++] : candidates[newIndex++];
+        return { owner: owner, client: actual ? actual.client : clinics[(i + oi * 3) % clinics.length] + '치과의원', branch: actual ? actual.branch : branches[i % (branches.length || 1)] || '지점 미지정', code: actual ? actual.code : 'D' + (oi + 1) + String(i + 1).padStart(3, '0'), type: isGrowth ? '증대' : '신규', product: productGroups[fixture.group], amount: fixture.amount, day: 1 + (i * 3 + oi) % 28, status: ['방문 예정', '재방문', '성공', '방문 예정', '상담 중'][(i + oi) % 5], followup: i % 7 === 6 ? '다음 달 이월' : i % 5 === 1 ? '이번 달 재방문' : '미정', note: '' };
       });
+      if (!legacy) {
+        var target = settings.target * 10000;
+        var total = plans.reduce(function (sum,r) { return sum+r.amount; },0);
+        plans.forEach(function (r) {
+          var unit = r.product === '클로르' ? 10000 : 100000;
+          r.amount = Math.max(unit,Math.round(r.amount * target / total / unit) * unit);
+        });
+        var triples = plans.filter(function (r) { return r.product==='3제'; });
+        var combined = plans.filter(function (r) { return r.product==='3제+클로르'; });
+        var tripleAverage = triples.reduce(function (sum,r) { return sum+r.amount; },0)/triples.length;
+        var combinedAverage = combined.reduce(function (sum,r) { return sum+r.amount; },0)/combined.length;
+        while (combinedAverage<=tripleAverage) {
+          var highest = triples.reduce(function (a,b) { return a.amount>b.amount ? a : b; });
+          var lowest = combined.reduce(function (a,b) { return a.amount<b.amount ? a : b; });
+          if (highest.amount>lowest.amount) { var amount=highest.amount; highest.amount=lowest.amount; lowest.amount=amount; }
+          else { if (highest.amount>100000) highest.amount-=100000; lowest.amount+=100000; }
+          tripleAverage=triples.reduce(function (sum,r) { return sum+r.amount; },0)/triples.length;
+          combinedAverage=combined.reduce(function (sum,r) { return sum+r.amount; },0)/combined.length;
+        }
+      }
       return plans;
     });
   }
@@ -54,7 +100,7 @@
       var plans = names.flatMap(function (owner) {
         var carry = carried.filter(function (r) { return r.owner === owner; });
         var used = new Set(carry.map(function (r) { return r.code; }));
-        return carry.concat(generated.filter(function (r) { return r.owner === owner && !used.has(r.code); }).slice(0,Math.max(0,20-carry.length)));
+        return carry.concat(generated.filter(function (r) { return r.owner === owner && !used.has(r.code); }).slice(0,Math.max(0,planCount(owner,month)-carry.length)));
       });
       monthRows.set(month,plans); persist();
     }
@@ -63,7 +109,7 @@
     reports.forEach(function (report) {
       if (!report.id || String(report.date).slice(0,7) !== month || !names.includes(report.owner)) return;
       var id = String(report.id); if (alive.has(id)) return; alive.add(id);
-      var source = { owner:report.owner, client:report.client, branch:report.branchName || '지점 미지정', code:String(report.clientCode || ''), type:report.type, product:productGroup(report.product), amount:Number(report.amount || 0), visit:report.date };
+      var source = { owner:report.owner, client:report.client, branch:report.branchName || '지점 미지정', code:String(report.clientCode || ''), type:report.type === '매출증대' || report.type === '증대' ? '증대' : '신규', product:productGroup(report.product), amount:Number(report.amount || 0), visit:report.date };
       var signature = JSON.stringify(source);
       var cached = reportPlans.get(id);
       if (!cached) { cached = { row:{status:'상담 중',followup:'미정',note:''}, signature:'' }; reportPlans.set(id,cached); }
@@ -95,7 +141,7 @@
   }
   var columns = [
     {key:'branch',label:'지점'}, {key:'client',label:'거래처명'}, {key:'code',label:'거래처코드'},
-    {key:'type',label:'구분',choices:['신규','매출증대']}, {key:'product',label:'목표 품목',choices:productGroups},
+    {key:'type',label:'구분',choices:['신규','증대']}, {key:'product',label:'목표 품목',choices:productGroups},
     {key:'amount',label:'예상매출 · 만원',type:'number'}, {key:'visit',label:'방문 예정일',type:'date'},
     {key:'status',label:'진행상태',choices:['방문 예정','상담 중','재방문','성공','제외']},
     {key:'followup',label:'후속 처리',choices:['미정','이번 달 재방문','다음 달 이월','제외']}, {key:'note',label:'비고'}
@@ -104,7 +150,7 @@
     var td = node('td',undefined,'plan-cell plan-cell-' + column.key), input = node(column.choices ? 'select' : 'input');
     if (column.choices) column.choices.forEach(function (choice) { var option = node('option',choice); option.value = choice; input.append(option); }); else input.type = column.type || 'text';
     if (column.type === 'number') { input.min = '0'; input.step = '0.0001'; }
-    function value() { return column.key === 'amount' ? row.amount / 10000 : column.key === 'visit' ? row.visit || el('planMonth').value + '-' + String(row.day).padStart(2,'0') : row[column.key]; }
+    function value() { return column.key === 'amount' ? row.amount / 10000 : column.key === 'visit' ? row.visit || (row.day ? el('planMonth').value + '-' + String(row.day).padStart(2,'0') : '') : row[column.key]; }
     input.value = value(); input.title = String(input.value); input.setAttribute('aria-label',(index+1) + '행 ' + column.label); input.dataset.key = column.key; input.dataset.column = colIndex;
     if (column.key === 'status') input.dataset.status = row.status;
     input.onfocus = function () { if (input.type === 'text' || input.type === 'number') input.select(); };
@@ -126,10 +172,38 @@
     updateSummary(); el('planCount').textContent = selected + ' · ' + visible.length + '곳'; el('planRows').replaceChildren();
     visible.forEach(function (r,index) { var tr = node('tr'); tr.append(node('th',index+1,'plan-row-number')); columns.forEach(function (column,colIndex) { tr.append(cell(r,column,index,colIndex)); }); el('planRows').append(tr); });
     el('planEmpty').hidden = visible.length > 0;
+    el('planAddRow').disabled = el('planMonth').value > new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,7);
   }
+  el('planAddRow').onclick = function () {
+    var month = el('planMonth').value;
+    if (month > new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,7)) return;
+    rows(); el('planSearch').value = '';
+    monthRows.get(month).push({owner:selected,client:'',branch:'',code:'',type:'신규',product:'3제',amount:0,day:null,visit:'',status:'방문 예정',followup:'미정',note:''});
+    persist(); render();
+    var input = el('planRows').lastElementChild.querySelector('[data-key="client"]'); input.focus(); input.scrollIntoView({block:'nearest',inline:'nearest'});
+  };
   el('planOwner').onchange = function () { selected = this.value; render(); }; el('planSearch').oninput = render;
   el('planMonth').onchange = function () { if (!this.value) this.value = '2026-10'; render(); };
   var renderReports = window.render;
   window.render = function () { var result = renderReports.apply(this,arguments); render(); return result; };
+  if (migrateDrafts) {
+    fixtureMonths.forEach(function (month) {
+      var previous = monthRows.get(month); if (!previous) return;
+      var baseline = previousVersion===2 ? createRows(month,false,true) : createRows(month,true,true);
+      if (previous.filter(function (row) { return baseline.some(function (r) { return r.owner===row.owner && r.code===row.code; }); }).length < 10) return;
+      var modified = previous.filter(function (row) {
+        var original = baseline.find(function (r) { return r.owner===row.owner && r.code===row.code; });
+        return !original || Object.keys(original).some(function (key) { return original[key]!==row[key]; });
+      });
+      var fresh = createRows(month);
+      modified.forEach(function (row) {
+        var index = fresh.findIndex(function (r) { return r.owner===row.owner && r.code===row.code; });
+        if (index>=0) fresh[index]=row; else fresh.push(row);
+      });
+      monthRows.set(month,fresh);
+    });
+    monthRows.forEach(function (plans) { plans.forEach(function (row) { if (row.type==='매출증대') row.type='증대'; }); });
+    persist();
+  }
   render();
 })();

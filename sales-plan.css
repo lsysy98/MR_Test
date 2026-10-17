@@ -43,6 +43,9 @@
 .workspace .plan-table [data-status="성공"] { color:#24785d !important; }
 .workspace .plan-table [data-status="재방문"] { color:#a96829 !important; }
 .plan-nav { margin-top:16px; }
+.plan-add-row { display:flex; align-items:center; gap:8px; width:100%; min-height:36px; margin-top:8px; padding:0 12px; border:1px dashed #cfd8de; border-radius:4px; background:transparent; color:#52616b; font:inherit; font-size:13px; cursor:pointer; }
+.plan-add-row:hover { background:#fff3e9; color:#bd4b0a; border-color:#df9a6b; }
+.plan-add-row:disabled { opacity:.45; cursor:default; }
 @media(max-width:900px) {
  .workspace .mobile-tabs { grid-template-columns:repeat(6,minmax(0,1fr)); }
  .workspace .mobile-tabs .mobile-tab { min-width:0; padding-inline:2px; font-size:10px; white-space:nowrap; }

@@ -29,7 +29,7 @@
   function monthSettings(owner, month) {
     var random = monthRandom(owner,month);
     var count = 15 + Math.floor(random()*11);
-    var target = 350 + Math.floor(random()*111);
+    var target = 500 + Math.floor(random()*151);
     return {count:count,target:target,random:random};
   }
   function planCount(owner, month) { return monthSettings(owner,month).count; }
@@ -73,7 +73,8 @@
         var total = plans.reduce(function (sum,r) { return sum+r.amount; },0);
         plans.forEach(function (r) {
           var unit = r.product === '클로르' ? 10000 : 100000;
-          r.amount = Math.max(unit,Math.round(r.amount * target / total / unit) * unit);
+          var minimum = r.product==='클로르' ? 10000 : r.product==='3제' ? 200000 : 300000;
+          r.amount = Math.max(minimum,Math.round(r.amount * target / total / unit) * unit);
         });
         var triples = plans.filter(function (r) { return r.product==='3제'; });
         var combined = plans.filter(function (r) { return r.product==='3제+클로르'; });
@@ -264,7 +265,7 @@
     });
   });
   try {
-    if (!localStorage.getItem('test-sales-plan-triple-first-v1')) {
+    if (!localStorage.getItem('test-sales-plan-triple-first-v2')) {
       monthRows.forEach(function (plans,month) {
         if (!fixtureMonths.includes(month)) return;
         var fresh=createRows(month);
@@ -274,7 +275,7 @@
           if (replacement) { row.product=replacement.product; row.amount=replacement.amount; }
         });
       });
-      localStorage.setItem('test-sales-plan-triple-first-v1','1');
+      localStorage.setItem('test-sales-plan-triple-first-v2','1');
     }
   } catch (_) {}
   persist();

@@ -60,6 +60,11 @@
         var pool = distribution.filter(function (r) { return r.group===group; });
         var fixture = legacy ? distribution[(i * 7 + oi * 3 + Number(fixtureMonth.slice(5))) % distribution.length] : pool[Math.floor(random()*pool.length)];
         var isGrowth = !legacy && !newOnly && Math.floor((i+1)*growthCount/settings.count)>Math.floor(i*growthCount/settings.count);
+        if (isGrowth && fixture.group===1) {
+          var growthGroup = i%2 ? 0 : 2;
+          var growthPool = distribution.filter(function (r) { return r.group===growthGroup; });
+          fixture = growthPool[Math.floor(random()*growthPool.length)];
+        }
         var actual = isGrowth ? existing[growthIndex++] : candidates[newIndex++];
         return { owner: owner, client: actual ? actual.client : clinics[(i + oi * 3) % clinics.length] + '치과의원', branch: actual ? actual.branch : branches[i % (branches.length || 1)] || '지점 미지정', code: actual ? actual.code : 'D' + (oi + 1) + String(i + 1).padStart(3, '0'), type: isGrowth ? '증대' : '신규', product: productGroups[fixture.group], amount: fixture.amount, day: 1 + (i * 3 + oi) % 28, status: ['방문 예정', '재방문', '성공', '방문 예정', '상담 중'][(i + oi) % 5], followup: i % 7 === 6 ? '다음 달 이월' : i % 5 === 1 ? '이번 달 재방문' : '미정', note: '' };
       });
@@ -83,8 +88,33 @@
           combinedAverage=combined.reduce(function (sum,r) { return sum+r.amount; },0)/combined.length;
         }
       }
+      if (!legacy && !newOnly) plans.forEach(function (r) { r.generated=true; });
       return plans;
     });
+  }
+  function replaceGeneratedPlans(plans, linked) {
+    var keys = new Set(linked.filter(function (r) { return r.code; }).map(function (r) { return r.owner+'|'+r.code; }));
+    var kept=[];
+    names.forEach(function (owner) {
+      var own=plans.filter(function (r) { return r.owner===owner; });
+      var actual=linked.filter(function (r) { return r.owner===owner; }).reduce(function (sum,r) { return sum+Math.max(0,r.reportAmount); },0);
+      var matched=own.filter(function (r) { return r.generated && keys.has(owner+'|'+r.code); }).reduce(function (sum,r) { return sum+r.amount; },0);
+      var remaining=own.filter(function (r) { return !keys.has(owner+'|'+r.code); });
+      var candidates=remaining.filter(function (r) { return r.generated===true && !r.carriedFrom && r.amount>0; });
+      var target=Math.max(0,actual-matched);
+      var sums=new Map([[0,[]]]);
+      candidates.forEach(function (r,index) {
+        Array.from(sums).forEach(function (entry) {
+          var sum=entry[0]+r.amount;
+          if (!sums.has(sum)) sums.set(sum,entry[1].concat(index));
+        });
+      });
+      var best=0;
+      sums.forEach(function (_,sum) { if (Math.abs(sum-target)<Math.abs(best-target) || Math.abs(sum-target)===Math.abs(best-target) && sum<best) best=sum; });
+      var removed=new Set(sums.get(best).map(function (index) { return candidates[index]; }));
+      kept.push.apply(kept,remaining.filter(function (r) { return !removed.has(r); }));
+    });
+    return linked.concat(kept);
   }
   function rows() {
     var month = el('planMonth').value;
@@ -94,7 +124,7 @@
       var previousDate = new Date(Number(month.slice(0,4)),Number(month.slice(5))-2,1);
       var previousMonth = previousDate.getFullYear() + '-' + String(previousDate.getMonth()+1).padStart(2,'0');
       var carried = (monthRows.get(previousMonth) || []).filter(function (r) { return r.followup === '다음 달 이월' && r.status !== '성공' && r.status !== '제외'; }).map(function (r) {
-        return Object.assign({},r,{status:'방문 예정',followup:'미정',visit:'',day:1,carriedFrom:previousMonth});
+        return Object.assign({},r,{status:'방문 예정',followup:'미정',visit:'',day:1,carriedFrom:previousMonth,generated:false});
       });
       var generated = fixtureMonths.includes(month) ? createRows(month) : [];
       var plans = names.flatMap(function (owner) {
@@ -110,14 +140,15 @@
       if (!report.id || String(report.date).slice(0,7) !== month || !names.includes(report.owner)) return;
       var id = String(report.id); if (alive.has(id)) return; alive.add(id);
       var source = { owner:report.owner, client:report.client, branch:report.branchName || '지점 미지정', code:String(report.clientCode || ''), type:report.type === '매출증대' || report.type === '증대' ? '증대' : '신규', product:productGroup(report.product), amount:Number(report.amount || 0), visit:report.date };
+      if (source.type==='증대' && source.product==='3제+클로르') source.product='3제';
       var signature = JSON.stringify(source);
       var cached = reportPlans.get(id);
       if (!cached) { cached = { row:{status:'상담 중',followup:'미정',note:''}, signature:'' }; reportPlans.set(id,cached); }
       if (cached.signature !== signature) { Object.assign(cached.row,source); cached.signature = signature; }
+      cached.row.reportAmount=Number(report.amount || 0);
       linked.push(cached.row);
     });
-    var linkedKeys = new Set(linked.filter(function (r) { return r.code; }).map(function (r) { return r.owner + '|' + r.code; }));
-    return linked.concat(monthRows.get(month).filter(function (r) { return !linkedKeys.has(r.owner + '|' + r.code); }));
+    return replaceGeneratedPlans(monthRows.get(month),linked);
   }
   function node(tag, text, cls) { var n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; }
   function money(value) { return value.toLocaleString('ko-KR') + '원'; }
@@ -148,7 +179,8 @@
   ];
   function cell(row,column,index,colIndex) {
     var td = node('td',undefined,'plan-cell plan-cell-' + column.key), input = node(column.choices ? 'select' : 'input');
-    if (column.choices) column.choices.forEach(function (choice) { var option = node('option',choice); option.value = choice; input.append(option); }); else input.type = column.type || 'text';
+    var choices = column.key==='product' && row.type==='증대' ? ['3제','클로르'] : column.choices;
+    if (choices) choices.forEach(function (choice) { var option = node('option',choice); option.value = choice; input.append(option); }); else input.type = column.type || 'text';
     if (column.type === 'number') { input.min = '0'; input.step = '0.0001'; }
     function value() { return column.key === 'amount' ? row.amount / 10000 : column.key === 'visit' ? row.visit || (row.day ? el('planMonth').value + '-' + String(row.day).padStart(2,'0') : '') : row[column.key]; }
     input.value = value(); input.title = String(input.value); input.setAttribute('aria-label',(index+1) + '행 ' + column.label); input.dataset.key = column.key; input.dataset.column = colIndex;
@@ -157,6 +189,14 @@
     function commit() {
       if (!input.checkValidity() || column.type === 'number' && input.value.trim() === '') { input.value = value(); return; }
       row[column.key] = column.key === 'amount' ? Math.round(Number(input.value)*10000) : input.value.trim(); input.title = String(input.value);
+      if (row.generated) row.generated=false;
+      if (column.key==='type') {
+        if (row.type==='증대' && row.product==='3제+클로르') row.product='3제';
+        var productInput=td.parentElement.querySelector('[data-key="product"]');
+        productInput.replaceChildren();
+        (row.type==='증대' ? ['3제','클로르'] : productGroups).forEach(function (choice) { var option=node('option',choice);option.value=choice;productInput.append(option); });
+        productInput.value=row.product;productInput.title=row.product;
+      }
       if (column.key === 'status') input.dataset.status = row.status; persist(); updateSummary();
     }
     input.onchange = commit;
@@ -205,5 +245,16 @@
     monthRows.forEach(function (plans) { plans.forEach(function (row) { if (row.type==='매출증대') row.type='증대'; }); });
     persist();
   }
+  monthRows.forEach(function (plans) { plans.forEach(function (row) { if (row.type==='증대' && row.product==='3제+클로르') row.product='3제'; }); });
+  monthRows.forEach(function (plans,month) {
+    if (!fixtureMonths.includes(month)) return;
+    var defaults=createRows(month);
+    plans.forEach(function (row) {
+      if (row.generated!==undefined || row.carriedFrom) return;
+      var original=defaults.find(function (r) { return r.owner===row.owner && r.code===row.code; });
+      row.generated=!!original && Object.keys(original).filter(function (key) { return key!=='generated'; }).every(function (key) { return original[key]===row[key]; });
+    });
+  });
+  persist();
   render();
 })();

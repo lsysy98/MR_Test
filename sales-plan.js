@@ -56,12 +56,12 @@
       var newIndex=0, growthIndex=0;
       var growthCount=Math.round(settings.count/3);
       var plans = Array.from({ length: legacy ? 20 : settings.count }, function (_, i) {
-        var group = [2,2,0,1][(i+oi)%4];
+        var group = [0,1,0,1,2][(i+oi)%5];
         var pool = distribution.filter(function (r) { return r.group===group; });
         var fixture = legacy ? distribution[(i * 7 + oi * 3 + Number(fixtureMonth.slice(5))) % distribution.length] : pool[Math.floor(random()*pool.length)];
         var isGrowth = !legacy && !newOnly && Math.floor((i+1)*growthCount/settings.count)>Math.floor(i*growthCount/settings.count);
         if (isGrowth && fixture.group===1 && !combinedGrowth) {
-          var growthGroup = i%2 ? 0 : 2;
+          var growthGroup = 0;
           var growthPool = distribution.filter(function (r) { return r.group===growthGroup; });
           fixture = growthPool[Math.floor(random()*growthPool.length)];
         }
@@ -101,12 +101,14 @@
       var matched=own.filter(function (r) { return r.generated && keys.has(owner+'|'+r.code); }).reduce(function (sum,r) { return sum+r.amount; },0);
       var remaining=own.filter(function (r) { return !keys.has(owner+'|'+r.code); });
       var candidates=remaining.filter(function (r) { return r.generated===true && !r.carriedFrom && r.amount>0; });
+      var maxRemove=Math.max(0,remaining.length+linked.filter(function (r) { return r.owner===owner; }).length-15);
       var target=Math.max(0,actual-matched);
       var sums=new Map([[0,[]]]);
       candidates.forEach(function (r,index) {
         Array.from(sums).forEach(function (entry) {
           var sum=entry[0]+r.amount;
-          if (!sums.has(sum)) sums.set(sum,entry[1].concat(index));
+          var selection=entry[1].concat(index);
+          if (selection.length<=maxRemove && (!sums.has(sum) || sums.get(sum).length>selection.length)) sums.set(sum,selection);
         });
       });
       var best=0;
@@ -261,6 +263,20 @@
       });
     });
   });
+  try {
+    if (!localStorage.getItem('test-sales-plan-triple-first-v1')) {
+      monthRows.forEach(function (plans,month) {
+        if (!fixtureMonths.includes(month)) return;
+        var fresh=createRows(month);
+        plans.forEach(function (row) {
+          if (row.generated!==true || row.userEdited || row.userAdded || row.carriedFrom) return;
+          var replacement=fresh.find(function (r) { return r.owner===row.owner && r.code===row.code; });
+          if (replacement) { row.product=replacement.product; row.amount=replacement.amount; }
+        });
+      });
+      localStorage.setItem('test-sales-plan-triple-first-v1','1');
+    }
+  } catch (_) {}
   persist();
   render();
 })();

@@ -28,7 +28,7 @@
   }
   function monthSettings(owner, month) {
     var random = monthRandom(owner,month);
-    var count = 15 + Math.floor(random()*11);
+    var count = 20 + Math.floor(random()*6);
     var target = 500 + Math.floor(random()*151);
     return {count:count,target:target,random:random};
   }
@@ -68,6 +68,7 @@
         var actual = isGrowth ? existing[growthIndex++] : candidates[newIndex++];
         return { owner: owner, client: actual ? actual.client : clinics[(i + oi * 3) % clinics.length] + '치과의원', branch: actual ? actual.branch : branches[i % (branches.length || 1)] || '지점 미지정', code: actual ? actual.code : 'D' + (oi + 1) + String(i + 1).padStart(3, '0'), type: isGrowth ? '증대' : '신규', product: productGroups[fixture.group], amount: fixture.amount, day: 1 + (i * 3 + oi) % 28, status: ['방문 예정', '재방문', '성공', '방문 예정', '상담 중'][(i + oi) % 5], followup: i % 7 === 6 ? '다음 달 이월' : i % 5 === 1 ? '이번 달 재방문' : '미정', note: '' };
       });
+      if (!legacy && !newOnly && !combinedGrowth) plans.forEach(function (r) { if (r.status==='성공') r.status='방문 예정'; });
       if (!legacy) {
         var target = settings.target * 10000;
         var total = plans.reduce(function (sum,r) { return sum+r.amount; },0);
@@ -102,7 +103,7 @@
       var matched=own.filter(function (r) { return r.generated && keys.has(owner+'|'+r.code); }).reduce(function (sum,r) { return sum+r.amount; },0);
       var remaining=own.filter(function (r) { return !keys.has(owner+'|'+r.code); });
       var candidates=remaining.filter(function (r) { return r.generated===true && !r.carriedFrom && r.amount>0; });
-      var maxRemove=Math.max(0,remaining.length+linked.filter(function (r) { return r.owner===owner; }).length-15);
+      var maxRemove=Math.max(0,remaining.length+linked.filter(function (r) { return r.owner===owner; }).length-20);
       var target=Math.max(0,actual-matched);
       var sums=new Map([[0,[]]]);
       candidates.forEach(function (r,index) {
@@ -115,9 +116,15 @@
       var best=0;
       sums.forEach(function (_,sum) { if (Math.abs(sum-target)<Math.abs(best-target) || Math.abs(sum-target)===Math.abs(best-target) && sum<best) best=sum; });
       var removed=new Set(sums.get(best).map(function (index) { return candidates[index]; }));
-      kept.push.apply(kept,remaining.filter(function (r) { return !removed.has(r); }));
+      var ownerRows=linked.filter(function (r) { return r.owner===owner; }).concat(remaining.filter(function (r) { return !removed.has(r); }));
+      var successes=ownerRows.filter(function (r) { return r.status==='성공'; });
+      var pending=ownerRows.filter(function (r) { return r.status!=='성공'; });
+      if (!pending.length) { kept.push.apply(kept,ownerRows); return; }
+      var slots=new Set(successes.map(function (_,i) { return Math.floor((i+1)*ownerRows.length/(successes.length+1)); }));
+      var successIndex=0, pendingIndex=0;
+      ownerRows.forEach(function (_,i) { kept.push(slots.has(i) ? successes[successIndex++] : pending[pendingIndex++]); });
     });
-    return linked.concat(kept);
+    return kept;
   }
   function rows() {
     var month = el('planMonth').value;
@@ -149,6 +156,7 @@
       if (!cached) { cached = { row:{status:'성공',followup:'미정',note:''}, signature:'' }; reportPlans.set(id,cached); }
       if (cached.signature !== signature) { Object.assign(cached.row,source); cached.signature = signature; }
       cached.row.reportAmount=Number(report.amount || 0);
+      cached.row.reportId=id;
       cached.row.status='성공';
       linked.push(cached.row);
     });
@@ -206,7 +214,7 @@
   function render() {
     var query = el('planSearch').value.trim(); var visible = rows().filter(function (r) { return r.owner === selected && (r.client+r.branch+r.code).includes(query); });
     updateSummary(); el('planCount').textContent = selected + ' · ' + visible.length + '곳'; el('planRows').replaceChildren();
-    visible.forEach(function (r,index) { var tr = node('tr'); tr.append(node('th',index+1,'plan-row-number')); columns.forEach(function (column,colIndex) { tr.append(cell(r,column,index,colIndex)); }); el('planRows').append(tr); });
+    visible.forEach(function (r,index) { var tr = node('tr'); if (r.reportId) tr.dataset.reportId=r.reportId; tr.append(node('th',index+1,'plan-row-number')); columns.forEach(function (column,colIndex) { tr.append(cell(r,column,index,colIndex)); }); el('planRows').append(tr); });
     el('planEmpty').hidden = visible.length > 0;
     el('planAddRow').disabled = el('planMonth').value > new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,7);
   }
@@ -270,6 +278,19 @@
       localStorage.setItem('test-sales-plan-triple-first-v2','1');
     }
   } catch (_) {}
+  monthRows.forEach(function (plans,month) {
+    if (!fixtureMonths.includes(month)) return;
+    var fresh=createRows(month);
+    names.forEach(function (owner) {
+      var own=plans.filter(function (r) { return r.owner===owner; });
+      if (own.length>=20) return;
+      var codes=new Set(own.map(function (r) { return r.code; }));
+      fresh.filter(function (r) { return r.owner===owner && !codes.has(r.code); }).slice(0,20-own.length).forEach(function (r) { plans.push(r); });
+    });
+  });
+  monthRows.forEach(function (plans) {
+    plans.forEach(function (row) { if (row.generated===true && !row.userEdited && !row.userAdded && row.status==='성공') row.status='방문 예정'; });
+  });
   persist();
   render();
 })();
